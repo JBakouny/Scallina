@@ -11,7 +11,7 @@ sealed trait Sentence extends CoqAST
 
 //TODO (Joseph Bakouny): This AST is not in the grammar, consider a more in-depth support for modules!
 case class RequireImport(moduleName: Qualid) extends Sentence {
-  def toCoqCode: String = "Require Import " + moduleName.toCoqCode
+  def toCoqCode: String = "Require Import " + moduleName.toCoqCode + "."
 }
 
 /*
@@ -22,19 +22,19 @@ case class Definition(ident: Ident, binders: Option[Binders], typeTerm: Option[T
     "Definition " + ident.toCoqCode +
       binders.fold("")(" " + _.toCoqCode) +
       typeTerm.fold("")(" : " + _.toCoqCode) +
-      " := " + bodyTerm.toCoqCode + " ."
+      " := " + bodyTerm.toCoqCode + "."
 }
 
 // TODO (Joseph Bakouny): Consider supporting list of fixBodies for a Fixpoint and also CoFixpoint
 case class Fixpoint(fixBody: FixBody) extends Sentence {
-  def toCoqCode: String = "Fixpoint " + fixBody.toCoqCode
+  def toCoqCode: String = "Fixpoint " + fixBody.toCoqCode + "."
 }
 
 case class Assertion(keyword: AssertionKeyword, id: Ident, binders: Option[Binders], term: Term) extends Sentence {
   def toCoqCode: String =
     keyword.toCoqCode + " " + id.toCoqCode +
       " " + binders.fold("")(_.toCoqCode) +
-      ": " + term.toCoqCode + " ."
+      ": " + term.toCoqCode + "."
 }
 
 // Start of AssertionKeyword
@@ -95,7 +95,7 @@ case object ProofAdmitted extends Proof {
 
 // TODO (Joseph Bakouny): Consider supporting a list of inductive bodies and CoInductives
 case class Inductive(indBody: InductiveBody) extends Sentence {
-  def toCoqCode: String = "Inductive " + indBody.toCoqCode
+  def toCoqCode: String = "Inductive " + indBody.toCoqCode + "."
 }
 
 // End of sentence
@@ -103,7 +103,7 @@ case class Inductive(indBody: InductiveBody) extends Sentence {
 // TODO (Joseph Bakouny): Check why the InductiveBody typeTerm seems optional in Coq but marked as required in the grammar
 case class InductiveBody(id: Ident, binders: Option[Binders], typeTerm: Option[Term], indBodyItems: List[InductiveBodyItem]) extends CoqAST {
   def toCoqCode: String =
-    id.toCoqCode + binders.fold("")(" " + _.toCoqCode) + " : " + typeTerm.fold("")(_.toCoqCode) + " :=\n" +
+    id.toCoqCode + binders.fold("")(" " + _.toCoqCode) + typeTerm.fold("")(" : " + _.toCoqCode) + " :=\n" +
       indBodyItems.map(_.toCoqCode).mkString("\n| ")
 }
 
