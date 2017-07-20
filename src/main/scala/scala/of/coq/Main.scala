@@ -7,11 +7,7 @@ import scala.of.coq.parsercombinators.compiler.ScalaOfCoq
 
 object Main {
   val usage = """
-    Usage: sbt "run [--source] [--trim] [--ast] [--lexer] [--coq] <coq-source-file-1.v> ... <coq-source-file-n.v>"
-    Or
-    Usage: scala target/scala-2.11/Scala-of-Coq-assembly-0.1-SNAPSHOT.jar [--source] [--trim] [--ast] [--lexer] [--coq] <coq-source-file-1.v> ... <coq-source-file-n.v>
-
-    The program will later be packaged in a script.
+    Usage: scala target/scala-2.11/scallina-assembly-<scallina-version>.jar [--source] [--trim] [--ast] [--lexer] [--coq] <coq-source-file-1.v> ... <coq-source-file-n.v>
   """
 
   def printUsageAndExit(exitCode: Int) = {
