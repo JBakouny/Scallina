@@ -525,6 +525,10 @@ class CoqTermParserTest extends FunSuite {
   test("""Testing "3 =? 7" """) {
     CoqTermParser("3 =? 7") should parse(InfixOperator(Number(3), "=?", Number(7)))
   }
+  
+  test("""Testing "x :: xs" """) {
+    CoqTermParser("x :: xs") should parse(InfixOperator(Qualid(List(Ident("x"))), "::" ,Qualid(List(Ident("xs")))))
+  }
 
   test(""" Testing
     match Node (Node Leaf Leaf) (Node Leaf Leaf) with

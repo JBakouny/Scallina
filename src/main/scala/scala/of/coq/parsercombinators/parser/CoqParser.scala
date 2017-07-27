@@ -282,6 +282,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
         | infixOp(">=")
         | infixOp("<?")
         | infixOp("=?")
+        | infixOp("::")
       )
     }
 
