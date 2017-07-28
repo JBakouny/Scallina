@@ -10,5 +10,10 @@ object InductiveDefinition {
       case Leaf(_) => 1
       case Node(l, r) => 1 + (size(l) + size(r))
     }
+  def map[A, B](t: Tree[A], f: A => B): Tree[B] =
+    t match {
+      case Leaf(a) => Leaf(f(a))
+      case Node(l, r) => Node(map(l, f), map(r, f))
+    }
 }
 

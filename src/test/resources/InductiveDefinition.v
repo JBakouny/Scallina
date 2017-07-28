@@ -15,3 +15,9 @@ Lemma size_left: forall A (l r: @ Tree A), size (Node l r) > size l.
 Proof.
   intros; induction l; simpl; omega.
 Qed.
+
+Fixpoint map {A B} (t: @ Tree A) (f: A -> B) : @ Tree B :=
+match t with
+  Leaf a => Leaf (f a)
+| Node l r => Node (map l f) (map r f)
+end.
