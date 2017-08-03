@@ -37,10 +37,10 @@ object CoqLexer extends StdLexical {
   )
 
   override protected def comment: Parser[Any] = (
-    rep (chrExcept (EofCh, '*')) ~ '*' ~ ')' ^^ {
+    rep(chrExcept(EofCh, '*')) ~ '*' ~ ')' ^^ {
       case _ => ' '
     }
-    | rep (chrExcept (EofCh, '*')) ~ '*' ~ comment ^^ {
+    | rep(chrExcept(EofCh, '*')) ~ '*' ~ comment ^^ {
       case _ => ' '
     }
   )
@@ -200,5 +200,6 @@ object CoqLexer extends StdLexical {
 
   reserved += "Require"
   reserved += "Import"
+  reserved += "Arguments"
 
 }

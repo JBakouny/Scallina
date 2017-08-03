@@ -31,6 +31,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   lazy val sentence: P[Sentence] = (
     requireImport
+    | argumentsCommand
     | definition
     | inductive
     | fixPoint
@@ -40,6 +41,16 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   //TODO (Joseph Bakouny): This production is not in the official grammar... consider a more in-depth support for modules!
   private lazy val requireImport: P[RequireImport] =
     "Require" ~ "Import" ~> qualid <~ "." ^^ { RequireImport(_) }
+
+  /*
+   *  NOTE: This AST node is not in the grammar, it supports the commands of the form:
+   *  Arguments Leaf {A} _.
+   *  Arguments Node {A} _ _.
+   */
+  private lazy val argumentsCommand: P[ArgumentsCommand] =
+    "Arguments" ~> qualid ~ binders <~ "." ^^ {
+      case id ~ binders => ArgumentsCommand(id, binders)
+    }
 
   /*
    * TODO (Joseph Bakouny): Add [Local] keyword and "Let" production to Definition in subsequent versions
@@ -57,7 +68,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   private lazy val inductiveBody: P[InductiveBody] =
     identifier ~ (binders ?) ~ opt(":" ~> term) ~ ":=" ~ opt(("|" ?) ~> rep1sep(inductiveBodyItem, "|")) ^^ {
       case id ~ binders ~ typeTerm ~ lex_:= ~ inductiveBodyItems =>
-        InductiveBody(id, binders, typeTerm, inductiveBodyItems.fold (List[InductiveBodyItem]()) (xs => xs))
+        InductiveBody(id, binders, typeTerm, inductiveBodyItems.fold(List[InductiveBodyItem]())(xs => xs))
     }
 
   /**
@@ -290,7 +301,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     private lazy val patternMatch: P[Match] =
       "match" ~> rep1sep(matchItem, ",") ~ (returnType ?) ~ "with" ~ opt(("|" ?) ~> rep1sep(patternEquation, "|")) <~ "end" ^^ {
-        case matchItems ~ returnType ~ withKeyword ~ equations => Match(matchItems, returnType, equations.fold (List[PatternEquation]()) (xs => xs))
+        case matchItems ~ returnType ~ withKeyword ~ equations => Match(matchItems, returnType, equations.fold(List[PatternEquation]())(xs => xs))
       }
 
     /*

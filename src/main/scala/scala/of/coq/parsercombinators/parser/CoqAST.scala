@@ -15,6 +15,15 @@ case class RequireImport(moduleName: Qualid) extends Sentence {
 }
 
 /*
+ *  NOTE: This AST node is not in the grammar, it supports the commands of the form:
+ *  Arguments Leaf {A} _.
+ *  Arguments Node {A} _ _.
+ */
+case class ArgumentsCommand(id: Qualid, args: Binders) extends Sentence {
+  def toCoqCode: String = "Arguments " + id.toCoqCode + " " + args.toCoqCode + "."
+}
+
+/*
  * TODO (Joseph Bakouny): Add [Local] keyword and "Let" production to Definition in subsequent versions
  */
 case class Definition(ident: Ident, binders: Option[Binders], typeTerm: Option[Term], bodyTerm: Term) extends Sentence {

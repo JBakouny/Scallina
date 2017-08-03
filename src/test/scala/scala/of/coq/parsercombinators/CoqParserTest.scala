@@ -24,6 +24,12 @@ class CoqParserTest extends FunSuite {
     )
   }
 
+  test("""Testing "Arguments Leaf {A} _." """) {
+    CoqParser("Arguments Leaf {A} _.") should parse(
+      List(ArgumentsCommand(Qualid(List(Ident("Leaf"))), Binders(List(ImplicitBinder(List(Name(Some(Ident("A")))), None), ExplicitSimpleBinder(Name(None))))))
+    )
+  }
+
   test("""Testing "Definition constantDef := 3." """) {
     CoqParser("Definition constantDef := 3.") should parse(
       List(Definition(Ident("constantDef"), None, None, Number(3)))
@@ -113,7 +119,7 @@ class CoqParserTest extends FunSuite {
               Inductive Tree : Type :=
                 Leaf : Tree
               | Node(l r : Tree): Tree.
-              """) should parse (
+              """) should parse(
       List(
         Inductive(
           InductiveBody(Ident("Tree"), None, Some(Type),
@@ -138,7 +144,7 @@ class CoqParserTest extends FunSuite {
               Inductive Tree :=
                 Leaf : Tree
               | Node(l r : Tree): Tree.
-              """) should parse (
+              """) should parse(
       List(
         Inductive(
           InductiveBody(Ident("Tree"), None, None,
@@ -163,7 +169,7 @@ class CoqParserTest extends FunSuite {
               Inductive Tree :=
                 Leaf
               | Node(l r : Tree).
-              """) should parse (
+              """) should parse(
       List(
         Inductive(
           InductiveBody(Ident("Tree"), None, None,
@@ -188,7 +194,7 @@ class CoqParserTest extends FunSuite {
               Inductive Tree {A B : Type} :=
               | Leaf (value: A)
               | Node (info: B) (left: Tree) (right: Tree).
-              """) should parse (
+              """) should parse(
       List(
         Inductive(
           InductiveBody(
@@ -232,7 +238,7 @@ class CoqParserTest extends FunSuite {
               Inductive Tree {A B : Type} : Type :=
               | Leaf (value: A) : Tree
               | Node (info: B) (left: Tree) (right: Tree) : Tree.
-              """) should parse (
+              """) should parse(
       List(
         Inductive(
           InductiveBody(
@@ -276,7 +282,7 @@ class CoqParserTest extends FunSuite {
               Inductive tree {A B : Type} :=
               | Leaf (value: A)
               | Node (info: B) (left: @tree A B) (right: @tree A B).
-              """) should parse (
+              """) should parse(
       List(
         Inductive(
           InductiveBody(
@@ -327,7 +333,7 @@ class CoqParserTest extends FunSuite {
               Inductive tree {A B} :=
               | Leaf (value: A)
               | Node (info: B) (left: @tree A B) (right: @tree A B).
-              """) should parse (
+              """) should parse(
       List(
         Inductive(
           InductiveBody(
@@ -607,7 +613,7 @@ class CoqParserTest extends FunSuite {
                 Leaf => 1
               | Node l r => 1 + (size l) + (size r)
               end.
-              """) should parse (
+              """) should parse(
       List(
         Inductive(
           InductiveBody(Ident("Tree"), None, Some(Type),

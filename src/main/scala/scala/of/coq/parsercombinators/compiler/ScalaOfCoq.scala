@@ -42,13 +42,15 @@ import scala.of.coq.parsercombinators.parser.Assertion
 import scala.of.coq.parsercombinators.parser.TermIf
 import scala.of.coq.parsercombinators.parser.RequireImport
 import scala.of.coq.parsercombinators.parser.InfixPattern
+import scala.of.coq.parsercombinators.parser.ArgumentsCommand
+import scala.of.coq.parsercombinators.parser.Type
 
 object ScalaOfCoq {
 
   def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
 
-    case RequireImport(_) =>
-      List()
+    case RequireImport(_) | ArgumentsCommand(_, _) =>
+      List() // The above commands do not generate any Scala code
     case Definition(id, binders, typeTerm, bodyTerm) =>
       List(createDefinition(typeTerm, id, binders) := termToTreeHuggerAst(bodyTerm))
     case Inductive(InductiveBody(Ident(parentName), parentBinders, _, indBodyItems)) =>
@@ -97,7 +99,7 @@ object ScalaOfCoq {
         case PatternEquation(List(MultPattern(List(pattern))), outputTerm) => CASE(convertPattern(pattern)) ==> termToTreeHuggerAst(outputTerm)
       })
     case Qualid(xs) =>
-      REF(xs.map{ case Ident(name) => convertValue(name) }.mkString("."))
+      REF(xs.map { case Ident(name) => convertValue(name) }.mkString("."))
     case Number(n) =>
       LIT(n)
     case BetweenParenthesis(term) =>
@@ -110,7 +112,7 @@ object ScalaOfCoq {
 
   private def coqTypeToTreeHuggerType(typeTerm: Term): Type = typeTerm match {
     case UncurriedTermApplication(genericTypeTerm, arguments) =>
-      createTypeWithGenericParams(coqTypeToScalaCode(genericTypeTerm), arguments.map{
+      createTypeWithGenericParams(coqTypeToScalaCode(genericTypeTerm), arguments.map {
         case Argument(_, typeTerm) => coqTypeToTreeHuggerType(typeTerm)
       })
     case ExplicitQualidApplication(id, genericTypeParams) =>
@@ -119,7 +121,7 @@ object ScalaOfCoq {
       // TODO (Joseph Bakouny): Coq -> in lemmas can have a different significance, check how this can be supported if needed ?
       TYPE_REF(coqTypeToTreeHuggerType(typeTerm1)).TYPE_=>(TYPE_REF(coqTypeToTreeHuggerType(typeTerm2)))
     case Qualid(xs) =>
-      TYPE_REF(xs.map{ case Ident(name) => convertType(name) }.mkString("."))
+      TYPE_REF(xs.map { case Ident(name) => convertType(name) }.mkString("."))
     case BetweenParenthesis(term) =>
       coqTypeToTreeHuggerType(term)
     case anythingElse =>
@@ -152,7 +154,7 @@ object ScalaOfCoq {
      * since Coq only allows the application of this syntax to implicit parameters.
      * It should also be noted that implicit paremeters are currently converted to generics in Scala.
      */
-    REF(termToScalaCode(functionTerm)).APPLY(arguments.map{
+    REF(termToScalaCode(functionTerm)).APPLY(arguments.map {
       case Argument(None, BetweenParenthesis(argValue)) => termToTreeHuggerAst(argValue) // remove parenthesis since they are not needed in Scala
       case Argument(None, argValue)                     => termToTreeHuggerAst(argValue)
       case Argument(Some(Ident(argName)), argValue)     => REF(argName) := termToTreeHuggerAst(argValue)
@@ -190,11 +192,11 @@ object ScalaOfCoq {
   }
 
   private def createDefinition(typeTerm: Option[Term], id: Ident, binders: Option[Binders]): DefTreeStart = {
-    val declaration: DefTreeStart = typeTerm.fold(DEFINFER(id.toCoqCode)){
+    val declaration: DefTreeStart = typeTerm.fold(DEFINFER(id.toCoqCode)) {
       typeTerm => DEF(id.toCoqCode, coqTypeToTreeHuggerType(typeTerm))
     }
 
-    val addParams = binders.fold(declaration){
+    val addParams = binders.fold(declaration) {
       binders =>
         val (typeDefs, paramsDefs) = partitionParams(binders)
 
@@ -208,14 +210,17 @@ object ScalaOfCoq {
 
   private def createCaseClassHierarchy(parentBinders: Option[Binders], parentName: String, indBodyItems: List[InductiveBodyItem]) = {
     val parentTypeDefs = parentBinders.fold(List[TypeDefTreeStart]()) {
-      binders =>
-        val (parentTypeDefs, parentParamsDefs) = partitionParams(binders)
-
-        // TODO (Joseph Bakouny): Check if Inductive types with arguments should be supported
-        if (!parentParamsDefs.isEmpty)
-          throw new IllegalArgumentException("Inductive types with arguments are not supported")
-
-        parentTypeDefs
+      case Binders(binders) =>
+        def convertNamesToTypeVars(names: List[Name]) =
+          for { Name(Some(Ident(nameString))) <- names } yield TYPEVAR(nameString)
+        binders.flatMap {
+          case ExplicitSimpleBinder(name)          => convertNamesToTypeVars(List(name))
+          case ExplicitBinderWithType(names, Type) => convertNamesToTypeVars(names)
+          case ImplicitBinder(names, None)         => convertNamesToTypeVars(names)
+          case ImplicitBinder(names, Some(Type))   => convertNamesToTypeVars(names)
+          case anythingElse =>
+            throw new IllegalStateException("The following Coq inductive parameter is not supported: " + anythingElse)
+        }
     }
 
     val parentDeclaration: Tree =
@@ -232,7 +237,7 @@ object ScalaOfCoq {
        * Check what needs to be done with the type Term in future version
        */
         InductiveBodyItem(Ident(name), binders, _) <- indBodyItems
-      } yield binders.fold{
+      } yield binders.fold {
 
         /*
          * TODO (Joseph Bakouny): Check how to handle the case when a case class has generic type parameters but no parameters.

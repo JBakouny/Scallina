@@ -530,4 +530,74 @@ class ScalaOfCoqTest extends FunSuite {
         "  }
         """)
   }
+
+  test("""Testing Scala conversion of
+          Require Import Omega.
+
+          Inductive Tree (A: Type) :=
+            Leaf(value: A)
+          | Node(l r : Tree A).
+
+          Arguments Leaf {A} _.
+          Arguments Node {A} _ _.
+
+          Fixpoint size {A} (t: Tree A) : nat :=
+          match t with
+            Leaf _ => 1
+          | Node l r => 1 + (size l) + (size r)
+          end.
+
+          Lemma size_left: forall A (l r: Tree A), size (Node l r) > size l.
+          Proof.
+            intros; induction l; simpl; omega.
+          Qed.
+
+          Fixpoint map {A B} (t: Tree A) (f: A -> B) : Tree B :=
+          match t with
+            Leaf a => Leaf (f a)
+          | Node l r => Node (map l f) (map r f)
+          end.
+       """) {
+    CoqParser("""
+          Require Import Omega.
+
+          Inductive Tree (A: Type) :=
+            Leaf(value: A)
+          | Node(l r : Tree A).
+
+          Arguments Leaf {A} _.
+          Arguments Node {A} _ _.
+
+          Fixpoint size {A} (t: Tree A) : nat :=
+          match t with
+            Leaf _ => 1
+          | Node l r => 1 + (size l) + (size r)
+          end.
+
+          Lemma size_left: forall A (l r: Tree A), size (Node l r) > size l.
+          Proof.
+            intros; induction l; simpl; omega.
+          Qed.
+
+          Fixpoint map {A B} (t: Tree A) (f: A -> B) : Tree B :=
+          match t with
+            Leaf a => Leaf (f a)
+          | Node l r => Node (map l f) (map r f)
+          end.
+      """) should generateScalaCode("""
+        "sealed abstract class Tree[A]
+        "case class Leaf[A](value: A) extends Tree[A]
+        "case class Node[A](l: Tree[A], r: Tree[A]) extends Tree[A]
+        "def size[A](t: Tree[A]): Nat =
+        "  t match {
+        "   case Leaf(_) => 1
+        "   case Node(l, r) => 1 + (size(l) + size(r))
+        "  }
+        "def map[A, B](t: Tree[A], f: A => B): Tree[B] =
+        "  t match {
+        "    case Leaf(a) => Leaf(f(a))
+        "    case Node(l, r) => Node(map(l, f), map(r, f))
+        "  }
+        """)
+  }
 }
