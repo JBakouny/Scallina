@@ -9,7 +9,7 @@ import org.scalatest.Matchers.convertToAnyShouldWrapper
 
 import CustomMatchers.generateScalaCode
 
-class ScalaOfCoqTest extends FunSuite {
+class ScallinaScalaOfCoqTest extends FunSuite {
 
   def coqParserShouldFailToGenerateScalaCodeFor(coqCode: String) {
     val parseResult = CoqParser(coqCode)

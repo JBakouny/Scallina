@@ -50,7 +50,7 @@ import java.net.URL
 
 import TestUtils._
 
-class ScalaOfCoqFileBasedTest extends FunSuite {
+class ScallinaScalaOfCoqFileBasedTest extends FunSuite {
 
   def fileToString(directory: String, extension: String)(fileName: String): String = {
     val fileBufferedSource = io.Source.fromURL(getClass.getResource(directory + "/" + fileName + "." + extension));
@@ -62,7 +62,7 @@ class ScalaOfCoqFileBasedTest extends FunSuite {
 
     val optionalCoqAst = Option(coqAST.getOrElse(null))
 
-    val outputString = optionalCoqAst.fold(coqAST.toString){
+    val outputString = optionalCoqAst.fold(coqAST.toString) {
       coqTrees =>
         ScalaOfCoq.createObjectFileCode(fileName, coqTrees)
     }
