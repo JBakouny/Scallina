@@ -211,7 +211,7 @@ sealed trait TermApplication extends Term {
 }
 
 case class UncurriedTermApplication(term: Term, arguments: List[Argument]) extends TermApplication {
-  def toCoqCode: String = term.toCoqCode + " " + (arguments.map(_.toCoqCode)).mkString (" ")
+  def toCoqCode: String = term.toCoqCode + " " + (arguments.map(_.toCoqCode)).mkString(" ")
 }
 
 case class CurriedTermApplication(term: Term, argument: Argument) extends TermApplication {
@@ -220,7 +220,7 @@ case class CurriedTermApplication(term: Term, argument: Argument) extends TermAp
 // End of TermApplication
 
 case class ExplicitQualidApplication(id: Qualid, arguments: List[Term]) extends Term {
-  def toCoqCode: String = "@ " + id.toCoqCode + (if (arguments.isEmpty) "" else " ") + (arguments.map(_.toCoqCode)).mkString (" ")
+  def toCoqCode: String = "@ " + id.toCoqCode + (if (arguments.isEmpty) "" else " ") + (arguments.map(_.toCoqCode)).mkString(" ")
 }
 
 case class Term_%(term: Term, ident: Ident) extends Term {
@@ -264,6 +264,17 @@ case object Type extends Sort {
 
 case class Number(n: Int) extends Term {
   def toCoqCode: String = n.toString
+}
+
+/*
+ * NOTE: This AST node is not in the grammar, it supports Coq tuple values of the form:
+ * (k,v)
+ */
+case class TupleValue(tupleTerms: List[Term]) extends Term {
+  def toCoqCode: String = tupleTerms match {
+    case Nil     => "()"
+    case t :: ts => "(" + ts.foldLeft(t.toCoqCode)(_ + ", " + _.toCoqCode) + ")"
+  }
 }
 
 case class BetweenParenthesis(term: Term) extends Term {

@@ -62,6 +62,36 @@ class ScallinaScalaOfCoqTest extends FunSuite {
       generateScalaCode("def right[A](l: A, r: A) = r")
   }
 
+  test("""Testing Scala conversion of
+      Definition testPrimitiveBooleans := true.
+       """) {
+    CoqParser("Definition testPrimitiveBooleans := true.") should
+      generateScalaCode("def testPrimitiveBooleans = true")
+  }
+
+  // TODO(Joseph Bakouny): Consider removing the support of Prop value conversions
+  test("""Testing Scala conversion of
+      Definition testPrimitiveBooleans := True.
+       """) {
+    CoqParser("Definition testPrimitiveBooleans := True.") should
+      generateScalaCode("def testPrimitiveBooleans = true")
+  }
+
+  test("""Testing Scala conversion of
+      Definition testPrimitiveBooleans := false.
+       """) {
+    CoqParser("Definition testPrimitiveBooleans := false.") should
+      generateScalaCode("def testPrimitiveBooleans = false")
+  }
+
+  // TODO(Joseph Bakouny): Consider removing the support of Prop value conversions
+  test("""Testing Scala conversion of
+      Definition testPrimitiveBooleans := False.
+       """) {
+    CoqParser("Definition testPrimitiveBooleans := False.") should
+      generateScalaCode("def testPrimitiveBooleans = false")
+  }
+
   test("""Testing Scala conversion of "Definition add(x y : nat) : nat := x + y." """) {
     CoqParser("""
           Definition add(x y : nat) : nat := x + y.
@@ -298,14 +328,71 @@ class ScallinaScalaOfCoqTest extends FunSuite {
       generateScalaCode("def right[A](l: A, r: A) = r")
   }
 
-  /*
-   * TODO (Joseph Bakouny): Handle Nats in pattern position correctly
-   * Nat wrapper should be implemented
-   * type Nat = BigInt + negative number check + overflow control
-   * Our implementation should extend trait Numeric or Integral (+ faire la meme chose pour les listes)
-   * Voir ce qu'on a fait avec Isabelle Code Generation pour les nats
-   * Voir ce qu'on a fait avec Leon pour les listes (pourquoi pas les listes de Scala, est-ce que c'est pour les generiques?)
-   */
+  test("""Testing Scala conversion of
+        Fixpoint elements_aux {V} (s: tree V) (base: list (nat * V)) : list (nat * V) :=
+         match s with
+         | E => base
+         | T a k v b => elements_aux a ((k,v) :: elements_aux b base)
+         end.
+       """) {
+    CoqParser("""
+        Fixpoint elements_aux {V} (s: tree V) (base: list (nat * V)) : list (nat * V) :=
+         match s with
+         | E => base
+         | T a k v b => elements_aux a ((k,v) :: elements_aux b base)
+         end.
+      """) should generateScalaCode("""
+        "def elements_aux[V](s: tree[V], base: List[(Nat, V)]): List[(Nat, V)] =
+        "  s match {
+        "    case E => base
+        "    case T(a, k, v, b) => elements_aux(a, (k, v) :: elements_aux(b, base))
+        "  }
+        """)
+  }
+
+  test("""Testing Scala conversion of
+        Definition idTuple(tuple : nat * nat * bool) := tuple.
+        Definition example := idTuple(1, 3, true).
+       """) {
+    CoqParser("""
+        Definition idTuple(tuple : nat * nat * bool) := tuple.
+        Definition example := idTuple(1, 3, true).
+      """) should generateScalaCode("""
+        "def idTuple(tuple: (Nat, Nat, Boolean)) = tuple
+        "def example = idTuple((1, 3, true))
+        """)
+  }
+
+  test("""Testing Scala conversion of
+        Definition idTuple(tuple : nat * nat * bool * list nat) (dummyParam: nat) := tuple.
+        Definition example := idTuple (1, 3, true, 3 :: nil) 7.
+       """) {
+    CoqParser("""
+        Definition idTuple(tuple : nat * nat * bool * list nat) (dummyParam: nat) := tuple.
+        Definition example := idTuple (1, 3, true, 3 :: nil) 7.
+      """) should generateScalaCode("""
+        "def idTuple(tuple: (Nat, Nat, Boolean, List[Nat]), dummyParam: Nat) = tuple
+        "def example = idTuple((1, 3, true, 3 :: Nil), 7)
+        """)
+  }
+
+  // TODO(Joseph Bakouny): Implement pattern matching on tuples with adequate conversion to Scala
+  ignore("""Testing Scala conversion of
+        Definition matchOnTuple(tuple : nat * nat) := match tuple with
+          (0, 0) => 5
+        | (_, _) => 7
+        end.
+       """) {
+    CoqParser("""
+        Definition matchOnTuple(tuple : nat * nat) := match tuple with
+          (0, 0) => 5
+        | (_, _) => 7
+        end.
+      """) should generateScalaCode("""
+        " Implement pattern matching on tuples with adequate conversion to Scala
+        """)
+  }
+
   test("""Testing Scala conversion of
         Fixpoint sum (a b : nat) : nat :=
         match a with

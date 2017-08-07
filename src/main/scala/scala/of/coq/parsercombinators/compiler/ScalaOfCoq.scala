@@ -44,6 +44,7 @@ import scala.of.coq.parsercombinators.parser.RequireImport
 import scala.of.coq.parsercombinators.parser.InfixPattern
 import scala.of.coq.parsercombinators.parser.ArgumentsCommand
 import scala.of.coq.parsercombinators.parser.Type
+import scala.of.coq.parsercombinators.parser.TupleValue
 
 object ScalaOfCoq {
 
@@ -98,12 +99,16 @@ object ScalaOfCoq {
       REF(termToScalaCode(matchTerm)).MATCH(equations.map {
         case PatternEquation(List(MultPattern(List(pattern))), outputTerm) => CASE(convertPattern(pattern)) ==> termToTreeHuggerAst(outputTerm)
       })
+    case Qualid(List(Ident(primitiveValue))) if qualidIsPrimitiveValueInScala(primitiveValue) =>
+      convertQualitToPrimitiveValue(primitiveValue)
     case Qualid(xs) =>
       REF(xs.map { case Ident(name) => convertValue(name) }.mkString("."))
     case Number(n) =>
       LIT(n)
     case BetweenParenthesis(term) =>
       PAREN(termToTreeHuggerAst(term))
+    case TupleValue(tupleTerms) =>
+      TUPLE(tupleTerms.map(termToTreeHuggerAst))
     case anythingElse =>
       throw new IllegalStateException("The following Coq term is not supported: " + anythingElse.toCoqCode);
   }
@@ -124,6 +129,12 @@ object ScalaOfCoq {
       TYPE_REF(xs.map { case Ident(name) => convertType(name) }.mkString("."))
     case BetweenParenthesis(term) =>
       coqTypeToTreeHuggerType(term)
+    case tupleDef @ InfixOperator(leftTerm, "*", rightTerm) =>
+      def allTupleTypesIn(t: Term): List[Type] = t match {
+        case InfixOperator(t1, "*", t2) => allTupleTypesIn(t1) ::: allTupleTypesIn(t2)
+        case typeTerm                   => List(coqTypeToScalaCode(typeTerm))
+      }
+      TYPE_TUPLE(allTupleTypesIn(tupleDef))
     case anythingElse =>
       throw new IllegalStateException("The following Coq type is not supported: " + anythingElse.toCoqCode);
   }
@@ -173,12 +184,27 @@ object ScalaOfCoq {
     case n if (n < 0) => throw new IllegalStateException("Only Coq natural numbers are currently supported, the following negative number is, therefore, illegal: " + n)
   }
 
+  private def qualidIsPrimitiveValueInScala(inputValue: String): Boolean = inputValue match {
+    case "True"       => true
+    case "true"       => true
+    case "False"      => true
+    case "false"      => true
+    case anythingElse => false
+  }
+
+  private def convertQualitToPrimitiveValue(inputValue: String) = inputValue match {
+    case "True"       => LIT(true)
+    case "true"       => LIT(true)
+    case "False"      => LIT(false)
+    case "false"      => LIT(false)
+    // The code should never get here!
+    case anythingElse => throw new IllegalStateException("This qualid is not a primitive value in Scala: " + anythingElse)
+  }
+
   private def convertValue(inputValue: String): String = inputValue match {
-    case "True"         => "true"
     case "cons"         => "Cons"
     // TODO (Joseph Bakouny): Leon "Nil" lists are written like this "Nil()" in pattern matches, check how to support this
     case "nil"          => "Nil"
-    case "False"        => "false"
     case anyOtherString => anyOtherString
   }
 

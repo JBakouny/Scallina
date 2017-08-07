@@ -48,6 +48,7 @@ import scala.of.coq.parsercombinators.parser.LetFixIn
 import scala.of.coq.parsercombinators.parser.FixBody
 import scala.of.coq.parsercombinators.parser.Annotation
 import scala.of.coq.parsercombinators.parser.InfixOperator
+import scala.of.coq.parsercombinators.parser.TupleValue
 
 class CoqTermParserTest extends FunSuite {
 
@@ -90,7 +91,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "fun (x : nat) => x" """) {
-    CoqTermParser("fun (x : nat) => x") should parse (Fun(Binders(List(
+    CoqTermParser("fun (x : nat) => x") should parse(Fun(Binders(List(
       ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
       Qualid(List(Ident("x")))))
   }
@@ -132,7 +133,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "fun {A : Type} (l r : A) => l" """) {
-    CoqTermParser("fun {A : Type} (l r : A) => l") should parse (
+    CoqTermParser("fun {A : Type} (l r : A) => l") should parse(
       Fun(Binders(List(
         ImplicitBinder(
           List(
@@ -147,7 +148,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "fun {A B : Type} (l : A) (r : B) => l" """) {
-    CoqTermParser("fun {A B : Type} (l : A) (r : B) => l") should parse (
+    CoqTermParser("fun {A B : Type} (l : A) (r : B) => l") should parse(
       Fun(Binders(List(
         ImplicitBinder(
           List(
@@ -167,14 +168,14 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "fun (a b c : nat) => b" """) {
-    CoqTermParser("fun (a b c : nat) => b") should parse (Fun(Binders(List(
+    CoqTermParser("fun (a b c : nat) => b") should parse(Fun(Binders(List(
       ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b"))), Name(Some(Ident("c")))),
         Qualid(List(Ident("nat")))))),
       Qualid(List(Ident("b")))))
   }
 
   test("""Testing "fun (A : Type) (a b c : A) => b" """) {
-    CoqTermParser("fun (A : Type) (a b c : A) => b") should parse (Fun(Binders(List(
+    CoqTermParser("fun (A : Type) (a b c : A) => b") should parse(Fun(Binders(List(
       ExplicitBinderWithType(List(Name(Some(Ident("A")))), Type),
       ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b"))), Name(Some(Ident("c")))),
         Qualid(List(Ident("A")))))),
@@ -182,7 +183,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "fun (_ b _ : nat) => b" """) {
-    CoqTermParser("fun (_ b _ : nat) => b") should parse (Fun(Binders(List(
+    CoqTermParser("fun (_ b _ : nat) => b") should parse(Fun(Binders(List(
       ExplicitBinderWithType(List(Name(None), Name(Some(Ident("b"))), Name(None)),
         Qualid(List(Ident("nat")))))),
       Qualid(List(Ident("b")))))
@@ -201,6 +202,21 @@ class CoqTermParserTest extends FunSuite {
       ExplicitSimpleBinder(Name(None)),
       ExplicitSimpleBinder(Name(Some(Ident("a")))))),
       Number(5)))
+  }
+
+  // TODO (Joseph Bakouny): Implement support for pattern matching on tuples
+  ignore("""Testing
+          fun (tuple : nat * nat) => match tuple with
+            (0, 0) => 5
+          | (_, _) => 7
+          end
+          """) {
+    CoqTermParser("""
+                fun (tuple : nat * nat) => match tuple with
+                  (0, 0) => 5
+                | (_, _) => 7
+                end
+                """) should parse(Qualid(List(Ident("Implement pattern matching on tuples with adequate conversion to Scala"))))
   }
 
   test("""Testing
@@ -251,7 +267,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "let x := 3 in x" """) {
-    CoqTermParser("let x := 3 in x") should parse (
+    CoqTermParser("let x := 3 in x") should parse(
       SimpleLetIn(
         Ident("x"), None, None,
         Number(3),
@@ -259,7 +275,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "let x := 3 in fun y => y % x" """) {
-    CoqTermParser("let x := 3 in fun y => y % x") should parse (
+    CoqTermParser("let x := 3 in fun y => y % x") should parse(
       SimpleLetIn(
         Ident("x"), None, None,
         Number(3),
@@ -267,7 +283,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "let sumAlias (a b : nat) := sum a b in sumAlias 3 7" """) {
-    CoqTermParser("let sumAlias (a b : nat) := sum a b in sumAlias 3 7") should parse (
+    CoqTermParser("let sumAlias (a b : nat) := sum a b in sumAlias 3 7") should parse(
       SimpleLetIn(Ident("sumAlias"),
         Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b")))), Qualid(List(Ident("nat"))))))),
         None,
@@ -276,7 +292,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "let fix right (l r : nat) : nat := r in right 7 3" """) {
-    CoqTermParser("let fix right (l r : nat) : nat := r in right 7 3") should parse (
+    CoqTermParser("let fix right (l r : nat) : nat := r in right 7 3") should parse(
       LetFixIn(
         FixBody(Ident("right"),
           Binders(List(
@@ -291,7 +307,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "let fix right (l r : nat) { struct l } := r in right 7 3" """) {
-    CoqTermParser("let fix right (l r : nat) { struct l } := r in right 7 3") should parse (
+    CoqTermParser("let fix right (l r : nat) { struct l } := r in right 7 3") should parse(
       LetFixIn(
         FixBody(Ident("right"),
           Binders(List(
@@ -306,7 +322,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "let (l, r) := Node 3 7 in sum l r" """) {
-    CoqTermParser("let (l, r) := Node 3 7 in sum l r") should parse (LetConstructorArgsIn(
+    CoqTermParser("let (l, r) := Node 3 7 in sum l r") should parse(LetConstructorArgsIn(
       List(Name(Some(Ident("l"))), Name(Some(Ident("r")))), None,
       UncurriedTermApplication(Qualid(List(Ident("Node"))), List(Argument(None, Number(3)), Argument(None, Number(7)))),
       UncurriedTermApplication(Qualid(List(Ident("sum"))), List(Argument(None, Qualid(List(Ident("l")))), Argument(None, Qualid(List(Ident("r"))))))))
@@ -321,7 +337,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "let ' pair l r := pair 3 7 return nat in sum l r" """) {
-    CoqTermParser("let ' pair l r := pair 3 7 return nat in sum l r") should parse (
+    CoqTermParser("let ' pair l r := pair 3 7 return nat in sum l r") should parse(
       LetPatternIn(
         ConstructorPattern(
           Qualid(List(Ident("pair"))),
@@ -332,7 +348,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "let ' pair l _ := pair 3 7 return nat in l" """) {
-    CoqTermParser("let ' pair l _ := pair 3 7 return nat in l") should parse (
+    CoqTermParser("let ' pair l _ := pair 3 7 return nat in l") should parse(
       LetPatternIn(
         ConstructorPattern(
           Qualid(List(Ident("pair"))),
@@ -343,18 +359,18 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "if a then 5 else 7" """) {
-    CoqTermParser("if a then 5 else 7") should parse (TermIf(Qualid(List(Ident("a"))), None, Number(5), Number(7)))
+    CoqTermParser("if a then 5 else 7") should parse(TermIf(Qualid(List(Ident("a"))), None, Number(5), Number(7)))
   }
 
   test("""Testing "if a as b return nat then 5 else 7" """) {
-    CoqTermParser("if a as b return nat then 5 else 7") should parse (
+    CoqTermParser("if a as b return nat then 5 else 7") should parse(
       TermIf(Qualid(List(Ident("a"))),
         Some(DepRetType(Some(Name(Some(Ident("b")))), ReturnType(Qualid(List(Ident("nat")))))),
         Number(5), Number(7)))
   }
 
   test("""Testing "if a return nat then 5 else 7" """) {
-    CoqTermParser("if a return nat then 5 else 7") should parse (
+    CoqTermParser("if a return nat then 5 else 7") should parse(
       TermIf(Qualid(List(Ident("a"))),
         Some(DepRetType(None, ReturnType(Qualid(List(Ident("nat")))))),
         Number(5), Number(7)))
@@ -377,7 +393,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "sum (x := 7) 3" """) {
-    CoqTermParser("sum (x := 7) 3") should parse (
+    CoqTermParser("sum (x := 7) 3") should parse(
       UncurriedTermApplication(
         Qualid(List(Ident("sum"))),
         List(
@@ -386,7 +402,7 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "sum (x := 7) (x := 3)" """) {
-    CoqTermParser("sum (x := 7) (x := 3)") should parse (
+    CoqTermParser("sum (x := 7) (x := 3)") should parse(
       UncurriedTermApplication(
         Qualid(List(Ident("sum"))),
         List(
@@ -525,9 +541,9 @@ class CoqTermParserTest extends FunSuite {
   test("""Testing "3 =? 7" """) {
     CoqTermParser("3 =? 7") should parse(InfixOperator(Number(3), "=?", Number(7)))
   }
-  
+
   test("""Testing "x :: xs" """) {
-    CoqTermParser("x :: xs") should parse(InfixOperator(Qualid(List(Ident("x"))), "::" ,Qualid(List(Ident("xs")))))
+    CoqTermParser("x :: xs") should parse(InfixOperator(Qualid(List(Ident("x"))), "::", Qualid(List(Ident("xs")))))
   }
 
   test(""" Testing
@@ -542,7 +558,7 @@ class CoqTermParserTest extends FunSuite {
       Leaf => Leaf
     | Node l r => l
     end
-    """) should parse (
+    """) should parse(
       Match(List(
         MatchItem(
           UncurriedTermApplication(Qualid(List(Ident("Node"))),
@@ -575,7 +591,7 @@ class CoqTermParserTest extends FunSuite {
     match H in eq _ _ z return eq A z x with
     | eq_refl _ _ => eq_refl A x
     end
-    """) should parse (
+    """) should parse(
       Match(
         List(
           MatchItem(
@@ -599,11 +615,11 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "anIdentifier" """) {
-    CoqTermParser("anIdentifier") should parse (Qualid(List(Ident("anIdentifier"))))
+    CoqTermParser("anIdentifier") should parse(Qualid(List(Ident("anIdentifier"))))
   }
 
   test("""Testing "a.qualified.Identifier" """) {
-    CoqTermParser("a.qualified.Identifier") should parse (Qualid(List(Ident("a"), Ident("qualified"), Ident("Identifier"))))
+    CoqTermParser("a.qualified.Identifier") should parse(Qualid(List(Ident("a"), Ident("qualified"), Ident("Identifier"))))
   }
 
   test("""Testing "Prop" """) {
@@ -619,9 +635,18 @@ class CoqTermParserTest extends FunSuite {
   }
 
   test("""Testing "37" """) {
-    CoqTermParser("37") should parse (Number(37))
+    CoqTermParser("37") should parse(Number(37))
   }
+
+  test("""Testing "true" """) {
+    CoqTermParser("true") should parse(Qualid(List(Ident("true"))))
+  }
+
   test("""Testing "(7)" """) {
     CoqTermParser("(7)") should parse(BetweenParenthesis(Number(7)))
+  }
+
+  test("""Testing "(3, 7)" """) {
+    CoqTermParser("(3, 7)") should parse(TupleValue(List(Number(3), Number(7))))
   }
 }

@@ -43,7 +43,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     "Require" ~ "Import" ~> qualid <~ "." ^^ { RequireImport(_) }
 
   /*
-   *  NOTE: This AST node is not in the grammar, it supports the commands of the form:
+   *  NOTE: This production is not in the grammar, it supports the commands of the form:
    *  Arguments Leaf {A} _.
    *  Arguments Node {A} _ _.
    */
@@ -185,6 +185,13 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   private lazy val parenthesis: P[BetweenParenthesis] =
     "(" ~> Term.term <~ ")" ^^ { BetweenParenthesis(_) }
 
+/*
+ * NOTE: This production is not in the grammar, it supports Coq tuple values of the form:
+ * (k,v)
+ */
+  private lazy val tupleValue: P[TupleValue] =
+    "(" ~> repsep(Term.term, ",") <~ ")" ^^ { TupleValue(_) }
+
   private abstract class AbstractTerm {
 
     lazy val term: P[Term] = (
@@ -209,6 +216,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       | sort
       | numberLiteral
       | parenthesis
+      | tupleValue
     )
 
     /**
