@@ -32,6 +32,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   lazy val sentence: P[Sentence] = (
     requireImport
     | argumentsCommand
+    | scopeCommand
     | definition
     | inductive
     | fixPoint
@@ -50,6 +51,17 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   private lazy val argumentsCommand: P[ArgumentsCommand] =
     "Arguments" ~> qualid ~ binders <~ "." ^^ {
       case id ~ binders => ArgumentsCommand(id, binders)
+    }
+
+  /*
+   *  NOTE: This production is not in the grammar, it supports the commands of the form:
+   *  Local Open Scope Z_scope.
+   *  or
+   *  Open Scope Z_scope.
+   */
+  private lazy val scopeCommand: P[ScopeCommand] =
+    ("Local"?) ~ "Open" ~ "Scope" ~ qualid <~ "." ^^ {
+      case localOptional ~ open ~ scope ~ scopeName => ScopeCommand(scopeName, localOptional.isDefined)
     }
 
   /*
@@ -185,7 +197,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   private lazy val parenthesis: P[BetweenParenthesis] =
     "(" ~> Term.term <~ ")" ^^ { BetweenParenthesis(_) }
 
-/*
+  /*
  * NOTE: This production is not in the grammar, it supports Coq tuple values of the form:
  * (k,v)
  */

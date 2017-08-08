@@ -24,6 +24,16 @@ case class ArgumentsCommand(id: Qualid, args: Binders) extends Sentence {
 }
 
 /*
+ *  NOTE: This AST node is not in the grammar, it supports the commands of the form:
+ *  Local Open Scope Z_scope.
+ *  or
+ *  Open Scope Z_scope.
+ */
+case class ScopeCommand(scopeName: Qualid, isLocal: Boolean) extends Sentence {
+  def toCoqCode: String = (if (isLocal) "Local" else "") + "Open Scope " + scopeName.toCoqCode + "."
+}
+
+/*
  * TODO (Joseph Bakouny): Add [Local] keyword and "Let" production to Definition in subsequent versions
  */
 case class Definition(ident: Ident, binders: Option[Binders], typeTerm: Option[Term], bodyTerm: Term) extends Sentence {

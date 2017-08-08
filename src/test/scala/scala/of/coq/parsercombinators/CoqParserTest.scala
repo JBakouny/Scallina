@@ -30,6 +30,18 @@ class CoqParserTest extends FunSuite {
     )
   }
 
+  test("""Testing "Local Open Scope Z_scope." """) {
+    CoqParser("Local Open Scope Z_scope.") should parse(
+      List(ScopeCommand(Qualid(List(Ident("Z_scope"))), true))
+    )
+  }
+
+  test("""Testing "Open Scope Z_scope." """) {
+    CoqParser("Open Scope Z_scope.") should parse(
+      List(ScopeCommand(Qualid(List(Ident("Z_scope"))), false))
+    )
+  }
+
   test("""Testing "Definition constantDef := 3." """) {
     CoqParser("Definition constantDef := 3.") should parse(
       List(Definition(Ident("constantDef"), None, None, Number(3)))

@@ -47,6 +47,21 @@ class ScallinaScalaOfCoqTest extends FunSuite {
       generateScalaCode("")
   }
 
+  test("""Testing Scala conversion of "Local Open Scope Z_scope." """) {
+    CoqParser("Local Open Scope Z_scope.") should
+      generateScalaCode("")
+  }
+
+  test("""Testing Scala conversion of "Open Scope Z_scope." """) {
+    CoqParser("Open Scope Z_scope.") should
+      generateScalaCode("")
+  }
+
+  test("""Testing Scala conversion of "Arguments Node {A} _ _." """) {
+    CoqParser("Arguments Node {A} _ _.") should
+      generateScalaCode("")
+  }
+
   test("""Testing Scala conversion of "Definition f(a : A) := 3." """) {
     CoqParser("Definition f(a : A) := 3.") should
       generateScalaCode("def f(a: A) = 3")

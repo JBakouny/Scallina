@@ -45,12 +45,13 @@ import scala.of.coq.parsercombinators.parser.InfixPattern
 import scala.of.coq.parsercombinators.parser.ArgumentsCommand
 import scala.of.coq.parsercombinators.parser.Type
 import scala.of.coq.parsercombinators.parser.TupleValue
+import scala.of.coq.parsercombinators.parser.ScopeCommand
 
 object ScalaOfCoq {
 
   def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
 
-    case RequireImport(_) | ArgumentsCommand(_, _) =>
+    case RequireImport(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _) =>
       List() // The above commands do not generate any Scala code
     case Definition(id, binders, typeTerm, bodyTerm) =>
       List(createDefinition(typeTerm, id, binders) := termToTreeHuggerAst(bodyTerm))

@@ -201,5 +201,8 @@ object CoqLexer extends StdLexical {
   reserved += "Require"
   reserved += "Import"
   reserved += "Arguments"
+  reserved += "Local"
+  reserved += "Open"
+  reserved += "Scope"
 
 }
