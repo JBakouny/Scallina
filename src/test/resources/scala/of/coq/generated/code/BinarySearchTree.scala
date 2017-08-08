@@ -5,6 +5,7 @@ object BinarySearchTree {
   sealed abstract class tree[V]
   case class E[V](default: V) extends tree[V]
   case class T[V](l: tree[V], key: Nat, value: V, r: tree[V]) extends tree[V]
+  def empty_tree[V](default: V) = E(default)
   def lookup[V](x: Nat, t: tree[V]): V =
     t match {
       case E(default) => default
@@ -14,7 +15,7 @@ object BinarySearchTree {
     }
   def insert[V](x: Nat, v: V, s: tree[V]): tree[V] =
     s match {
-      case E(dft) => T(E(dft), x, v, E(dft))
+      case E(dflt) => T(E(dflt), x, v, E(dflt))
       case T(a, y, v2, b) => if (x < y) T(insert(x, v, a), y, v2, b)
       else if (y < x) T(a, y, v2, insert(x, v, b))
       else T(a, x, v, b)

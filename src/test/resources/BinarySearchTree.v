@@ -13,6 +13,7 @@ Inductive tree V : Type :=
 Arguments E {V} _.
 Arguments T {V} _ _ _ _.
 
+Definition empty_tree {V} (default: V) := E default.
 
 Fixpoint lookup {V} (x: nat) (t : tree V) : V :=
   match t with
@@ -24,7 +25,7 @@ Fixpoint lookup {V} (x: nat) (t : tree V) : V :=
 
 Fixpoint insert {V} (x: nat) (v: V) (s: tree V) : tree V :=
  match s with 
- | E dft => T (E dft) x v (E dft)
+ | E dflt => T (E dflt) x v (E dflt)
  | T a y v2 b => if  x <? y then T (insert x v a) y v2 b
                         else if y <? x then T a y v2 (insert x v b)
                         else T a x v b
