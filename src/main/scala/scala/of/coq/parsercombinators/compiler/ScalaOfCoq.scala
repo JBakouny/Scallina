@@ -46,6 +46,7 @@ import scala.of.coq.parsercombinators.parser.ArgumentsCommand
 import scala.of.coq.parsercombinators.parser.Type
 import scala.of.coq.parsercombinators.parser.TupleValue
 import scala.of.coq.parsercombinators.parser.ScopeCommand
+import scala.of.coq.parsercombinators.parser.Fun
 
 object ScalaOfCoq {
 
@@ -89,11 +90,12 @@ object ScalaOfCoq {
   private def termToTreeHuggerAst(t: Term): Tree = t match {
     case BetweenParenthesis(UncurriedTermApplication(functionTerm, arguments)) =>
       createApplication(functionTerm, arguments)
+    case Fun(binders, bodyTerm) =>
+      createAnonymousFunction(binders, bodyTerm)
     case TermIf(conditionTerm, _, thenTerm, elseTerm) =>
       IF(termToTreeHuggerAst(conditionTerm)).THEN(termToTreeHuggerAst(thenTerm)).ELSE(termToTreeHuggerAst(elseTerm))
     case UncurriedTermApplication(functionTerm, arguments) =>
       createApplication(functionTerm, arguments)
-    // TODO(Joseph Bakouny): Should support for Coq tuple convertion be hardcoded in the parser ?
     case InfixOperator(leftOp, op, rightOp) => createInfixOperator(leftOp, convertToScalaInfixOperator(op), rightOp)
     // TODO (Joseph Bakouny): The convertion of a pattern match should be improved to fit the general case
     case Match(List(MatchItem(matchTerm, None, None)), None, equations) =>
@@ -216,6 +218,40 @@ object ScalaOfCoq {
     case "option"       => "Option"
     case "bool"         => "Boolean"
     case anyOtherString => anyOtherString
+  }
+
+  private def createAnonymousFunction(binders: Binders, bodyTerm: Term) = {
+    def convertNamesToAnonFunParams(names: List[Name], optionalTypeTerm: Option[Term]) =
+      names.map(name =>
+        mkTreeFromDefStart(
+          name match {
+            case Name(Some(Ident(nameString))) =>
+              optionalTypeTerm.fold {
+                PARAM(nameString)
+              } {
+                (typeTerm: Term) =>
+                  PARAM(nameString, coqTypeToTreeHuggerType(typeTerm))
+              }
+            case Name(None) => PARAM(WILDCARD)
+          }
+        )
+      )
+
+    val Binders(bindersList) = binders;
+    val params = bindersList.flatMap {
+      case ExplicitSimpleBinder(name)              => convertNamesToAnonFunParams(List(name), None)
+      case ExplicitBinderWithType(names, typeTerm) => convertNamesToAnonFunParams(names, Some(typeTerm))
+      case ImplicitBinder(_, _) =>
+        throw new IllegalStateException(
+          "The implicit parameters of this anonymous function cannot be converted to Scala: " +
+            Fun(binders, bodyTerm).toCoqCode)
+    }
+
+    // NOTE: All Coq lambdas are transformed into currified Scala anonymous functions
+    params.foldRight(termToTreeHuggerAst(bodyTerm))(
+      (singleTypeParam, bodyTerm) =>
+        LAMBDA(singleTypeParam) ==> bodyTerm
+    )
   }
 
   private def createDefinition(typeTerm: Option[Term], id: Ident, binders: Option[Binders]): DefTreeStart = {

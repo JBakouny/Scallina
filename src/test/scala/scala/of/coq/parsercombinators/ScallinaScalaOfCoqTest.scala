@@ -42,6 +42,16 @@ class ScallinaScalaOfCoqTest extends FunSuite {
         """)
   }
 
+  test("""Testing that implicit anonymous function parameters are not supported
+        Definition illegalDef :=
+          fun {A} (x : A) => x.
+       """) {
+    coqParserShouldFailToGenerateScalaCodeFor("""
+        Definition illegalDef :=
+          fun {A} (x : A) => x.
+        """)
+  }
+
   test("""Testing Scala conversion of "Require Import Coq.Arith.PeanoNat." """) {
     CoqParser("Require Import Coq.Arith.PeanoNat.") should
       generateScalaCode("")
@@ -105,6 +115,59 @@ class ScallinaScalaOfCoqTest extends FunSuite {
        """) {
     CoqParser("Definition testPrimitiveBooleans := False.") should
       generateScalaCode("def testPrimitiveBooleans = false")
+  }
+
+  test("""Testing Scala conversion of
+        Definition empty : Z -> Z :=
+          fun x => 0.
+    """) {
+    CoqParser("""
+        Definition empty : Z -> Z :=
+          fun x => 0.
+      """) should generateScalaCode("""
+      "def empty: BigInt => BigInt =
+      "  x => 0
+      """)
+  }
+
+  test("""Testing Scala conversion of
+        Definition id : Z -> Z :=
+          fun x => x.
+    """) {
+    CoqParser("""
+        Definition id : Z -> Z :=
+          fun x => x.
+      """) should generateScalaCode("""
+      "def id: BigInt => BigInt =
+      "   x => x
+      """)
+  }
+
+  test("""Testing Scala conversion of
+        Definition add : Z -> Z -> Z :=
+          fun x => fun y => x + y.
+    """) {
+    CoqParser("""
+        Definition add : Z -> Z -> Z :=
+          fun x => fun y => x + y.
+      """) should generateScalaCode("""
+      "def add: BigInt => BigInt => BigInt =
+      "  x => y => x + y
+      """)
+  }
+
+  // NOTE: All Coq lambdas are transformed into currified Scala anonymous functions
+  test("""Testing Scala conversion of
+        Definition curryAdd : Z -> Z -> Z :=
+          fun (x y : Z) => x.
+    """) {
+    CoqParser("""
+        Definition curryAdd : Z -> Z -> Z :=
+          fun (x y : Z) => x.
+      """) should generateScalaCode("""
+      "def curryAdd: BigInt => BigInt => BigInt =
+      "  (x: BigInt) => (y: BigInt) => x
+      """)
   }
 
   test("""Testing Scala conversion of "Definition add(x y : nat) : nat := x + y." """) {
