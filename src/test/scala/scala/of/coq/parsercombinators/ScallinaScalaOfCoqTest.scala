@@ -509,7 +509,7 @@ class ScallinaScalaOfCoqTest extends FunSuite {
       """) should generateScalaCode("""
         "sealed abstract class Tree[A]
         "case class Leaf[A]() extends Tree[A]
-        "case class Node[A](l: Tree[A], r: Tree[A]) extends Tree[A]
+        "case class Node[A](info: A, l: Tree[A], r: Tree[A]) extends Tree[A]
         """)
   }
 
