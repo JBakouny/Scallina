@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "junit" % "junit" % "4.12" % "test"
 
-libraryDependencies += "com.eed3si9n" %% "treehugger" % "0.4.1"
+libraryDependencies += "com.eed3si9n" %% "treehugger" % "0.4.3"
 
 resolvers += Resolver.sonatypeRepo("public")
 
