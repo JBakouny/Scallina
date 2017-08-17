@@ -97,11 +97,8 @@ object ScalaOfCoq {
     case UncurriedTermApplication(functionTerm, arguments) =>
       createApplication(functionTerm, arguments)
     case InfixOperator(leftOp, op, rightOp) => createInfixOperator(leftOp, convertToScalaInfixOperator(op), rightOp)
-    // TODO (Joseph Bakouny): The convertion of a pattern match should be improved to fit the general case
-    case Match(List(MatchItem(matchTerm, None, None)), None, equations) =>
-      REF(termToScalaCode(matchTerm)).MATCH(equations.map {
-        case PatternEquation(List(MultPattern(List(pattern))), outputTerm) => CASE(convertPattern(pattern)) ==> termToTreeHuggerAst(outputTerm)
-      })
+    case patternMatch @ Match(_, _, _) =>
+      PatternMatchingUtils.convert(patternMatch)
     case Qualid(List(Ident(primitiveValue))) if qualidIsPrimitiveValueInScala(primitiveValue) =>
       convertQualitToPrimitiveValue(primitiveValue)
     case Qualid(xs) =>
@@ -111,7 +108,7 @@ object ScalaOfCoq {
     case BetweenParenthesis(term) =>
       PAREN(termToTreeHuggerAst(term))
     case TupleValue(tupleTerms) =>
-      TUPLE(tupleTerms.map(termToTreeHuggerAst))
+      convertTuple(tupleTerms, termToTreeHuggerAst)
     case anythingElse =>
       throw new IllegalStateException("The following Coq term is not supported: " + anythingElse.toCoqCode);
   }
@@ -142,24 +139,57 @@ object ScalaOfCoq {
       throw new IllegalStateException("The following Coq type is not supported: " + anythingElse.toCoqCode);
   }
 
-  private def convertPattern(coqPattern: Pattern): Tree = coqPattern match {
-    /*
+  private object PatternMatchingUtils {
+
+    def convert(patternMatch: Match) = {
+      // TODO(Joseph Bakouny): Check if the return type of the match should always be ignored
+      val Match(matchItems, _, equations) = patternMatch
+      convertTuple(matchItems, convertMatchItem).MATCH(equations.map(convertPatternEquation))
+    }
+
+    private def convertMatchItem(matchItem: MatchItem): Tree = matchItem match {
+      case MatchItem(coqTerm, None, None) => termToTreeHuggerAst(coqTerm)
+      case anythingElse                   => throw new IllegalStateException("The following Coq match item is not supported: " + anythingElse.toCoqCode)
+    }
+
+    private def convertPatternEquation(patternEquation: PatternEquation) =
+      {
+        val PatternEquation(multPatterns, outputTerm) = patternEquation
+        CASE(
+          multPatterns.map(convertMultPattern).reduce(_ OR_PATTERN _)
+        ) ==> termToTreeHuggerAst(outputTerm)
+      }
+
+    private def convertMultPattern(multPattern: MultPattern): Tree = {
+      val MultPattern(patterns) = multPattern
+      convertTuple(patterns, convertPattern)
+    }
+
+    private def convertPattern(coqPattern: Pattern): Tree = coqPattern match {
+      /*
      * TODO (Joseph Bakouny):
      * Infix patterns are currently only used for the list cons operator
      * Check if there is another usage that should be implemented.
      */
-    case InfixPattern(head, "::", tail)        => convertPattern(head) UNLIST_:: (convertPattern(tail))
-    case ConstructorPattern(constructor, args) => termToTreeHuggerAst(constructor).UNAPPLY(args.map(convertPattern))
-    case QualidPattern(q)                      => termToTreeHuggerAst(q)
-    case UnderscorePattern                     => WILDCARD
-    // TODO (Joseph Bakouny): Handle Nats in pattern position correctly
-    case NumberPattern(Number(n))              => toNat(n)
-    case ParenthesisOrPattern(List(OrPattern(orPatterns))) => {
-      val firstPattern :: followingPatterns = orPatterns.map(convertPattern)
-      followingPatterns.foldLeft(firstPattern)((nextPattern, patternAlternatives) => patternAlternatives.OR_PATTERN(nextPattern))
+      case InfixPattern(head, "::", tail)        => convertPattern(head) UNLIST_:: (convertPattern(tail))
+      case ConstructorPattern(constructor, args) => termToTreeHuggerAst(constructor).UNAPPLY(args.map(convertPattern))
+      case QualidPattern(q)                      => termToTreeHuggerAst(q)
+      case UnderscorePattern                     => WILDCARD
+      /*
+       * TODO (Joseph Bakouny): Handle Nats in pattern position correctly
+       * Generate numbers such as 3 and not S(S(S(Zero))))
+       * For this, consider subclassing BigInt and implementing unapply.
+       */
+      case NumberPattern(Number(n))              => toNat(n)
+      case ParenthesisOrPattern(orPatterns)      => convertTuple(orPatterns, convertOrPattern)
+      case anythingElse =>
+        throw new IllegalStateException("The following Coq pattern is not yet supported: " + anythingElse.toCoqCode);
     }
-    case anythingElse =>
-      throw new IllegalStateException("The following Coq pattern is not yet supported: " + anythingElse.toCoqCode);
+
+    private def convertOrPattern(orPattern: OrPattern) = {
+      val OrPattern(patterns) = orPattern
+      patterns.map(convertPattern).reduce(_ OR_PATTERN _)
+    }
   }
 
   private def createApplication(functionTerm: Term, arguments: List[Argument]) =
@@ -366,5 +396,13 @@ object ScalaOfCoq {
 
   private def createInfixOperator(leftOp: Term, op: String, rightOp: Term) = {
     termToTreeHuggerAst(leftOp).INFIX(op).APPLY(termToTreeHuggerAst(rightOp))
+  }
+
+  private def convertTuple[A, B <: Tree](tupleElems: List[A], converterFunction: A => B): Tree = {
+    tupleElems match {
+      case Nil      => throw new IllegalStateException("Cannot convert a tuple with no elements!")
+      case p :: Nil => converterFunction(p) // A tuple with a single element is just a value
+      case p :: ps  => TUPLE(tupleElems.map(converterFunction))
+    }
   }
 }

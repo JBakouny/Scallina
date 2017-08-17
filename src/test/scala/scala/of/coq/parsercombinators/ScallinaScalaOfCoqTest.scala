@@ -454,8 +454,7 @@ class ScallinaScalaOfCoqTest extends FunSuite {
         """)
   }
 
-  // TODO(Joseph Bakouny): Implement pattern matching on tuples with adequate conversion to Scala
-  ignore("""Testing Scala conversion of
+  test("""Testing Scala conversion of
         Definition matchOnTuple(tuple : nat * nat) := match tuple with
           (0, 0) => 5
         | (_, _) => 7
@@ -467,7 +466,31 @@ class ScallinaScalaOfCoqTest extends FunSuite {
         | (_, _) => 7
         end.
       """) should generateScalaCode("""
-        " Implement pattern matching on tuples with adequate conversion to Scala
+        "def matchOnTuple(tuple: (Nat, Nat)) =
+        "  tuple match {
+        "    case (Zero, Zero) => 5
+        "    case (_, _)       => 7
+        "  }
+        """)
+  }
+
+  test("""Testing Scala conversion of
+        Definition matchOnTuple(x y : nat) := match x, y with
+          0, 0 => 5
+        | _, _ => 7
+        end.
+       """) {
+    CoqParser("""
+        Definition matchOnTuple(x y : nat) := match x, y with
+          0, 0 => 5
+        | _, _ => 7
+        end.
+      """) should generateScalaCode("""
+        "def matchOnTuple(x: Nat, y: Nat) =
+        "  (x, y) match {
+        "    case (Zero, Zero) => 5
+        "    case (_, _)       => 7
+        "  }
         """)
   }
 
@@ -539,15 +562,14 @@ class ScallinaScalaOfCoqTest extends FunSuite {
         "case class Leaf(value: Nat) extends Tree
         "case class Node(l: Tree, r: Tree) extends Tree
         "def testFunction(t: Tree): Tree =
-        " t match {
-        " case Leaf(S(S(S(Zero))) | S(S(Zero)) | S(Zero)) => Leaf(5)
-        " case _ => Leaf(7)
-        " }
+        "  t match {
+        "    case Leaf(S(Zero) | S(S(Zero)) | S(S(S(Zero)))) => Leaf(5)
+        "    case _ => Leaf(7)
+        "  }
         """)
   }
 
-  // TODO (Joseph Bakouny): Handle several multPatterns in an equation
-  ignore("""Testing Scala conversion of
+  test("""Testing Scala conversion of
       Inductive Tree :=
         Leaf (value: nat) : Tree
       | Node(l r : Tree): Tree.
@@ -574,7 +596,7 @@ class ScallinaScalaOfCoqTest extends FunSuite {
         "case class Node(l: Tree, r: Tree) extends Tree
         "def testFunction(t: Tree): Tree =
         "  t match {
-        "    case Leaf(3) | Leaf(2) | Leaf(1) => Leaf(5)
+        "    case Leaf(S(Zero)) | Leaf(S(S(Zero))) | Leaf(S(S(S(Zero)))) => Leaf(5)
         "    case _ => Leaf(7)
         "  }
         """)

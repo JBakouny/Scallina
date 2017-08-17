@@ -679,6 +679,84 @@ class CoqParserTest extends FunSuite {
   }
 
   test("""Testing
+        Definition matchOnTuple(tuple : nat * nat) := match tuple with
+          (0, 0) => 5
+        | (_, _) => 7
+        end.
+    """) {
+    CoqParser("""
+        Definition matchOnTuple(tuple : nat * nat) := match tuple with
+          (0, 0) => 5
+        | (_, _) => 7
+        end.
+              """) should parse(
+      List(
+        Definition(
+          Ident("matchOnTuple"),
+          Some(Binders(List(
+            ExplicitBinderWithType(
+              List(Name(Some(Ident("tuple")))),
+              InfixOperator(Qualid(List(Ident("nat"))), "*", Qualid(List(Ident("nat")))))))),
+          None,
+          Match(
+            List(MatchItem(Qualid(List(Ident("tuple"))), None, None)),
+            None,
+            List(
+              PatternEquation(
+                List(MultPattern(List(
+                  ParenthesisOrPattern(List(
+                    OrPattern(List(NumberPattern(Number(0)))),
+                    OrPattern(List(NumberPattern(Number(0))))))))),
+                Number(5)),
+              PatternEquation(
+                List(MultPattern(List(
+                  ParenthesisOrPattern(List(
+                    OrPattern(List(UnderscorePattern)),
+                    OrPattern(List(UnderscorePattern))))))),
+                Number(7))))))
+    )
+  }
+
+  test("""Testing
+        Definition matchOnTuple(x y : nat) := match x, y with
+          0, 0 => 5
+        | _, _ => 7
+        end.
+    """) {
+    CoqParser("""
+        Definition matchOnTuple(x y : nat) := match x, y with
+          0, 0 => 5
+        | _, _ => 7
+        end.
+              """) should parse(
+      List(
+        Definition(
+          Ident("matchOnTuple"),
+          Some(Binders(List(
+            ExplicitBinderWithType(
+              List(Name(Some(Ident("x"))), Name(Some(Ident("y")))),
+              Qualid(List(Ident("nat"))))))),
+          None,
+          Match(
+            List(
+              MatchItem(Qualid(List(Ident("x"))), None, None),
+              MatchItem(Qualid(List(Ident("y"))), None, None)),
+            None,
+            List(
+              PatternEquation(
+                List(MultPattern(List(
+                  NumberPattern(Number(0)),
+                  NumberPattern(Number(0))))),
+                Number(5)),
+              PatternEquation(
+                List(MultPattern(List(
+                  UnderscorePattern,
+                  UnderscorePattern))),
+                Number(7))))))
+    )
+  }
+
+  test("""Testing
       Lemma testing (x : nat) : eq x x.
       Proof.
       auto.

@@ -204,21 +204,6 @@ class CoqTermParserTest extends FunSuite {
       Number(5)))
   }
 
-  // TODO (Joseph Bakouny): Implement support for pattern matching on tuples
-  ignore("""Testing
-          fun (tuple : nat * nat) => match tuple with
-            (0, 0) => 5
-          | (_, _) => 7
-          end
-          """) {
-    CoqTermParser("""
-                fun (tuple : nat * nat) => match tuple with
-                  (0, 0) => 5
-                | (_, _) => 7
-                end
-                """) should parse(Qualid(List(Ident("Implement pattern matching on tuples with adequate conversion to Scala"))))
-  }
-
   test("""Testing
             let fix rightMost {A : Type} (t : BinTree) : A := match t with
              L x => x
