@@ -326,15 +326,17 @@ object ScalaOfCoq {
     val caseClassHierarchy: List[Tree] =
       for {
         /*
-       * TODO (Jospeh Bakouny): This case clause ignores the type term.
-       * Check what needs to be done with the type Term in future version
-       */
+         * TODO (Jospeh Bakouny): This case clause ignores the type term.
+         * Check what needs to be done with the type Term in future version
+         */
         InductiveBodyItem(Ident(name), binders, _) <- indBodyItems
       } yield binders.fold {
 
         /*
-         * TODO (Joseph Bakouny): Check how to handle the case when a case class has generic type parameters but no parameters.
-         * Note that an empty case class with generic type params is not generated with the correct parenthesis "()".
+         *   TODO(Joseph Bakouny): Fix the empty case class issue:
+         *   An empty case class is not generated with the correct parenthesis "()".
+         *
+         *   This is probably an issue with treehugger.scala.
          */
         val caseObjectDeclaration: Tree =
           CASEOBJECTDEF(name)
@@ -363,8 +365,11 @@ object ScalaOfCoq {
     val Binders(bindersList) = binders;
 
     val (typeParams, params) = bindersList.partition {
-      // TODO (Jospeh Bakouny): The partitioning algorithm between typeParams and params should be largely improved.
-      // In fact, not all implicit parameters are type params. Consider supporting converting implicit non-type params to Scala implicits.
+      /*
+       *  TODO (Jospeh Bakouny): The partitioning algorithm between typeParams and params can be improved.
+       *  In fact, in future versions, it might not be necessary to consider all implicit parameters as type params.
+       *  Consider supporting converting implicit non-type params to Scala implicits.
+       */
       case ImplicitBinder(_, _)         => true
       case ExplicitBinderWithType(_, _) => false
       case anythingElse =>

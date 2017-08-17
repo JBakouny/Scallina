@@ -181,7 +181,7 @@ object CoqLexer extends StdLexical {
   // Added delimiters:
   delimiters += "'" // for the letPatternIn production
 
-  // TODO (Joseph Bakouny): Investigate further the issue of Vernacular keywords
+  // TODO (Joseph Bakouny): Investigate further the use of Vernacular keywords as reserved words
   // Added Vernacular keywords:
   reserved += "Definition"
   reserved += "Inductive"

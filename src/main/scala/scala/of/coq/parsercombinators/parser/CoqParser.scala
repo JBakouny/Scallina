@@ -317,8 +317,6 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       )
     }
 
-    // TODO (Joseph Bakouny): consider also hardcoding support for tuples and lists
-
     private lazy val patternMatch: P[Match] =
       "match" ~> rep1sep(matchItem, ",") ~ (returnType ?) ~ "with" ~ opt(("|" ?) ~> rep1sep(patternEquation, "|")) <~ "end" ^^ {
         case matchItems ~ returnType ~ withKeyword ~ equations => Match(matchItems, returnType, equations.fold(List[PatternEquation]())(xs => xs))
@@ -381,7 +379,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     //TODO (Joseph Bakouny): Consider a more elegant representation of infix patterns
     /*
      * Warning:
-     * Infix patterns are not represented in the official Coq grammar!
+     * Infix patterns are not represented in the official Coq grammar
      * Infix patterns are currently only used for the list cons operator "::"
      */
     private lazy val infixPattern: P[InfixPattern] =

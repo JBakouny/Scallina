@@ -517,8 +517,10 @@ class ScallinaScalaOfCoqTest extends FunSuite {
   }
 
   /*
-   *   TODO(Joseph Bakouny): Fix an issue where an empty case class with generic type params is not generated
-   *     with the correct parenthesis "()".
+   *   TODO(Joseph Bakouny): Fix the empty case class issue:
+   *   An empty case class is not generated with the correct parenthesis "()".
+   *
+   *   This is probably an issue with treehugger.scala.
    */
   ignore("""Testing Scala conversion of
           Inductive Tree {A : Type} :=

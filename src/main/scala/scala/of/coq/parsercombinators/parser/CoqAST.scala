@@ -240,7 +240,6 @@ case class Term_%(term: Term, ident: Ident) extends Term {
 /*
  * TODO (Joseph Bakouny): infix operators are not represented in the Coq grammar, this class should perhaps be re-thinked.
  */
-
 case class InfixOperator(leftOperand: Term, operator: String, rightOperand: Term) extends Term {
   def toCoqCode: String = leftOperand.toCoqCode + " " + operator + " " + rightOperand.toCoqCode
 }
