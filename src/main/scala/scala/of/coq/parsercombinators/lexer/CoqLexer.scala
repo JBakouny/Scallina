@@ -87,7 +87,10 @@ object CoqLexer extends StdLexical {
    * Consider including the full Coq definition in later versions.
    */
   private def literal: Parser[StringLit] = {
-    '\"' ~ (chrExcept('\"', '\n', EofCh) *) ~ '\"' ^^ { case '\"' ~ chars ~ '\"' => StringLit(chars mkString "") }
+    '\"' ~ (chrExcept('\"', '\n', EofCh) *) ~ '\"' ^^ {
+      case '\"' ~ chars ~ '\"' => StringLit(chars mkString "")
+      case anythingElse        => throw new IllegalStateException("String literal parser: should not get here!")
+    }
   }
 
   reserved += "as"
