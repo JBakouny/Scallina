@@ -47,6 +47,9 @@ import scala.of.coq.parsercombinators.parser.Type
 import scala.of.coq.parsercombinators.parser.TupleValue
 import scala.of.coq.parsercombinators.parser.ScopeCommand
 import scala.of.coq.parsercombinators.parser.Fun
+import scala.of.coq.parsercombinators.parser.LetConstructorArgsIn
+import scala.of.coq.parsercombinators.parser.LetPatternIn
+import scala.of.coq.parsercombinators.parser.SimpleLetIn
 
 object ScalaOfCoq {
 
@@ -92,13 +95,32 @@ object ScalaOfCoq {
       createApplication(functionTerm, arguments)
     case Fun(binders, bodyTerm) =>
       createAnonymousFunction(binders, bodyTerm)
+    case SimpleLetIn(Ident(id), binders, typeTerm, inputTerm, mainTerm) =>
+      BLOCK(
+        typeTerm.fold(VAL(id))(t => VAL(id, coqTypeToTreeHuggerType(t))) :=
+          binders.fold(termToTreeHuggerAst(inputTerm))(createAnonymousFunction(_, inputTerm)),
+        termToTreeHuggerAst(mainTerm)
+      )
+    case LetConstructorArgsIn(names, _, inputTerm, mainTerm) =>
+      // TODO(Joseph Bakouny): consider supporting inductives with one constructor that are not tuples
+      BLOCK(
+        VAL(convertTuple(names, PatternUtils.convertNameToPatternVar)) :=
+          termToTreeHuggerAst(inputTerm),
+        termToTreeHuggerAst(mainTerm)
+      )
+    case LetPatternIn(pattern, inputTerm, _, mainTerm) =>
+      BLOCK(
+        VAL(PatternUtils.convertPattern(pattern)) :=
+          termToTreeHuggerAst(inputTerm),
+        termToTreeHuggerAst(mainTerm)
+      )
     case TermIf(conditionTerm, _, thenTerm, elseTerm) =>
       IF(termToTreeHuggerAst(conditionTerm)).THEN(termToTreeHuggerAst(thenTerm)).ELSE(termToTreeHuggerAst(elseTerm))
     case UncurriedTermApplication(functionTerm, arguments) =>
       createApplication(functionTerm, arguments)
     case InfixOperator(leftOp, op, rightOp) => createInfixOperator(leftOp, convertToScalaInfixOperator(op), rightOp)
     case patternMatch @ Match(_, _, _) =>
-      PatternMatchingUtils.convert(patternMatch)
+      PatternUtils.convertPatternMatch(patternMatch)
     case Qualid(List(Ident(primitiveValue))) if qualidIsPrimitiveValueInScala(primitiveValue) =>
       convertQualitToPrimitiveValue(primitiveValue)
     case Qualid(xs) =>
@@ -137,59 +159,6 @@ object ScalaOfCoq {
       TYPE_TUPLE(allTupleTypesIn(tupleDef))
     case anythingElse =>
       throw new IllegalStateException("The following Coq type is not supported: " + anythingElse.toCoqCode);
-  }
-
-  private object PatternMatchingUtils {
-
-    def convert(patternMatch: Match) = {
-      // TODO(Joseph Bakouny): Check if the return type of the match should always be ignored
-      val Match(matchItems, _, equations) = patternMatch
-      convertTuple(matchItems, convertMatchItem).MATCH(equations.map(convertPatternEquation))
-    }
-
-    private def convertMatchItem(matchItem: MatchItem): Tree = matchItem match {
-      case MatchItem(coqTerm, None, None) => termToTreeHuggerAst(coqTerm)
-      case anythingElse                   => throw new IllegalStateException("The following Coq match item is not supported: " + anythingElse.toCoqCode)
-    }
-
-    private def convertPatternEquation(patternEquation: PatternEquation) =
-      {
-        val PatternEquation(multPatterns, outputTerm) = patternEquation
-        CASE(
-          multPatterns.map(convertMultPattern).reduce(_ OR_PATTERN _)
-        ) ==> termToTreeHuggerAst(outputTerm)
-      }
-
-    private def convertMultPattern(multPattern: MultPattern): Tree = {
-      val MultPattern(patterns) = multPattern
-      convertTuple(patterns, convertPattern)
-    }
-
-    private def convertPattern(coqPattern: Pattern): Tree = coqPattern match {
-      /*
-     * TODO (Joseph Bakouny):
-     * Infix patterns are currently only used for the list cons operator
-     * Check if there is another usage that should be implemented.
-     */
-      case InfixPattern(head, "::", tail)        => convertPattern(head) UNLIST_:: (convertPattern(tail))
-      case ConstructorPattern(constructor, args) => termToTreeHuggerAst(constructor).UNAPPLY(args.map(convertPattern))
-      case QualidPattern(q)                      => termToTreeHuggerAst(q)
-      case UnderscorePattern                     => WILDCARD
-      /*
-       * TODO (Joseph Bakouny): Handle Nats in pattern position correctly
-       * Generate numbers such as 3 and not S(S(S(Zero))))
-       * For this, consider subclassing BigInt and implementing unapply.
-       */
-      case NumberPattern(Number(n))              => toNat(n)
-      case ParenthesisOrPattern(orPatterns)      => convertTuple(orPatterns, convertOrPattern)
-      case anythingElse =>
-        throw new IllegalStateException("The following Coq pattern is not yet supported: " + anythingElse.toCoqCode);
-    }
-
-    private def convertOrPattern(orPattern: OrPattern) = {
-      val OrPattern(patterns) = orPattern
-      patterns.map(convertPattern).reduce(_ OR_PATTERN _)
-    }
   }
 
   private def createApplication(functionTerm: Term, arguments: List[Argument]) =
@@ -238,6 +207,7 @@ object ScalaOfCoq {
     case "cons"         => "Cons"
     // TODO (Joseph Bakouny): Leon "Nil" lists are written like this "Nil()" in pattern matches, check how to support this
     case "nil"          => "Nil"
+    case "pair"         => "Tuple2"
     case anyOtherString => anyOtherString
   }
 
@@ -408,6 +378,65 @@ object ScalaOfCoq {
       case Nil      => throw new IllegalStateException("Cannot convert a tuple with no elements!")
       case p :: Nil => converterFunction(p) // A tuple with a single element is just a value
       case p :: ps  => TUPLE(tupleElems.map(converterFunction))
+    }
+  }
+
+  private object PatternUtils {
+
+    def convertPatternMatch(patternMatch: Match) = {
+      // TODO(Joseph Bakouny): Check if the return type of the match should always be ignored
+      val Match(matchItems, _, equations) = patternMatch
+      convertTuple(matchItems, convertMatchItem).MATCH(equations.map(convertPatternEquation))
+    }
+
+    def convertPattern(coqPattern: Pattern): Tree = coqPattern match {
+      /*
+     * TODO (Joseph Bakouny):
+     * Infix patterns are currently only used for the list cons operator
+     * Check if there is another usage that should be implemented.
+     */
+      case InfixPattern(head, "::", tail)        => convertPattern(head) UNLIST_:: (convertPattern(tail))
+      case ConstructorPattern(constructor, args) => termToTreeHuggerAst(constructor).UNAPPLY(args.map(convertPattern))
+      case QualidPattern(q)                      => termToTreeHuggerAst(q)
+      case UnderscorePattern                     => WILDCARD
+      /*
+       * TODO (Joseph Bakouny): Handle Nats in pattern position correctly
+       * Generate numbers such as 3 and not S(S(S(Zero))))
+       * For this, consider subclassing BigInt and implementing unapply.
+       */
+      case NumberPattern(Number(n))              => toNat(n)
+      case ParenthesisOrPattern(orPatterns)      => convertTuple(orPatterns, convertOrPattern)
+      case anythingElse =>
+        throw new IllegalStateException("The following Coq pattern is not yet supported: " + anythingElse.toCoqCode);
+    }
+
+    def convertNameToPatternVar(name: Name) =
+      name match {
+        case Name(None)            => WILDCARD
+        case Name(Some(Ident(id))) => ID(id)
+      }
+
+    private def convertMatchItem(matchItem: MatchItem): Tree = matchItem match {
+      case MatchItem(coqTerm, None, None) => termToTreeHuggerAst(coqTerm)
+      case anythingElse                   => throw new IllegalStateException("The following Coq match item is not supported: " + anythingElse.toCoqCode)
+    }
+
+    private def convertPatternEquation(patternEquation: PatternEquation) =
+      {
+        val PatternEquation(multPatterns, outputTerm) = patternEquation
+        CASE(
+          multPatterns.map(convertMultPattern).reduce(_ OR_PATTERN _)
+        ) ==> termToTreeHuggerAst(outputTerm)
+      }
+
+    private def convertMultPattern(multPattern: MultPattern): Tree = {
+      val MultPattern(patterns) = multPattern
+      convertTuple(patterns, convertPattern)
+    }
+
+    private def convertOrPattern(orPattern: OrPattern) = {
+      val OrPattern(patterns) = orPattern
+      patterns.map(convertPattern).reduce(_ OR_PATTERN _)
     }
   }
 }

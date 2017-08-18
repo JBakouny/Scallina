@@ -336,6 +336,125 @@ class ScallinaScalaOfCoqTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
+      Definition testSimpleLet (x: nat) : nat :=
+        let y := 2 * x in 7 * y.
+       """) {
+    CoqParser("""
+      Definition testSimpleLet (x: nat) : nat :=
+        let y := 2 * x in 7 * y.
+      """) should generateScalaCode("""
+      "def testSimpleLet(x: Nat): Nat = {
+      " val y = 2 * x
+      " 7 * y
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+      Definition testSimpleLetWithBinders (x: nat) : nat :=
+        let f (a : nat) := 3 * a in 7 * (f x).
+       """) {
+    CoqParser("""
+      Definition testSimpleLetWithBinders (x: nat) : nat :=
+        let f (a : nat) := 3 * a in 7 * (f x).
+      """) should generateScalaCode("""
+      "def testSimpleLetWithBinders(x: Nat): Nat = {
+      " val f = (a: Nat) => 3 * a
+      " 7 * f(x)
+      "}
+      """)
+  }
+
+  /*
+   * TODO(Joseph Bakouny): Consider changing the default behavior of
+   * the generated Scala function applications from uncurrified applications (and definitions) to
+   * currified applications and definitions.
+   * In fact, this best mimics Coq and OCaml functions which are all currified one argument functions.
+   *
+   * Also implement a command line option to switch back to uncurrified definitions.
+   */
+  ignore("""Testing Scala conversion of
+    Definition testSimpleLetWithBinders (x: nat) : nat :=
+      let f (a b : nat) := a * b in f 7 3.
+       """) {
+    CoqParser("""
+      Definition testSimpleLetWithBinders (x: nat) : nat :=
+        let f (a b : nat) := a * b in f 7 3.
+      """) should generateScalaCode("""
+      "def testSimpleLetWithBinders(x: Nat): Nat = {
+      "  val f = (a: Nat) => (b: Nat) => a * b
+      "  f(7)(3)
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+        Fixpoint select (x: nat) (l: list nat) : nat * list nat :=
+        match l with
+        |  nil => (x, nil)
+        |  h::t => if x <=? h
+                       then let (j, l2) := select x t in (j, h::l2)
+                       else let (j, l2) := select h t in (j, x::l2)
+        end.
+       """) {
+    CoqParser("""
+        Fixpoint select (x: nat) (l: list nat) : nat * list nat :=
+        match l with
+        |  nil => (x, nil)
+        |  h::t => if x <=? h
+                       then let (j, l2) := select x t in (j, h::l2)
+                       else let (j, l2) := select h t in (j, x::l2)
+        end.
+      """) should generateScalaCode("""
+      "def select(x: Nat, l: List[Nat]): (Nat, List[Nat]) =
+      "  l match {
+      "    case Nil => (x, Nil)
+      "    case h :: t => if (x <= h) {
+      "      val (j, l2) = select(x, t)
+      "      (j, h :: l2)
+      "    }
+      "    else {
+      "      val (j, l2) = select(h, t)
+      "      (j, x :: l2)
+      "    }
+      "  }
+      """)
+  }
+
+  test("""Testing Scala conversion of
+        Fixpoint select (x: nat) (l: list nat) : nat * list nat :=
+        match l with
+        |  nil => (x, nil)
+        |  h::t => if x <=? h
+                       then let ' pair j l2 := select x t in (j, h::l2)
+                       else let ' pair j l2 := select h t in (j, x::l2)
+        end.
+       """) {
+    CoqParser("""
+        Fixpoint select (x: nat) (l: list nat) : nat * list nat :=
+        match l with
+        |  nil => (x, nil)
+        |  h::t => if x <=? h
+                       then let ' pair j l2 := select x t in (j, h::l2)
+                       else let ' pair j l2 := select h t in (j, x::l2)
+        end.
+      """) should generateScalaCode("""
+      "def select(x: Nat, l: List[Nat]): (Nat, List[Nat]) =
+      "  l match {
+      "    case Nil => (x, Nil)
+      "    case h :: t => if (x <= h) {
+      "      val Tuple2(j, l2) = select(x, t)
+      "      (j, h :: l2)
+      "    }
+      "    else {
+      "      val Tuple2(j, l2) = select(h, t)
+      "      (j, x :: l2)
+      "    }
+      "  }
+      """)
+  }
+
+  test("""Testing Scala conversion of
         Inductive Tree : Type :=
           Leaf : Tree
         | Node(l r : Tree): Tree.
