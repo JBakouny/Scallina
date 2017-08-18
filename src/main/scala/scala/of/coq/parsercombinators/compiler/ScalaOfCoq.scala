@@ -65,7 +65,8 @@ object ScalaOfCoq {
        * Check what needs to be done with the type Term in future version
        */
       createCaseClassHierarchy(parentBinders, parentName, indBodyItems)
-    case Fixpoint(FixBody(id, binders, None, typeTerm, bodyTerm)) =>
+    case Fixpoint(FixBody(id, binders, _, typeTerm, bodyTerm)) =>
+      // NOTE(Joseph Bakouny): Struct annotations should be ignored in Scala
       List(createDefinition(typeTerm, id, Some(binders)) := termToTreeHuggerAst(bodyTerm))
     case Assertion(_, id, binders, bodyTerm) =>
       List()
