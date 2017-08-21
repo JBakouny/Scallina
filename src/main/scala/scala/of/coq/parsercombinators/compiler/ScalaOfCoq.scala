@@ -57,6 +57,8 @@ object ScalaOfCoq {
 
     case RequireImport(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _) =>
       List() // The above commands do not generate any Scala code
+    case Definition(id, binders, Some(Type), bodyTypeTerm) =>
+      List(createTypeAliasDefinition(id, binders) := coqTypeToTreeHuggerType(bodyTypeTerm))
     case Definition(id, binders, typeTerm, bodyTerm) =>
       List(createDefinition(typeTerm, id, binders) := termToTreeHuggerAst(bodyTerm))
     case Inductive(InductiveBody(Ident(parentName), parentBinders, _, indBodyItems)) =>
@@ -255,6 +257,12 @@ object ScalaOfCoq {
     )
   }
 
+  private def createTypeAliasDefinition(id: Ident, binders: Option[Binders]) = {
+    val typeParams = convertTypeBindersToTypeVars(binders)
+    val Ident(nameString) = id
+    TYPEVAR(nameString).withTypeParams(typeParams)
+  }
+
   private def createDefinition(typeTerm: Option[Term], id: Ident, binders: Option[Binders]): DefTreeStart = {
     val declaration: DefTreeStart = typeTerm.fold(DEFINFER(id.toCoqCode)) {
       typeTerm => DEF(id.toCoqCode, coqTypeToTreeHuggerType(typeTerm))
@@ -273,19 +281,7 @@ object ScalaOfCoq {
   }
 
   private def createCaseClassHierarchy(parentBinders: Option[Binders], parentName: String, indBodyItems: List[InductiveBodyItem]) = {
-    val parentTypeDefs = parentBinders.fold(List[TypeDefTreeStart]()) {
-      case Binders(binders) =>
-        def convertNamesToTypeVars(names: List[Name]) =
-          for { Name(Some(Ident(nameString))) <- names } yield TYPEVAR(nameString)
-        binders.flatMap {
-          case ExplicitSimpleBinder(name)          => convertNamesToTypeVars(List(name))
-          case ExplicitBinderWithType(names, Type) => convertNamesToTypeVars(names)
-          case ImplicitBinder(names, None)         => convertNamesToTypeVars(names)
-          case ImplicitBinder(names, Some(Type))   => convertNamesToTypeVars(names)
-          case anythingElse =>
-            throw new IllegalStateException("The following Coq inductive parameter is not supported: " + anythingElse)
-        }
-    }
+    val parentTypeDefs = convertTypeBindersToTypeVars(parentBinders)
 
     val parentDeclaration: Tree =
       CLASSDEF(parentName)
@@ -365,6 +361,21 @@ object ScalaOfCoq {
 
     (implicitBinders, paramsDefs)
   }
+
+  private def convertTypeBindersToTypeVars(typeBinders: Option[Binders]) =
+    typeBinders.fold(List[TypeDefTreeStart]()) {
+      case Binders(binders) =>
+        def convertNamesToTypeVars(names: List[Name]) =
+          for { Name(Some(Ident(nameString))) <- names } yield TYPEVAR(nameString)
+        binders.flatMap {
+          case ExplicitSimpleBinder(name)          => convertNamesToTypeVars(List(name))
+          case ExplicitBinderWithType(names, Type) => convertNamesToTypeVars(names)
+          case ImplicitBinder(names, None)         => convertNamesToTypeVars(names)
+          case ImplicitBinder(names, Some(Type))   => convertNamesToTypeVars(names)
+          case anythingElse =>
+            throw new IllegalStateException("The following Coq type parameter is not supported: " + anythingElse)
+        }
+    }
 
   private def createTypeWithGenericParams(typeName: String, genericTypeParams: List[Type]): Type = {
     TYPE_REF(typeName).TYPE_OF(genericTypeParams)

@@ -18,12 +18,22 @@ class ScallinaScalaOfCoqTest extends FunSuite {
     }
   }
 
-  test("""Testing that explicit Type parameters are not supported
-      Definition illegalFunction (x: Type) := 3.
+  test("""Testing that explicit Type parameters are not supported if the return type is not Type
+      Definition illegalFunction (x: Type) := x -> x.
        """) {
     coqParserShouldFailToGenerateScalaCodeFor("""
-        Definition illegalFunction (x: Type) := 3.
+        Definition illegalFunction (x: Type) := x -> x.
         """)
+  }
+
+  test("""Testing Scala conversion of "Definition legalFunction (x: Type) : Type := x -> x." """) {
+    CoqParser("Definition legalFunction (x: Type) : Type := x -> x.") should
+      generateScalaCode("type legalFunction[x] = x => x")
+  }
+
+  test("""Testing Scala conversion of "Definition newTypeAlias : Type := nat -> nat." """) {
+    CoqParser("Definition newTypeAlias : Type := nat -> nat.") should
+      generateScalaCode("type newTypeAlias = Nat => Nat")
   }
 
   test("""Testing that explicit Prop parameters are not supported
