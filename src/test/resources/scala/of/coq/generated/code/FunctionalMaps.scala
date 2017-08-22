@@ -1,7 +1,7 @@
 import scala.of.coq.lang._
 import Nat._
 import MoreLists._
-object Maps {
+object FunctionalMaps {
   sealed abstract class id
   case class Id(n: Nat) extends id
   def beq_id(id1: id, id2: id): Boolean =
