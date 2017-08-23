@@ -50,7 +50,7 @@ import java.net.URL
 
 import TestUtils._
 
-class ScallinaScalaOfCoqFileBasedTest extends FunSuite {
+class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
 
   def fileToString(directory: String, extension: String)(fileName: String): String = {
     val fileBufferedSource = io.Source.fromURL(getClass.getResource(directory + "/" + fileName + "." + extension));

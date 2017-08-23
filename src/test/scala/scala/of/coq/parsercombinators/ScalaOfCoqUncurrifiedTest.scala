@@ -9,7 +9,7 @@ import org.scalatest.Matchers.convertToAnyShouldWrapper
 
 import CustomMatchers.generateScalaCode
 
-class ScallinaScalaOfCoqTest extends FunSuite {
+class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   implicit val scalaOfCoq = TestUtils.uncurrifiedScalaOfCoq
 
@@ -165,20 +165,6 @@ class ScallinaScalaOfCoqTest extends FunSuite {
       """) should generateScalaCode("""
       "def add: BigInt => BigInt => BigInt =
       "  x => y => x + y
-      """)
-  }
-
-  // NOTE: All Coq lambdas are transformed into currified Scala anonymous functions
-  test("""Testing Scala conversion of
-        Definition curryAdd : Z -> Z -> Z :=
-          fun (x y : Z) => x.
-    """) {
-    CoqParser("""
-        Definition curryAdd : Z -> Z -> Z :=
-          fun (x y : Z) => x.
-      """) should generateScalaCode("""
-      "def curryAdd: BigInt => BigInt => BigInt =
-      "  (x: BigInt) => (y: BigInt) => x
       """)
   }
 
@@ -373,29 +359,6 @@ class ScallinaScalaOfCoqTest extends FunSuite {
       "def testSimpleLetWithBinders(x: Nat): Nat = {
       " val f = (a: Nat) => 3 * a
       " 7 * f(x)
-      "}
-      """)
-  }
-
-  /*
-   * TODO(Joseph Bakouny): Consider changing the default behavior of
-   * the generated Scala function applications from uncurrified applications (and definitions) to
-   * currified applications and definitions.
-   * In fact, this best mimics Coq and OCaml functions which are all currified one argument functions.
-   *
-   * Also implement a command line option to switch back to uncurrified definitions.
-   */
-  ignore("""Testing Scala conversion of
-    Definition testSimpleLetWithBinders (x: nat) : nat :=
-      let f (a b : nat) := a * b in f 7 3.
-       """) {
-    CoqParser("""
-      Definition testSimpleLetWithBinders (x: nat) : nat :=
-        let f (a b : nat) := a * b in f 7 3.
-      """) should generateScalaCode("""
-      "def testSimpleLetWithBinders(x: Nat): Nat = {
-      "  val f = (a: Nat) => (b: Nat) => a * b
-      "  f(7)(3)
       "}
       """)
   }
