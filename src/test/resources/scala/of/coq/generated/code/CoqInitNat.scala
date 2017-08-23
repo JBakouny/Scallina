@@ -7,12 +7,12 @@ object CoqInitNat {
       case Zero => n
       case S(u) => u
     }
-  def add(n: Nat, m: Nat): Nat =
+  def add(n: Nat)(m: Nat): Nat =
     n match {
       case Zero => m
       case S(p) => S(p + m)
     }
-  def mul(n: Nat, m: Nat): Nat =
+  def mul(n: Nat)(m: Nat): Nat =
     n match {
       case Zero => 0
       case S(p) => m + (p * m)
