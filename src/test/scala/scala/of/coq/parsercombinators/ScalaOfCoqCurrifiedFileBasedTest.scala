@@ -64,7 +64,7 @@ class ScallinaScalaOfCoqFileBasedTest extends FunSuite {
 
     val outputString = optionalCoqAst.fold(coqAST.toString) {
       coqTrees =>
-        ScalaOfCoq.createObjectFileCode(fileName, coqTrees)
+        currifiedScalaOfCoq.createObjectFileCode(fileName, coqTrees)
     }
 
     normalizeWhitespace(outputString)

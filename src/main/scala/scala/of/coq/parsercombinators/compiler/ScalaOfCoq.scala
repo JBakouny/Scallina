@@ -51,7 +51,9 @@ import scala.of.coq.parsercombinators.parser.LetConstructorArgsIn
 import scala.of.coq.parsercombinators.parser.LetPatternIn
 import scala.of.coq.parsercombinators.parser.SimpleLetIn
 
-object ScalaOfCoq {
+//TODO (Joseph Bakouny): consider replacing calls of toScalaCode functions by toTreeHugger functions
+
+class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
 
   def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
 
@@ -164,17 +166,22 @@ object ScalaOfCoq {
       throw new IllegalStateException("The following Coq type is not supported: " + anythingElse.toCoqCode);
   }
 
-  private def createApplication(functionTerm: Term, arguments: List[Argument]) =
-    /*
+  private def createApplication(functionTerm: Term, arguments: List[Argument]): Tree =
+    {
+      /*
      * Note (Joseph Bakouny): The Coq syntax "(ident := term)" should not be converted to Scala named arguments
      * since Coq only allows the application of this syntax to implicit parameters.
      * It should also be noted that implicit paremeters are currently converted to generics in Scala.
      */
-    REF(termToScalaCode(functionTerm)).APPLY(arguments.map {
-      case Argument(None, BetweenParenthesis(argValue)) => termToTreeHuggerAst(argValue) // remove parenthesis since they are not needed in Scala
-      case Argument(None, argValue)                     => termToTreeHuggerAst(argValue)
-      case Argument(Some(Ident(argName)), argValue)     => REF(argName) := termToTreeHuggerAst(argValue)
-    })
+      curryingStrategy.createApplication(
+        REF(termToScalaCode(functionTerm)),
+        arguments.map {
+          case Argument(None, BetweenParenthesis(argValue)) => termToTreeHuggerAst(argValue) // remove parenthesis since they are not needed in Scala
+          case Argument(None, argValue)                     => termToTreeHuggerAst(argValue)
+          case Argument(Some(Ident(argName)), argValue)     => REF(argName) := termToTreeHuggerAst(argValue)
+        }
+      )
+    }
 
   private def convertToScalaInfixOperator(coqOp: String): String = coqOp match {
     case "<=?"            => "<="
@@ -250,11 +257,7 @@ object ScalaOfCoq {
             Fun(binders, bodyTerm).toCoqCode)
     }
 
-    // NOTE: All Coq lambdas are transformed into currified Scala anonymous functions
-    params.foldRight(termToTreeHuggerAst(bodyTerm))(
-      (singleTypeParam, bodyTerm) =>
-        LAMBDA(singleTypeParam) ==> bodyTerm
-    )
+    curryingStrategy.createAnonymousFunction(params, termToTreeHuggerAst(bodyTerm))
   }
 
   private def createTypeAliasDefinition(id: Ident, binders: Option[Binders]) = {
@@ -268,16 +271,15 @@ object ScalaOfCoq {
       typeTerm => DEF(id.toCoqCode, coqTypeToTreeHuggerType(typeTerm))
     }
 
-    val addParams = binders.fold(declaration) {
+    binders.fold(declaration) {
       binders =>
-        val (typeDefs, paramsDefs) = partitionParams(binders)
+        val (typeDefs, paramDefs) = partitionParams(binders)
 
-        declaration
-          .withTypeParams(typeDefs)
-          .withParams(paramsDefs)
+        curryingStrategy.createDefinition(
+          declaration.withTypeParams(typeDefs),
+          paramDefs
+        )
     }
-
-    addParams
   }
 
   private def createCaseClassHierarchy(parentBinders: Option[Binders], parentName: String, indBodyItems: List[InductiveBodyItem]) = {
@@ -291,38 +293,42 @@ object ScalaOfCoq {
         .tree
 
     val caseClassHierarchy: List[Tree] =
-      for {
+      indBodyItems flatMap {
         /*
          * TODO (Jospeh Bakouny): This case clause ignores the type term.
          * Check what needs to be done with the type Term in future version
          */
-        InductiveBodyItem(Ident(name), binders, _) <- indBodyItems
-      } yield binders.fold {
+        case InductiveBodyItem(Ident(name), binders, _) =>
+          binders.fold {
+            /*
+             *   TODO(Joseph Bakouny): Fix the empty case class issue:
+             *   An empty case class is not generated with the correct parenthesis "()".
+             *
+             *   This is probably an issue with treehugger.scala.
+             */
+            val caseObjectDeclaration: Tree =
+              CASEOBJECTDEF(name)
+                .withParents(parentName)
+                .tree
 
-        /*
-         *   TODO(Joseph Bakouny): Fix the empty case class issue:
-         *   An empty case class is not generated with the correct parenthesis "()".
-         *
-         *   This is probably an issue with treehugger.scala.
-         */
-        val caseObjectDeclaration: Tree =
-          CASEOBJECTDEF(name)
-            .withParents(parentName)
-            .tree
+            List(caseObjectDeclaration)
+          } {
+            binders =>
+              val (typeDefs, paramsDefs) = partitionParams(binders)
 
-        caseObjectDeclaration
-      } {
-        binders =>
-          val (typeDefs, paramsDefs) = partitionParams(binders)
+              val caseClassDeclaration: Tree =
+                CASECLASSDEF(name)
+                  .withTypeParams(parentTypeDefs ::: typeDefs)
+                  .withParams(paramsDefs)
+                  .withParents(createTypeWithGenericParams(parentName, parentTypeDefs.map(typeVar => TYPE_REF(typeVar.name))))
+                  .tree
 
-          val caseClassDeclaration: Tree =
-            CASECLASSDEF(name)
-              .withTypeParams(parentTypeDefs ::: typeDefs)
-              .withParams(paramsDefs)
-              .withParents(createTypeWithGenericParams(parentName, parentTypeDefs.map(typeVar => TYPE_REF(typeVar.name))))
-              .tree
+              val optionalCompanion =
+                curryingStrategy.createCompanionObject(name, parentTypeDefs ::: typeDefs, paramsDefs)
 
-          caseClassDeclaration
+              caseClassDeclaration ::
+                optionalCompanion.fold[List[Tree]](Nil)(o => List(o))
+          }
       }
 
     parentDeclaration :: caseClassHierarchy

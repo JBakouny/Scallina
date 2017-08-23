@@ -11,10 +11,12 @@ import CustomMatchers.generateScalaCode
 
 class ScallinaScalaOfCoqTest extends FunSuite {
 
+  implicit val scalaOfCoq = TestUtils.uncurrifiedScalaOfCoq
+
   def coqParserShouldFailToGenerateScalaCodeFor(coqCode: String) {
     val parseResult = CoqParser(coqCode)
     assertThrows[IllegalStateException] {
-      parseResult.map(ScalaOfCoq.toScalaCode(_))
+      parseResult.map(scalaOfCoq.toScalaCode(_))
     }
   }
 
