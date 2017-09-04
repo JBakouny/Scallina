@@ -51,8 +51,6 @@ import scala.of.coq.parsercombinators.parser.LetConstructorArgsIn
 import scala.of.coq.parsercombinators.parser.LetPatternIn
 import scala.of.coq.parsercombinators.parser.SimpleLetIn
 
-//TODO (Joseph Bakouny): consider replacing calls of toScalaCode functions by toTreeHugger functions
-
 class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
 
   def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
@@ -144,11 +142,11 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
 
   private def coqTypeToTreeHuggerType(typeTerm: Term): Type = typeTerm match {
     case UncurriedTermApplication(genericTypeTerm, arguments) =>
-      createTypeWithGenericParams(coqTypeToScalaCode(genericTypeTerm), arguments.map {
+      createTypeWithGenericParams(coqTypeToTreeHuggerType(genericTypeTerm), arguments.map {
         case Argument(_, typeTerm) => coqTypeToTreeHuggerType(typeTerm)
       })
     case ExplicitQualidApplication(id, genericTypeParams) =>
-      createTypeWithGenericParams(coqTypeToScalaCode(id), genericTypeParams.map(coqTypeToTreeHuggerType(_)))
+      createTypeWithGenericParams(coqTypeToTreeHuggerType(id), genericTypeParams.map(coqTypeToTreeHuggerType(_)))
     case Term_->(typeTerm1, typeTerm2) =>
       // TODO (Joseph Bakouny): Coq -> in lemmas can have a different significance, check how this can be supported if needed ?
       TYPE_REF(coqTypeToTreeHuggerType(typeTerm1)).TYPE_=>(TYPE_REF(coqTypeToTreeHuggerType(typeTerm2)))
@@ -159,7 +157,7 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
     case tupleDef @ InfixOperator(leftTerm, "*", rightTerm) =>
       def allTupleTypesIn(t: Term): List[Type] = t match {
         case InfixOperator(t1, "*", t2) => allTupleTypesIn(t1) ::: allTupleTypesIn(t2)
-        case typeTerm                   => List(coqTypeToScalaCode(typeTerm))
+        case typeTerm                   => List(coqTypeToTreeHuggerType(typeTerm))
       }
       TYPE_TUPLE(allTupleTypesIn(tupleDef))
     case anythingElse =>
@@ -174,7 +172,7 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
      * It should also be noted that implicit paremeters are currently converted to generics in Scala.
      */
       curryingStrategy.createApplication(
-        REF(termToScalaCode(functionTerm)),
+        termToTreeHuggerAst(functionTerm),
         arguments.map {
           case Argument(None, BetweenParenthesis(argValue)) => termToTreeHuggerAst(argValue) // remove parenthesis since they are not needed in Scala
           case Argument(None, argValue)                     => termToTreeHuggerAst(argValue)
@@ -383,8 +381,8 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
         }
     }
 
-  private def createTypeWithGenericParams(typeName: String, genericTypeParams: List[Type]): Type = {
-    TYPE_REF(typeName).TYPE_OF(genericTypeParams)
+  private def createTypeWithGenericParams(typeName: Type, genericTypeParams: List[Type]): Type = {
+    typeName.TYPE_OF(genericTypeParams)
   }
 
   private def createInfixOperator(leftOp: Term, op: String, rightOp: Term) = {
