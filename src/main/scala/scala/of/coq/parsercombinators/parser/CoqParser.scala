@@ -35,6 +35,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     | scopeCommand
     | definition
     | inductive
+    | record
     | fixPoint
     | assertion <~ proof
   )
@@ -90,6 +91,29 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     identifier ~ (binders ?) ~ opt(":" ~> term) ^^ {
       case id ~ binders ~ typeTerm => InductiveBodyItem(id, binders, typeTerm)
     }
+
+  private lazy val record: P[Record] =
+    recordKeyword ~ identifier ~ (binders ?) ~ opt(":" ~> sort) ~ ":=" ~ (identifier ?) ~ ("{" ~> repsep(recordField, ";")) <~ "}" ~ "." ^^ {
+      case keyword ~ id ~ binders ~ sort ~ lex_:= ~ constructor ~ fields => Record(keyword, id, binders, sort, constructor, fields)
+    }
+
+  private lazy val recordKeyword: P[RecordKeyword] =
+    accept("recordKeyword", {
+      case CoqLexer.Keyword("Record")      => RecordKeyword
+      case CoqLexer.Keyword("Structure")   => StructureKeyword
+      case CoqLexer.Keyword("Inductive")   => InductiveRecordKeyword
+      case CoqLexer.Keyword("CoInductive") => CoInductiveRecordKeyword
+    })
+
+  private lazy val recordField: P[RecordField] = (
+    name ~ (binders ?) ~ opt(":" ~> term) ~ ":=" ~ term ^^ {
+      case name ~ binders ~ typeTerm ~ lex_:= ~ bodyTerm => ConcreteRecordField(name, binders, typeTerm, bodyTerm)
+    }
+    | name ~ (binders ?) ~ ":" ~ term ^^ {
+      case name ~ binders ~ lex_: ~ typeTerm => AbstractRecordField(name, binders, typeTerm)
+    }
+
+  )
 
   // TODO (Joseph Bakouny): Consider supporting list of fixBodies for a Fixpoint and also CoFixpoint
   private lazy val fixPoint: P[Fixpoint] =

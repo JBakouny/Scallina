@@ -389,6 +389,433 @@ class CoqParserTest extends FunSuite {
   }
 
   test("""Testing
+      Record Queue :=
+      {
+        T : Type;
+        empty : T;
+        push : nat -> T -> T;
+        pop : T -> option (nat * T)
+      }.
+    """) {
+    CoqParser("""
+              Record Queue :=
+              {
+                T : Type;
+                empty : T;
+                push : nat -> T -> T;
+                pop : T -> option (nat * T)
+              }.
+              """) should parse(
+      List(
+        Record(
+          RecordKeyword, Ident("Queue"),
+          None, None, None,
+          List(
+            AbstractRecordField(Name(Some(Ident("T"))), None, Type),
+            AbstractRecordField(Name(Some(Ident("empty"))), None, Qualid(List(Ident("T")))),
+            AbstractRecordField(
+              Name(Some(Ident("push"))), None,
+              Term_->(
+                Qualid(List(Ident("nat"))),
+                Term_->(Qualid(List(Ident("T"))), Qualid(List(Ident("T"))))
+              )
+            ),
+            AbstractRecordField(
+              Name(Some(Ident("pop"))), None,
+              Term_->(
+                Qualid(List(Ident("T"))),
+                UncurriedTermApplication(
+                  Qualid(List(Ident("option"))),
+                  List(
+                    Argument(None, BetweenParenthesis(InfixOperator(Qualid(List(Ident("nat"))), "*", Qualid(List(Ident("T"))))))))
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+      Structure Queue :=
+      {
+        T : Type;
+        empty : T;
+        push : nat -> T -> T;
+        pop : T -> option (nat * T)
+      }.
+    """) {
+    CoqParser("""
+              Structure Queue :=
+              {
+                T : Type;
+                empty : T;
+                push : nat -> T -> T;
+                pop : T -> option (nat * T)
+              }.
+              """) should parse(
+      List(
+        Record(
+          StructureKeyword, Ident("Queue"),
+          None, None, None,
+          List(
+            AbstractRecordField(Name(Some(Ident("T"))), None, Type),
+            AbstractRecordField(Name(Some(Ident("empty"))), None, Qualid(List(Ident("T")))),
+            AbstractRecordField(
+              Name(Some(Ident("push"))), None,
+              Term_->(
+                Qualid(List(Ident("nat"))),
+                Term_->(Qualid(List(Ident("T"))), Qualid(List(Ident("T"))))
+              )
+            ),
+            AbstractRecordField(
+              Name(Some(Ident("pop"))), None,
+              Term_->(
+                Qualid(List(Ident("T"))),
+                UncurriedTermApplication(
+                  Qualid(List(Ident("option"))),
+                  List(
+                    Argument(None, BetweenParenthesis(InfixOperator(Qualid(List(Ident("nat"))), "*", Qualid(List(Ident("T"))))))))
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+      Inductive Queue :=
+      {
+        T : Type;
+        push : nat -> T -> T
+      }.
+    """) {
+    CoqParser("""
+              Inductive Queue :=
+              {
+                T : Type;
+                push : nat -> T -> T
+              }.
+              """) should parse(
+      List(
+        Record(
+          InductiveRecordKeyword, Ident("Queue"),
+          None, None, None,
+          List(
+            AbstractRecordField(Name(Some(Ident("T"))), None, Type),
+            AbstractRecordField(
+              Name(Some(Ident("push"))), None,
+              Term_->(
+                Qualid(List(Ident("nat"))),
+                Term_->(Qualid(List(Ident("T"))), Qualid(List(Ident("T"))))
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+      CoInductive Queue :=
+      {
+        T : Type;
+        push : nat -> T -> T
+      }.
+    """) {
+    CoqParser("""
+              CoInductive Queue :=
+              {
+                T : Type;
+                push : nat -> T -> T
+              }.
+              """) should parse(
+      List(
+        Record(
+          CoInductiveRecordKeyword, Ident("Queue"),
+          None, None, None,
+          List(
+            AbstractRecordField(Name(Some(Ident("T"))), None, Type),
+            AbstractRecordField(
+              Name(Some(Ident("push"))), None,
+              Term_->(
+                Qualid(List(Ident("nat"))),
+                Term_->(Qualid(List(Ident("T"))), Qualid(List(Ident("T"))))
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+    Record TestRecord :=
+    {
+      testAbstractField (x: nat) : nat;
+      testConcreteField (x: nat) : nat := x
+    }.
+    """) {
+    CoqParser("""
+              Record TestRecord :=
+              {
+                testAbstractField (x: nat) : nat;
+                testConcreteField (x: nat) : nat := x
+              }.
+              """) should parse(
+      List(
+        Record(
+          RecordKeyword, Ident("TestRecord"),
+          None, None, None,
+          List(
+            AbstractRecordField(
+              Name(Some(Ident("testAbstractField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
+              Qualid(List(Ident("nat")))
+            ),
+            ConcreteRecordField(
+              Name(Some(Ident("testConcreteField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
+              Some(Qualid(List(Ident("nat")))),
+              Qualid(List(Ident("x")))
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+    Record TestRecord :=
+    {
+      testAbstractField (x: nat) : nat;
+      testConcreteField (x: nat) := x
+    }.
+    """) {
+    CoqParser("""
+              Record TestRecord :=
+              {
+                testAbstractField (x: nat) : nat;
+                testConcreteField (x: nat) := x
+              }.
+              """) should parse(
+      List(
+        Record(
+          RecordKeyword, Ident("TestRecord"),
+          None, None, None,
+          List(
+            AbstractRecordField(
+              Name(Some(Ident("testAbstractField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
+              Qualid(List(Ident("nat")))
+            ),
+            ConcreteRecordField(
+              Name(Some(Ident("testConcreteField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
+              None,
+              Qualid(List(Ident("x")))
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+    Record TestRecord : Type :=
+    {
+      testAbstractField (x: nat) : nat;
+      testConcreteField (x: nat) := x
+    }.
+    """) {
+    CoqParser("""
+              Record TestRecord : Type :=
+              {
+                testAbstractField (x: nat) : nat;
+                testConcreteField (x: nat) := x
+              }.
+              """) should parse(
+      List(
+        Record(
+          RecordKeyword, Ident("TestRecord"),
+          None, Some(Type), None,
+          List(
+            AbstractRecordField(
+              Name(Some(Ident("testAbstractField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
+              Qualid(List(Ident("nat")))
+            ),
+            ConcreteRecordField(
+              Name(Some(Ident("testConcreteField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
+              None,
+              Qualid(List(Ident("x")))
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+    Record TestRecord (y: nat) :=
+    {
+      testAbstractField (x: nat) : nat;
+      testConcreteField (x: nat) := x + y
+    }.
+    """) {
+    CoqParser("""
+              Record TestRecord (y: nat) :=
+              {
+                testAbstractField (x: nat) : nat;
+                testConcreteField (x: nat) := x + y
+              }.
+              """) should parse(
+      List(
+        Record(
+          RecordKeyword, Ident("TestRecord"),
+          Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("y")))), Qualid(List(Ident("nat"))))))),
+          None, None,
+          List(
+            AbstractRecordField(
+              Name(Some(Ident("testAbstractField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
+              Qualid(List(Ident("nat")))
+            ),
+            ConcreteRecordField(
+              Name(Some(Ident("testConcreteField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
+              None,
+              InfixOperator(Qualid(List(Ident("x"))), "+", Qualid(List(Ident("y"))))
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+          Record TestRecord {A} :=
+          {
+            testAbstractField (x: A) : A;
+            testConcreteField (x: A) := x
+          }.
+    """) {
+    CoqParser("""
+              Record TestRecord {A} :=
+              {
+                testAbstractField (x: A) : A;
+                testConcreteField (x: A) := x
+              }.
+              """) should parse(
+      List(
+        Record(
+          RecordKeyword, Ident("TestRecord"),
+          Some(Binders(List(ImplicitBinder(List(Name(Some(Ident("A")))), None)))),
+          None, None,
+          List(
+            AbstractRecordField(
+              Name(Some(Ident("testAbstractField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("A"))))))),
+              Qualid(List(Ident("A")))
+            ),
+            ConcreteRecordField(
+              Name(Some(Ident("testConcreteField"))),
+              Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("A"))))))),
+              None,
+              Qualid(List(Ident("x")))
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+    Record TestRecord :=
+    {
+      _ : nat;
+      testConcreteField := 1
+    }.
+    """) {
+    CoqParser("""
+              Record TestRecord :=
+              {
+                _ : nat;
+                testConcreteField := 1
+              }.
+              """) should parse(
+      List(
+        Record(
+          RecordKeyword, Ident("TestRecord"),
+          None, None, None,
+          List(
+            AbstractRecordField(
+              Name(None),
+              None,
+              Qualid(List(Ident("nat")))
+            ),
+            ConcreteRecordField(
+              Name(Some(Ident("testConcreteField"))),
+              None,
+              None,
+              Number(1)
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""Testing
+        Record TestRecord {A B} :=
+        newTestRecord {
+          f1 : A;
+          f2 : B -> A
+        }.
+
+        Definition testRecordInstance := newTestRecord nat bool 7 (fun (b: bool) => if b then 3 else 17).
+    """) {
+    CoqParser("""
+              Record TestRecord {A B} :=
+              newTestRecord {
+                f1 : A;
+                f2 : B -> A
+              }.
+
+              Definition testRecordInstance := newTestRecord nat bool 7 (fun (b: bool) => if b then 3 else 17).
+              """) should parse(
+      List(
+        Record(
+          RecordKeyword, Ident("TestRecord"),
+          Some(Binders(List(ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), None)))),
+          None,
+          Some(Ident("newTestRecord")),
+          List(
+            AbstractRecordField(
+              Name(Some(Ident("f1"))), None,
+              Qualid(List(Ident("A")))),
+            AbstractRecordField(
+              Name(Some(Ident("f2"))), None,
+              Term_->(Qualid(List(Ident("B"))), Qualid(List(Ident("A"))))))),
+        Definition(
+          Ident("testRecordInstance"), None, None,
+          UncurriedTermApplication(
+            Qualid(List(Ident("newTestRecord"))),
+            List(
+              Argument(None, Qualid(List(Ident("nat")))),
+              Argument(None, Qualid(List(Ident("bool")))),
+              Argument(None, Number(7)),
+              Argument(None,
+                BetweenParenthesis(
+                  Fun(Binders(List(
+                    ExplicitBinderWithType(List(Name(Some(Ident("b")))), Qualid(List(Ident("bool")))))),
+                    TermIf(Qualid(List(Ident("b"))), None, Number(3), Number(17)))))))))
+    )
+  }
+
+  test("""Testing
           Fixpoint size (t : Tree) : nat :=
            match t with
            | Leaf => 1

@@ -49,6 +49,58 @@ case class Fixpoint(fixBody: FixBody) extends Sentence {
   def toCoqCode: String = "Fixpoint " + fixBody.toCoqCode + "."
 }
 
+case class Record(
+    keyword: RecordKeyword,
+    id: Ident,
+    params: Option[Binders],
+    sort: Option[Sort],
+    constructor: Option[Ident],
+    fields: List[RecordField]) extends Sentence {
+
+  def toCoqCode: String =
+    keyword.toCoqCode + " " + id.toCoqCode +
+      params.fold("")(" " + _.toCoqCode) +
+      sort.fold("")(" : " + _.toCoqCode) + " :=\n" +
+      constructor.fold("")(_.toCoqCode + " ") +
+      "{\n" +
+      fields.map(_.toCoqCode).mkString(";\n") +
+      "\n}."
+}
+
+// Start of RecordKeyword
+sealed trait RecordKeyword extends CoqAST
+
+case object RecordKeyword extends RecordKeyword {
+  def toCoqCode: String = "Record"
+}
+
+case object StructureKeyword extends RecordKeyword {
+  def toCoqCode: String = "Structure"
+}
+
+case object InductiveRecordKeyword extends RecordKeyword {
+  def toCoqCode: String = "Inductive"
+}
+
+case object CoInductiveRecordKeyword extends RecordKeyword {
+  def toCoqCode: String = "CoInductive"
+}
+// End of RecordKeyword
+
+// Start of RecordField
+sealed abstract class RecordField(name: Name, binders: Option[Binders]) extends CoqAST {
+  def toCoqCode: String = name.toCoqCode + binders.fold("")(" " + _.toCoqCode)
+}
+
+case class AbstractRecordField(name: Name, binders: Option[Binders], typeTerm: Term) extends RecordField(name, binders) {
+  override def toCoqCode: String = super.toCoqCode + " : " + typeTerm.toCoqCode
+}
+
+case class ConcreteRecordField(name: Name, binders: Option[Binders], typeTerm: Option[Term], bodyTerm: Term) extends RecordField(name, binders) {
+  override def toCoqCode: String = super.toCoqCode + typeTerm.fold("")(" : " + _.toCoqCode) + " := " + bodyTerm.toCoqCode
+}
+// End of RecordField
+
 case class Assertion(keyword: AssertionKeyword, id: Ident, binders: Option[Binders], term: Term) extends Sentence {
   def toCoqCode: String =
     keyword.toCoqCode + " " + id.toCoqCode +

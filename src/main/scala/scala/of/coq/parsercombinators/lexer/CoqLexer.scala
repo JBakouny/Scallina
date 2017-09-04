@@ -185,6 +185,9 @@ object CoqLexer extends StdLexical {
   // Added Vernacular keywords:
   reserved += "Definition"
   reserved += "Inductive"
+  reserved += "CoInductive"
+  reserved += "Record"
+  reserved += "Structure"
   reserved += "Fixpoint"
   reserved += "struct"
 
