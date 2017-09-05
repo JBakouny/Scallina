@@ -53,8 +53,22 @@ import scala.of.coq.parsercombinators.parser.SimpleLetIn
 
 class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
 
-  def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
+  def createObjectFileCode(objectName: String, coqTrees: List[Sentence]): String = {
+    "import scala.of.coq.lang._\n" +
+      "import Nat._\n" +
+      "import MoreLists._\n" +
+      createObjectFileCodeWithoutDependantClasses(objectName, coqTrees)
+  }
 
+  def createObjectFileCodeWithoutDependantClasses(objectName: String, coqTrees: List[Sentence]): String = {
+    treeToString(OBJECTDEF(objectName) := BLOCK(toTreeHuggerAst(coqTrees)))
+  }
+
+  def toScalaCode(coqTrees: List[Sentence]): String = toTreeHuggerAst(coqTrees).map(treeToString(_)).mkString("\n")
+
+  private def toTreeHuggerAst(coqTrees: List[Sentence]): List[Tree] = coqTrees.flatMap(t => toTreeHuggerAst(t))
+
+  private def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
     case RequireImport(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _) =>
       List() // The above commands do not generate any Scala code
     case Definition(id, binders, Some(Type), bodyTypeTerm) =>
@@ -74,21 +88,6 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
       List()
     case anythingElse =>
       throw new IllegalStateException("The following Coq AST is not supported: " + anythingElse.toCoqCode);
-  }
-
-  def toTreeHuggerAst(coqTrees: List[Sentence]): List[Tree] = coqTrees.flatMap(t => toTreeHuggerAst(t))
-
-  def toScalaCode(coqTrees: List[Sentence]): String = toTreeHuggerAst(coqTrees).map(treeToString(_)).mkString("\n")
-
-  def createObjectFileCode(objectName: String, coqTrees: List[Sentence]): String = {
-    "import scala.of.coq.lang._\n" +
-      "import Nat._\n" +
-      "import MoreLists._\n" +
-      createObjectFileCodeWithoutDependantClasses(objectName, coqTrees)
-  }
-
-  def createObjectFileCodeWithoutDependantClasses(objectName: String, coqTrees: List[Sentence]): String = {
-    treeToString(OBJECTDEF(objectName) := BLOCK(toTreeHuggerAst(coqTrees)))
   }
 
   private def termToScalaCode(t: Term): String = treeToString(termToTreeHuggerAst(t))
