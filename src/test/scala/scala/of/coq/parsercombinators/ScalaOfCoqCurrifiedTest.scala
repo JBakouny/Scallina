@@ -114,4 +114,155 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         "  }
         """)
   }
+
+  test("""Testing Scala conversion of
+        Record Queue :=
+        {
+          T : Type;
+          empty : T;
+          push : nat -> T -> T;
+          pop : T -> option (nat * T)
+        }.
+       """) {
+    CoqParser("""
+        Record Queue :=
+        {
+          T : Type;
+          empty : T;
+          push : nat -> T -> T;
+          pop : T -> option (nat * T)
+        }.
+      """) should generateScalaCode("""
+      "trait Queue {
+      "  type T
+      "  def empty: T
+      "  def push: Nat => T => T
+      "  def pop: T => Option[(Nat, T)]
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+          Record Queue := newQueue {
+            T : Type;
+            empty : T;
+            push (x : nat) (q : T) : T;
+            pop (q: T) : option (nat * T)
+          }.
+       """) {
+    CoqParser("""
+      Record Queue := newQueue {
+        T : Type;
+        empty : T;
+        push (x : nat) (q : T) : T;
+        pop (q: T) : option (nat * T)
+      }.
+      """) should generateScalaCode("""
+      "trait Queue {
+      "  type T
+      "  def empty: T
+      "  def push: Nat => T => T
+      "  def pop: T => Option[(Nat, T)]
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+        Record TestRecord :=
+        {
+          testAbstractField : nat;
+          testConcreteField : nat := testAbstractField + 3;
+          testFunction (x : nat) : nat := x + 7;
+          testAnonFun : nat -> nat := fun (x : nat) => x + 3
+        }.
+       """) {
+    CoqParser("""
+      Record TestRecord :=
+      {
+        testAbstractField : nat;
+        testConcreteField : nat := testAbstractField + 3;
+        testFunction (x : nat) : nat := x + 7;
+        testAnonFun : nat -> nat := fun (x : nat) => x + 3
+      }.
+      """) should generateScalaCode("""
+      "trait TestRecord {
+      "  def testAbstractField: Nat
+      "  def testConcreteField: Nat = testAbstractField + 3
+      "  def testFunction: Nat => Nat = (x: Nat) => x + 7
+      "  def testAnonFun: Nat => Nat = (x: Nat) => x + 3
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+        Record TestRecord {A} :=
+        {
+          testAbstractField : A;
+          testConcreteField : A := testAbstractField;
+          testFunction (x : A) : A := x;
+          testAnonFun : A -> A := fun (x : A) => x
+        }.
+       """) {
+    CoqParser("""
+      Record TestRecord {A} :=
+      {
+        testAbstractField : A;
+        testConcreteField : A := testAbstractField;
+        testFunction (x : A) : A := x;
+        testAnonFun : A -> A := fun (x : A) => x
+      }.
+      """) should generateScalaCode("""
+      "trait TestRecord[A] {
+      "  def testAbstractField: A
+      "  def testConcreteField: A = testAbstractField
+      "  def testFunction: A => A = (x: A) => x
+      "  def testAnonFun: A => A = (x: A) => x
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+          Record TestRecord {A B} :=
+          newTestRecord {
+            f1 : A;
+            f2 : B -> A
+          }.
+       """) {
+    CoqParser("""
+      Record TestRecord {A B} :=
+      newTestRecord {
+        f1 : A;
+        f2 : B -> A
+      }.
+      """) should generateScalaCode("""
+      "trait TestRecord[A, B] {
+      "  def f1: A
+      "  def f2: B => A
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+          Record ComplicatedRecord :=
+          newComplicatedRecord {
+            B : Type := nat;
+            T (A : Type) : Type := list A;
+            f (x: T B) : T B
+          }.
+       """) {
+    CoqParser("""
+      Record ComplicatedRecord :=
+      newComplicatedRecord {
+        B : Type := nat;
+        T (A : Type) : Type := list A;
+        f (x: T B) : T B
+      }.
+      """) should generateScalaCode("""
+      "trait ComplicatedRecord {
+      "  type B = Nat
+      "  type T[A] = List[A]
+      "  def f: T[B] => T[B]
+      "}
+      """)
+  }
 }

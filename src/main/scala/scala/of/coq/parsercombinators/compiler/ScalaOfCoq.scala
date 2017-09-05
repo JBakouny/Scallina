@@ -50,6 +50,11 @@ import scala.of.coq.parsercombinators.parser.Fun
 import scala.of.coq.parsercombinators.parser.LetConstructorArgsIn
 import scala.of.coq.parsercombinators.parser.LetPatternIn
 import scala.of.coq.parsercombinators.parser.SimpleLetIn
+import scala.of.coq.parsercombinators.parser.Record
+import scala.of.coq.parsercombinators.parser.RecordField
+import scala.of.coq.parsercombinators.parser.RecordField
+import scala.of.coq.parsercombinators.parser.AbstractRecordField
+import scala.of.coq.parsercombinators.parser.ConcreteRecordField
 
 class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
 
@@ -74,7 +79,7 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
     case Definition(id, binders, Some(Type), bodyTypeTerm) =>
       List(createTypeAliasDefinition(id, binders) := coqTypeToTreeHuggerType(bodyTypeTerm))
     case Definition(id, binders, typeTerm, bodyTerm) =>
-      List(createDefinition(typeTerm, id, binders) := termToTreeHuggerAst(bodyTerm))
+      List(createDefinition(id, binders, typeTerm) := termToTreeHuggerAst(bodyTerm))
     case Inductive(InductiveBody(Ident(parentName), parentBinders, _, indBodyItems)) =>
       /*
        * TODO (Jospeh Bakouny): This case clause ignores the type term.
@@ -83,7 +88,9 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
       createCaseClassHierarchy(parentBinders, parentName, indBodyItems)
     case Fixpoint(FixBody(id, binders, _, typeTerm, bodyTerm)) =>
       // NOTE(Joseph Bakouny): Struct annotations should be ignored in Scala
-      List(createDefinition(typeTerm, id, Some(binders)) := termToTreeHuggerAst(bodyTerm))
+      List(createDefinition(id, Some(binders), typeTerm) := termToTreeHuggerAst(bodyTerm))
+    case Record(_, recordName, binders, (None | Some(Type)), constructor, fields) =>
+      RecordUtils.convertRecord(recordName, binders, constructor, fields)
     case Assertion(_, id, binders, bodyTerm) =>
       List()
     case anythingElse =>
@@ -148,7 +155,7 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
       createTypeWithGenericParams(coqTypeToTreeHuggerType(id), genericTypeParams.map(coqTypeToTreeHuggerType(_)))
     case Term_->(typeTerm1, typeTerm2) =>
       // TODO (Joseph Bakouny): Coq -> in lemmas can have a different significance, check how this can be supported if needed ?
-      TYPE_REF(coqTypeToTreeHuggerType(typeTerm1)).TYPE_=>(TYPE_REF(coqTypeToTreeHuggerType(typeTerm2)))
+      coqTypeToTreeHuggerType(typeTerm1).TYPE_=>(coqTypeToTreeHuggerType(typeTerm2))
     case Qualid(xs) =>
       TYPE_REF(xs.map { case Ident(name) => convertType(name) }.mkString("."))
     case BetweenParenthesis(term) =>
@@ -263,10 +270,9 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
     TYPEVAR(nameString).withTypeParams(typeParams)
   }
 
-  private def createDefinition(typeTerm: Option[Term], id: Ident, binders: Option[Binders]): DefTreeStart = {
-    val declaration: DefTreeStart = typeTerm.fold(DEFINFER(id.toCoqCode)) {
-      typeTerm => DEF(id.toCoqCode, coqTypeToTreeHuggerType(typeTerm))
-    }
+  private def createDefinition(id: Ident, binders: Option[Binders], typeTerm: Option[Term]): DefTreeStart = {
+    val Ident(definitionName) = id
+    val declaration = createParameterlessDefinition(definitionName, typeTerm)
 
     binders.fold(declaration) {
       binders =>
@@ -278,6 +284,13 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
         )
     }
   }
+
+  private def createParameterlessDefinition(definitionName: String, typeTerm: Option[Term]): DefTreeStart =
+    typeTerm.fold(
+      DEFINFER(definitionName)
+    )(
+        typeTerm => DEF(definitionName, coqTypeToTreeHuggerType(typeTerm))
+      )
 
   private def createCaseClassHierarchy(parentBinders: Option[Binders], parentName: String, indBodyItems: List[InductiveBodyItem]) = {
     val parentTypeDefs = convertTypeBindersToTypeVars(parentBinders)
@@ -396,6 +409,16 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
     }
   }
 
+  def convertNameToIdent(name: Name): Ident = name match {
+    case Name(Some(id)) => id
+    case Name(None)     => throw new IllegalStateException("This name is empty, it is a wildcard.")
+  }
+
+  def convertNameToString(name: Name): String = {
+    val Ident(nameString) = convertNameToIdent(name)
+    nameString
+  }
+
   private object PatternUtils {
 
     def convertPatternMatch(patternMatch: Match) = {
@@ -454,4 +477,59 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
       patterns.map(convertPattern).reduce(_ OR_PATTERN _)
     }
   }
+
+  object RecordUtils {
+    def convertRecord(
+      id: Ident,
+      params: Option[Binders],
+      constructor: Option[Ident],
+      fields: List[RecordField]): List[Tree] =
+      {
+        val Ident(recordName) = id
+
+        val traitDef =
+          TRAITDEF(recordName).withTypeParams(convertTypeBindersToTypeVars(params)) :=
+            BLOCK(
+              fields.map(convertRecordField)
+            )
+
+        List(traitDef)
+      }
+
+    private def convertRecordField(recordField: RecordField): Tree = recordField match {
+      case AbstractRecordField(name, None, Type) =>
+        TYPEVAR(convertNameToString(name))
+      case AbstractRecordField(name, binders, typeTerm) =>
+        createRecordFieldDefinition(name, binders, typeTerm)
+      case ConcreteRecordField(name, binders, Some(Type), bodyTypeTerm) =>
+        createTypeAliasDefinition(convertNameToIdent(name), binders) := coqTypeToTreeHuggerType(bodyTypeTerm)
+      case ConcreteRecordField(name, binders, Some(typeTerm), bodyTerm) =>
+        createRecordFieldDefinition(name, binders, typeTerm) :=
+          binders.fold(
+            termToTreeHuggerAst(bodyTerm)
+          )(
+              createAnonymousFunction(_, bodyTerm)
+            )
+      case anythingElse =>
+        throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
+    }
+
+    private def createRecordFieldDefinition(name: Name, binders: Option[Binders], typeTerm: Term): Tree = binders match {
+      case Some(params) => DEF(convertNameToString(name), convertBindersToFunctionReturnType(params) TYPE_=> coqTypeToTreeHuggerType(typeTerm))
+      case None         => DEF(convertNameToString(name), coqTypeToTreeHuggerType(typeTerm))
+    }
+
+    private def convertBindersToFunctionReturnType(binders: Binders): Type = {
+      val Binders(params) = binders
+      params.map {
+        case ExplicitBinderWithType(names, typeTerm) => {
+          val scalaType = coqTypeToTreeHuggerType(typeTerm)
+          names.map(_ => scalaType).reduceRight(_ TYPE_=> _)
+        }
+        case param @ (ExplicitSimpleBinder(_) | ImplicitBinder(_, _)) =>
+          throw new IllegalStateException("Illehgal abstract record field parameter: " + param.toCoqCode)
+      }.reduceRight(_ TYPE_=> _)
+    }
+  }
+
 }
