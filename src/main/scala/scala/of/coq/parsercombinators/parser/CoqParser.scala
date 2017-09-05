@@ -222,9 +222,9 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     "(" ~> Term.term <~ ")" ^^ { BetweenParenthesis(_) }
 
   /*
- * NOTE: This production is not in the grammar, it supports Coq tuple values of the form:
- * (k,v)
- */
+   * NOTE: This production is not in the grammar, it supports Coq tuple values of the form:
+   * (k,v)
+   */
   private lazy val tupleValue: P[TupleValue] =
     "(" ~> repsep(Term.term, ",") <~ ")" ^^ { TupleValue(_) }
 
@@ -248,6 +248,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       | term_%
       | infixOperator
       | patternMatch
+      | recordProjection
       | qualid
       | sort
       | numberLiteral
@@ -371,6 +372,33 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     private lazy val patternEquation: P[PatternEquation] =
       rep1sep(multPattern, "|") ~ "=>" ~ term ^^ { case orMultPatterns ~ lex_=> ~ outputTerm => PatternEquation(orMultPatterns, outputTerm) }
+
+    /*
+    * TODO (Joseph Bakouny): consider moving recordProjections out of AbstractTerm to allow the use:
+    *  - of applicationProjection as arguments of other termApplications or explicitQualidApplications.
+    *  - of explicitApplicationProjection as arguments of other termApplications or explicitQualidApplications.
+    */
+    private lazy val recordProjection: P[RecordProjection] = {
+      lazy val explicitApplicationProjection: P[ExplicitApplicationProjection] =
+        term ~ (".(" ~> explicitQualidApplication <~ ")") ^^ {
+          case recordInstance ~ explicitQualidApp =>
+            ExplicitApplicationProjection(recordInstance, explicitQualidApp)
+        }
+      lazy val applicationProjection: P[ApplicationProjection] =
+        term ~ (".(" ~> termApplication <~ ")") ^^ {
+          case recordInstance ~ termApp =>
+            ApplicationProjection(recordInstance, termApp)
+        }
+      lazy val simpleProjection: P[SimpleProjection] =
+        term ~ (".(" ~> qualid <~ ")") ^^ {
+          case recordInstance ~ fieldName => SimpleProjection(recordInstance, fieldName)
+        }
+      (
+        explicitApplicationProjection
+        | applicationProjection
+        | simpleProjection
+      )
+    }
 
   }
 

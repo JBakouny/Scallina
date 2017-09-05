@@ -816,6 +816,71 @@ class CoqParserTest extends FunSuite {
   }
 
   test("""Testing
+       Definition testRecordFunction {A B} (R: @ TestRecord A B) := R.(f1).
+    """) {
+    CoqParser("""
+              Definition testRecordFunction {A B} (R: @ TestRecord A B) := R.(f1).
+              """) should parse(
+      List(
+        Definition(
+          Ident("testRecordFunction"),
+          Some(Binders(List(
+            ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), None),
+            ExplicitBinderWithType(
+              List(Name(Some(Ident("R")))),
+              ExplicitQualidApplication(Qualid(List(Ident("TestRecord"))), List(Qualid(List(Ident("A"))), Qualid(List(Ident("B"))))))))),
+          None,
+          SimpleProjection(Qualid(List(Ident("R"))), Qualid(List(Ident("f1"))))))
+    )
+  }
+
+  test("""Testing
+          Definition test1 := testRecordInstance.(f1).
+    """) {
+    CoqParser("""
+          Definition test1 := testRecordInstance.(f1).
+              """) should parse(
+      List(
+        Definition(
+          Ident("test1"),
+          None, None,
+          SimpleProjection(Qualid(List(Ident("testRecordInstance"))), Qualid(List(Ident("f1"))))))
+    )
+  }
+
+  test("""Testing
+          Definition test2 := testRecordInstance.(f2) true.
+    """) {
+    CoqParser("""
+          Definition test2 := testRecordInstance.(f2) true.
+              """) should parse(
+      List(
+        Definition(
+          Ident("test2"),
+          None, None,
+          UncurriedTermApplication(
+            SimpleProjection(Qualid(List(Ident("testRecordInstance"))), Qualid(List(Ident("f2")))),
+            List(Argument(None, Qualid(List(Ident("true"))))))))
+    )
+  }
+
+  test("""Testing
+          Definition test3 := testRecordFunction testRecordInstance.
+    """) {
+    CoqParser("""
+          Definition test3 := testRecordFunction testRecordInstance.
+              """) should parse(
+      List(
+        Definition(
+          Ident("test3"),
+          None, None,
+          UncurriedTermApplication(
+            Qualid(List(Ident("testRecordFunction"))),
+            List(Argument(None, Qualid(List(Ident("testRecordInstance"))))))))
+    )
+  }
+
+  test("""Testing
           Fixpoint size (t : Tree) : nat :=
            match t with
            | Leaf => 1

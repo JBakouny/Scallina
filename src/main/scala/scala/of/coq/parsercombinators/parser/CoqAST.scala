@@ -304,7 +304,7 @@ case class Match(matchItems: List[MatchItem], returnType: Option[ReturnType], eq
 }
 
 case class Qualid(idents: List[Ident]) extends Term {
-  def toCoqCode: String = idents.map(_.toCoqCode).mkString(" ")
+  def toCoqCode: String = idents.map(_.toCoqCode).mkString(".")
 }
 
 // Start of Sort
@@ -341,6 +341,26 @@ case class TupleValue(tupleTerms: List[Term]) extends Term {
 case class BetweenParenthesis(term: Term) extends Term {
   def toCoqCode: String = "(" + term.toCoqCode + ")"
 }
+
+// Start of RecordProjection
+sealed abstract class RecordProjection(recordInstance: Term) extends Term {
+  def toCoqCode: String = recordInstance.toCoqCode + ".("
+}
+
+case class SimpleProjection(recordInstance: Term, fieldName: Qualid) extends RecordProjection(recordInstance) {
+  override def toCoqCode: String = super.toCoqCode + fieldName.toCoqCode + ")"
+}
+
+case class ApplicationProjection(recordInstance: Term, termApplication: TermApplication) extends RecordProjection(recordInstance) {
+  override def toCoqCode: String = super.toCoqCode + termApplication.toCoqCode + ")"
+}
+
+case class ExplicitApplicationProjection(recordInstance: Term, explicitQualidApplication: ExplicitQualidApplication) extends RecordProjection(recordInstance) {
+  override def toCoqCode: String = super.toCoqCode + " " + explicitQualidApplication.toCoqCode + ")"
+}
+
+// End of RecordProjection
+
 // End of Term
 
 case class Argument(identifier: Option[Ident], term: Term) extends CoqAST {

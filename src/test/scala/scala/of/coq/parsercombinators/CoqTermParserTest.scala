@@ -49,6 +49,9 @@ import scala.of.coq.parsercombinators.parser.FixBody
 import scala.of.coq.parsercombinators.parser.Annotation
 import scala.of.coq.parsercombinators.parser.InfixOperator
 import scala.of.coq.parsercombinators.parser.TupleValue
+import scala.of.coq.parsercombinators.parser.SimpleProjection
+import scala.of.coq.parsercombinators.parser.ApplicationProjection
+import scala.of.coq.parsercombinators.parser.ExplicitApplicationProjection
 
 class CoqTermParserTest extends FunSuite {
 
@@ -597,6 +600,24 @@ class CoqTermParserTest extends FunSuite {
             UncurriedTermApplication(
               Qualid(List(Ident("eq_refl"))),
               List(Argument(None, Qualid(List(Ident("A")))), Argument(None, Qualid(List(Ident("x"))))))))))
+  }
+
+  test("""Testing "record.(field)" """) {
+    CoqTermParser("record.(field)") should parse(SimpleProjection(Qualid(List(Ident("record"))), Qualid(List(Ident("field")))))
+  }
+
+  test("""Testing "record.(field 3 7)" """) {
+    CoqTermParser("record.(field 3 7)") should parse(
+      ApplicationProjection(
+        Qualid(List(Ident("record"))),
+        UncurriedTermApplication(Qualid(List(Ident("field"))), List(Argument(None, Number(3)), Argument(None, Number(7))))))
+  }
+
+  test("""Testing "record.(@ field nat 7)" """) {
+    CoqTermParser("record.(@ field nat 7)") should parse(
+      ExplicitApplicationProjection(
+        Qualid(List(Ident("record"))),
+        ExplicitQualidApplication(Qualid(List(Ident("field"))), List(Qualid(List(Ident("nat"))), Number(7)))))
   }
 
   test("""Testing "anIdentifier" """) {
