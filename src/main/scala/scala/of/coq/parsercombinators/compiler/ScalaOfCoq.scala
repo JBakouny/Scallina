@@ -94,8 +94,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     case Fixpoint(FixBody(id, binders, _, typeTerm, bodyTerm)) =>
       // NOTE(Joseph Bakouny): Struct annotations should be ignored in Scala
       List(createDefinition(id, Some(binders), typeTerm) := termToTreeHuggerAst(bodyTerm))
-    case Record(_, recordName, binders, (None | Some(Type)), constructor, fields) =>
-      RecordUtils.createTreeHuggerAstFromRecord(recordName, binders, constructor, fields)
+    case record @ Record(_, _, _, (None | Some(Type)), _, _) =>
+      RecordUtils.createTreeHuggerAstFromRecord(record)
     case Assertion(_, id, binders, bodyTerm) =>
       List()
     case anythingElse =>
@@ -493,53 +493,128 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
   object RecordUtils {
 
-    def createTreeHuggerAstFromRecord(
-      id: Ident,
-      params: Option[Binders],
-      constructor: Option[Ident],
-      fields: List[RecordField]): List[Tree] =
-      {
-        List(
-          convertRecord(id, params, constructor, fields)
-        )
-      }
-
-    private def convertRecord(
-      id: Ident,
-      params: Option[Binders],
-      constructor: Option[Ident],
-      fields: List[RecordField]): Tree =
-      {
-        val Ident(recordName) = id
-
-        TRAITDEF(recordName).withTypeParams(convertTypeBindersToTypeVars(params)) :=
-          BLOCK(
-            fields.map(convertRecordField)
-          )
-
-      }
-
-    private def convertRecordField(recordField: RecordField): Tree = recordField match {
-      case AbstractRecordField(name, None, Type) =>
-        TYPEVAR(convertNameToString(name))
-      case AbstractRecordField(name, binders, typeTerm) =>
-        createRecordFieldDefinition(name, binders, typeTerm)
-      case ConcreteRecordField(name, binders, Some(Type), bodyTypeTerm) =>
-        createTypeAliasDefinition(convertNameToIdent(name), binders) := coqTypeToTreeHuggerType(bodyTypeTerm)
-      case ConcreteRecordField(name, binders, Some(typeTerm), bodyTerm) =>
-        createRecordFieldDefinition(name, binders, typeTerm) :=
-          binders.fold(
-            termToTreeHuggerAst(bodyTerm)
-          )(
-              createAnonymousFunction(_, bodyTerm)
-            )
-      case anythingElse =>
-        throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
+    def createTreeHuggerAstFromRecord(record: Record): List[Tree] = {
+      List(
+        convertRecord(record),
+        createRecordConstructionFunction(record)
+      )
     }
 
-    private def createRecordFieldDefinition(name: Name, binders: Option[Binders], typeTerm: Term): Tree = binders match {
-      case Some(params) => DEF(convertNameToString(name), convertBindersToFunctionReturnType(params) TYPE_=> coqTypeToTreeHuggerType(typeTerm))
-      case None         => DEF(convertNameToString(name), coqTypeToTreeHuggerType(typeTerm))
+    private def convertRecord(record: Record): Tree = {
+      val Record(_, Ident(recordName), binders, (None | Some(Type)), _, fields) = record
+
+      TRAITDEF(recordName).withTypeParams(convertTypeBindersToTypeVars(binders)) :=
+        BLOCK(
+          fields.map(convertRecordField)
+        )
+    }
+
+    private def createRecordConstructionFunction(record: Record): Tree = {
+
+      val constructorName = computeRecordConstructorName(record)
+      val Record(_, Ident(recordName), binders, (None | Some(Type)), _, fields) = record
+      val abstractFields = filterAbstractRecordFields(fields)
+
+      val typeBinderParams = convertTypeBindersToTypeVars(binders)
+
+      val recordType = createTypeWithGenericParams(recordName, typeBinderParams.map(typeVar => TYPE_REF(typeVar.name)))
+      val declaration = DEF(constructorName, recordType)
+
+      val (typeFields, valueFields) = abstractFields.partition(recordFieldIsTypeField)
+      val typeFieldParams = convertTypeFieldsToTypeVars(typeFields)
+      val valueFieldParams = convertValueFieldsToParams(valueFields)
+
+      val namePrefix = recordName + "_"
+      curryingStrategy.createDefinition(
+        declaration.withTypeParams(typeBinderParams ::: typeFieldParams),
+        valueFieldParams
+      ) := BLOCK(
+          createFieldAliases(abstractFields, namePrefix) :+
+            NEW(
+              ANONDEF(recordType) :=
+                BLOCK(assignFieldAliasesToNewRecordAbstractField(abstractFields, namePrefix))
+            )
+        )
+    }
+
+    private def filterAbstractRecordFields(fields: List[RecordField]): List[AbstractRecordField] =
+      for { abstractField @ AbstractRecordField(_, _, _) <- fields } yield abstractField
+
+    private def extractNameFromRecordField(field: RecordField): String = field match {
+      case AbstractRecordField(name, _, _)    => convertNameToString(name)
+      case ConcreteRecordField(name, _, _, _) => convertNameToString(name)
+    }
+
+    private def assignFieldAliasesToNewRecordAbstractField(abstractFields: List[AbstractRecordField], namePrefix: String) =
+      (abstractFields zip abstractFields.map(recordFieldIsTypeField)) map {
+        case (typefield, true)   => convertAbstractRecordField(typefield) := TYPE_REF(namePrefix + extractNameFromRecordField(typefield))
+        case (valuefield, false) => convertAbstractRecordField(valuefield) := REF(namePrefix + extractNameFromRecordField(valuefield))
+      }
+
+    private def createFieldAliases(abstractFields: List[AbstractRecordField], namePrefix: String) =
+      (abstractFields zip abstractFields.map(recordFieldIsTypeField)) map {
+        case (typefield, true)   => createTypeFieldAlias(typefield, namePrefix)
+        case (valuefield, false) => createValueFieldAlias(valuefield, namePrefix)
+      }
+
+    private def createTypeFieldAlias(typeField: RecordField, namePrefix: String) = {
+      val name: String = extractNameFromRecordField(typeField)
+      TYPEVAR(namePrefix + name) := TYPE_REF(name)
+    }
+
+    private def createValueFieldAlias(valueField: RecordField, namePrefix: String) = {
+      val name: String = extractNameFromRecordField(valueField)
+      DEF(namePrefix + name) := REF(name)
+    }
+
+    private def convertRecordField(recordField: RecordField): Tree = recordField match {
+      case abstractRecordField @ AbstractRecordField(_, _, _) =>
+        convertAbstractRecordField(abstractRecordField)
+      case concreteRecordField @ ConcreteRecordField(_, _, _, _) =>
+        convertConcreteRecordField(concreteRecordField)
+    }
+
+    private def convertAbstractRecordField(abstractRecordField: AbstractRecordField): Tree =
+      (abstractRecordField, recordFieldIsTypeField(abstractRecordField)) match {
+        case (AbstractRecordField(name, None, Type), true) =>
+          createTypeAliasDefinition(convertNameToIdent(name), None)
+        case (AbstractRecordField(name, binders, typeTerm), false) =>
+          createRecordFieldDefinition(name, binders, typeTerm)
+        case (anythingElse, _) =>
+          throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
+      }
+
+    private def convertConcreteRecordField(concreteRecordField: ConcreteRecordField): Tree =
+      (concreteRecordField, recordFieldIsTypeField(concreteRecordField)) match {
+        case (ConcreteRecordField(name, binders, Some(Type), bodyTypeTerm), true) =>
+          createTypeAliasDefinition(convertNameToIdent(name), binders) :=
+            coqTypeToTreeHuggerType(bodyTypeTerm)
+        case (ConcreteRecordField(name, binders, Some(typeTerm), bodyTerm), false) =>
+          createRecordFieldDefinition(name, binders, typeTerm) :=
+            binders.fold(
+              termToTreeHuggerAst(bodyTerm)
+            )(
+                createAnonymousFunction(_, bodyTerm)
+              )
+        case (anythingElse, _) =>
+          throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
+      }
+
+    private def createRecordFieldDefinition(name: Name, binders: Option[Binders], typeTerm: Term): Tree = {
+      DEF(convertNameToString(name), computeFunctionReturnType(binders, typeTerm))
+    }
+
+    private def convertTypeFieldsToTypeVars(fields: List[AbstractRecordField]) =
+      fields.map(field => TYPEVAR(extractNameFromRecordField(field)))
+
+    private def convertValueFieldsToParams(fields: List[AbstractRecordField]) =
+      for {
+        AbstractRecordField(name, binders, typeTerm) <- fields
+      } yield mkTreeFromDefStart(PARAM(convertNameToString(name), computeFunctionReturnType(binders, typeTerm)))
+
+    private def computeFunctionReturnType(binders: Option[Binders], typeTerm: Term): Type = binders match {
+      case Some(params) => convertBindersToFunctionReturnType(params) TYPE_=> coqTypeToTreeHuggerType(typeTerm)
+      case None         => coqTypeToTreeHuggerType(typeTerm)
     }
 
     private def convertBindersToFunctionReturnType(binders: Binders): Type = {
@@ -554,19 +629,4 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       }.reduceRight(_ TYPE_=> _)
     }
   }
-
-  private def partitionRecordFields(recordFields: List[RecordField]): (List[RecordField], List[RecordField]) = {
-    val (typeParams, params) = recordFields.partition {
-      case AbstractRecordField(_, None, Type)                  => true
-      case AbstractRecordField(_, _, typeTerm)                 => false
-      case ConcreteRecordField(_, _, Some(Type), bodyTypeTerm) => true
-      case ConcreteRecordField(_, _, Some(typeTerm), bodyTerm) => false
-      case anythingElse =>
-        throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
-    }
-
-    (typeParams, params)
-
-  }
-
 }

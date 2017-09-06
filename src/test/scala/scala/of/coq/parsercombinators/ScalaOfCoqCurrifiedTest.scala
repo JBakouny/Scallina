@@ -141,6 +141,18 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def push: Nat => T => T
       "  def pop: T => Option[(Nat, T)]
       "}
+      "def Build_Queue[T](empty: T)(push: Nat => T => T)(pop: T => Option[(Nat, T)]): Queue = {
+      "  type Queue_T = T
+      "  def Queue_empty = empty
+      "  def Queue_push = push
+      "  def Queue_pop = pop
+      "  new Queue {
+      "    type T = Queue_T
+      "    def empty: T = Queue_empty
+      "    def push: Nat => T => T = Queue_push
+      "    def pop: T => Option[(Nat, T)] = Queue_pop
+      "  }
+      "}
       """)
   }
 
@@ -165,6 +177,18 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def empty: T
       "  def push: Nat => T => T
       "  def pop: T => Option[(Nat, T)]
+      "}
+      "def newQueue[T](empty: T)(push: Nat => T => T)(pop: T => Option[(Nat, T)]): Queue = {
+      "  type Queue_T = T
+      "  def Queue_empty = empty
+      "  def Queue_push = push
+      "  def Queue_pop = pop
+      "  new Queue {
+      "    type T = Queue_T
+      "    def empty: T = Queue_empty
+      "    def push: Nat => T => T = Queue_push
+      "    def pop: T => Option[(Nat, T)] = Queue_pop
+      "  }
       "}
       """)
   }
@@ -230,6 +254,12 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def testFunction: Nat => Nat = (x: Nat) => x + 7
       "  def testAnonFun: Nat => Nat = (x: Nat) => x + 3
       "}
+      "def Build_TestRecord(testAbstractField: Nat): TestRecord = {
+      "  def TestRecord_testAbstractField = testAbstractField
+      "  new TestRecord {
+      "    def testAbstractField: Nat = TestRecord_testAbstractField
+      "  }
+      "}
       """)
   }
 
@@ -257,6 +287,12 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def testFunction: A => A = (x: A) => x
       "  def testAnonFun: A => A = (x: A) => x
       "}
+      "def Build_TestRecord[A](testAbstractField: A): TestRecord[A] = {
+      "  def TestRecord_testAbstractField = testAbstractField
+      "  new TestRecord[A] {
+      "    def testAbstractField: A = TestRecord_testAbstractField
+      "  }
+      "}
       """)
   }
 
@@ -277,6 +313,14 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "trait TestRecord[A, B] {
       "  def f1: A
       "  def f2: B => A
+      "}
+      "def newTestRecord[A, B](f1: A)(f2: B => A): TestRecord[A, B] = {
+      "  def TestRecord_f1 = f1
+      "  def TestRecord_f2 = f2
+      "  new TestRecord[A, B] {
+      "    def f1: A = TestRecord_f1
+      "    def f2: B => A = TestRecord_f2
+      "  }
       "}
       """)
   }
@@ -300,7 +344,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  test("""Testing Scala conversion of
+  // TODO(Joseph Bakouny): Consider implementing the support of concrete type field replacements in the constructor's arguments.
+  ignore("""Testing Scala conversion of
           Record ComplicatedRecord :=
           newComplicatedRecord {
             B : Type := nat;
@@ -321,6 +366,12 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  type T[A] = List[A]
       "  def f: T[B] => T[B]
       "}
+      "def newComplicatedRecord(f: List[Nat] => List[Nat]): ComplicatedRecord = {
+      "  def ComplicatedRecord_f = f
+      "  new ComplicatedRecord {
+      "    def f: T[B] => T[B] = ComplicatedRecord_f
+      "  }
+      "}
       """)
   }
 
@@ -334,6 +385,122 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """) should generateScalaCode("""
       "def prepend(a: Nat)(l: List[Nat]) = a :: l
       "def test = prepend(3)(record.f(7 :: Nil))
+      """)
+  }
+
+  test("""Testing Scala conversion of
+          Require Import Coq.Lists.List.
+
+          Record Queue :=
+          {
+            T : Type;
+            push : nat -> T -> T;
+            pop : T -> option (nat * T);
+            empty : T
+          }.
+
+          Arguments Build_Queue {T} _ _ _.
+
+          Definition ListQueue := Build_Queue
+            (fun (x : nat) (l : list nat) => x :: l)
+            (fun l =>
+              match rev l with
+                | nil => None
+                | hd :: tl => Some (hd, rev tl) end)
+            nil
+          .
+
+          Definition DListQueue := Build_Queue
+            (fun (x : nat) (l : (list nat) * (list nat)) =>
+              let (back, front) := l in
+              (x :: back,front))
+            (fun l =>
+              let (back, front) := l in
+              match front with
+                | nil =>
+                   match rev back with
+                      | nil => None
+                      | hd :: tl => Some (hd, (nil, tl))
+                   end
+                | hd :: tl => Some (hd, (back, tl))
+              end)
+            (nil, nil)
+          .
+       """) {
+    CoqParser("""
+          Require Import Coq.Lists.List.
+
+          Record Queue :=
+          {
+            T : Type;
+            push : nat -> T -> T;
+            pop : T -> option (nat * T);
+            empty : T
+          }.
+
+          Arguments Build_Queue {T} _ _ _.
+
+          Definition ListQueue := Build_Queue
+            (fun (x : nat) (l : list nat) => x :: l)
+            (fun l =>
+              match rev l with
+                | nil => None
+                | hd :: tl => Some (hd, rev tl) end)
+            nil
+          .
+
+          Definition DListQueue := Build_Queue
+            (fun (x : nat) (l : (list nat) * (list nat)) =>
+              let (back, front) := l in
+              (x :: back,front))
+            (fun l =>
+              let (back, front) := l in
+              match front with
+                | nil =>
+                   match rev back with
+                      | nil => None
+                      | hd :: tl => Some (hd, (nil, tl))
+                   end
+                | hd :: tl => Some (hd, (back, tl))
+              end)
+            (nil, nil)
+          .
+      """) should generateScalaCode("""
+      "trait Queue {
+      "  type T
+      "  def push: Nat => T => T
+      "  def pop: T => Option[(Nat, T)]
+      "  def empty: T
+      "}
+      "def Build_Queue[T](push: Nat => T => T)(pop: T => Option[(Nat, T)])(empty: T): Queue = {
+      "  type Queue_T = T
+      "  def Queue_push = push
+      "  def Queue_pop = pop
+      "  def Queue_empty = empty
+      "  new Queue {
+      "    type T = Queue_T
+      "    def push: Nat => T => T = Queue_push
+      "    def pop: T => Option[(Nat, T)] = Queue_pop
+      "    def empty: T = Queue_empty
+      "  }
+      "}
+      "def ListQueue = Build_Queue((x: Nat) => (l: List[Nat]) => x :: l)(l => rev(l) match {
+      "  case Nil      => None
+      "  case hd :: tl => Some((hd, rev(tl)))
+      "})(Nil)
+      "def DListQueue = Build_Queue((x: Nat) => { (l: (List[Nat], List[Nat])) =>
+      "  val (back, front) = l
+      "  (x :: back, front)
+      "})({ l =>
+      "  val (back, front) = l
+      "  front match {
+      "    case Nil => rev(back) match {
+      "      case Nil      => None
+      "      case hd :: tl => Some((hd, (Nil, tl)))
+      "    }
+      "    case hd :: tl => Some((hd, (back, tl)))
+      "  }
+      "})((Nil, Nil))
       """)
   }
 }
