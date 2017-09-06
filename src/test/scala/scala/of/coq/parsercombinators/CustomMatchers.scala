@@ -14,6 +14,7 @@ import scala.of.coq.parsercombinators.compiler.ScalaOfCoq
 import scala.of.coq.parsercombinators.parser.Sentence
 
 import TestUtils._
+import scala.of.coq.parsercombinators.compiler.CurryingStrategy
 
 trait CustomMatchers {
 
@@ -30,10 +31,11 @@ trait CustomMatchers {
     }
   }
 
-  class ScalaCodeMatcher(expected: String, scalaOfCoq: ScalaOfCoq) extends Matcher[CoqParser.ParseResult[List[Sentence]]] {
+  class ScalaCodeMatcher(expected: String, curryingStrategy: CurryingStrategy) extends Matcher[CoqParser.ParseResult[List[Sentence]]] {
     def apply(left: CoqParser.ParseResult[List[Sentence]]) = {
+
       val expectedCode = normalizeWhitespace(expected)
-      val actualCode = normalizeWhitespace(left.map(scalaOfCoq.toScalaCode(_)).getOrElse(left.toString));
+      val actualCode = normalizeWhitespace(left.map(new ScalaOfCoq(_, curryingStrategy).generateScalaCode).getOrElse(left.toString));
 
       MatchResult(
         actualCode == expectedCode,
@@ -60,7 +62,7 @@ trait CustomMatchers {
 
   def parse(coqAst: List[CoqAST]) = new TokenParserMatcher(coqAst)
 
-  def generateScalaCode(scalaCode: String)(implicit scalaOfCoq: ScalaOfCoq) = new ScalaCodeMatcher(scalaCode, scalaOfCoq)
+  def generateScalaCode(scalaCode: String)(implicit curryingStrategy: CurryingStrategy) = new ScalaCodeMatcher(scalaCode, curryingStrategy)
 
   def identify(lex: CoqLexer.Token) = new LexemMatcher(lex)
 }

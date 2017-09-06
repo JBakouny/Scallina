@@ -9,14 +9,16 @@ import org.scalatest.Matchers.convertToAnyShouldWrapper
 
 import CustomMatchers.generateScalaCode
 
+import scala.of.coq.parsercombinators.compiler.NoCurrying
+
 class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
-  implicit val scalaOfCoq = TestUtils.uncurrifiedScalaOfCoq
+  implicit val curryingStrategy = NoCurrying
 
   def coqParserShouldFailToGenerateScalaCodeFor(coqCode: String) {
     val parseResult = CoqParser(coqCode)
     assertThrows[IllegalStateException] {
-      parseResult.map(scalaOfCoq.toScalaCode(_))
+      parseResult.map(new ScalaOfCoq(_, curryingStrategy).generateScalaCode)
     }
   }
 

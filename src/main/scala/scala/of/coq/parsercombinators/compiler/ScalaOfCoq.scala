@@ -57,20 +57,24 @@ import scala.of.coq.parsercombinators.parser.AbstractRecordField
 import scala.of.coq.parsercombinators.parser.ConcreteRecordField
 import scala.of.coq.parsercombinators.parser.SimpleProjection
 
-class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
+import RecordPreprocessor._
 
-  def createObjectFileCode(objectName: String, coqTrees: List[Sentence]): String = {
+class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
+
+  def createObjectFileCode(objectName: String): String = {
     "import scala.of.coq.lang._\n" +
       "import Nat._\n" +
       "import MoreLists._\n" +
-      createObjectFileCodeWithoutDependantClasses(objectName, coqTrees)
+      createObjectFileCodeWithoutDependantClasses(objectName)
   }
 
-  def createObjectFileCodeWithoutDependantClasses(objectName: String, coqTrees: List[Sentence]): String = {
+  def createObjectFileCodeWithoutDependantClasses(objectName: String): String = {
     treeToString(OBJECTDEF(objectName) := BLOCK(toTreeHuggerAst(coqTrees)))
   }
 
-  def toScalaCode(coqTrees: List[Sentence]): String = toTreeHuggerAst(coqTrees).map(treeToString(_)).mkString("\n")
+  def generateScalaCode: String = toTreeHuggerAst(coqTrees).map(treeToString(_)).mkString("\n")
+
+  private val constructorToRecordTypeFields = computeConstructorToRecordTypeFields(coqTrees)
 
   private def toTreeHuggerAst(coqTrees: List[Sentence]): List[Tree] = coqTrees.flatMap(t => toTreeHuggerAst(t))
 
@@ -91,7 +95,7 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
       // NOTE(Joseph Bakouny): Struct annotations should be ignored in Scala
       List(createDefinition(id, Some(binders), typeTerm) := termToTreeHuggerAst(bodyTerm))
     case Record(_, recordName, binders, (None | Some(Type)), constructor, fields) =>
-      RecordUtils.convertRecord(recordName, binders, constructor, fields)
+      RecordUtils.createTreeHuggerAstFromRecord(recordName, binders, constructor, fields)
     case Assertion(_, id, binders, bodyTerm) =>
       List()
     case anythingElse =>
@@ -488,21 +492,31 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
   }
 
   object RecordUtils {
-    def convertRecord(
+
+    def createTreeHuggerAstFromRecord(
       id: Ident,
       params: Option[Binders],
       constructor: Option[Ident],
       fields: List[RecordField]): List[Tree] =
       {
+        List(
+          convertRecord(id, params, constructor, fields)
+        )
+      }
+
+    private def convertRecord(
+      id: Ident,
+      params: Option[Binders],
+      constructor: Option[Ident],
+      fields: List[RecordField]): Tree =
+      {
         val Ident(recordName) = id
 
-        val traitDef =
-          TRAITDEF(recordName).withTypeParams(convertTypeBindersToTypeVars(params)) :=
-            BLOCK(
-              fields.map(convertRecordField)
-            )
+        TRAITDEF(recordName).withTypeParams(convertTypeBindersToTypeVars(params)) :=
+          BLOCK(
+            fields.map(convertRecordField)
+          )
 
-        List(traitDef)
       }
 
     private def convertRecordField(recordField: RecordField): Tree = recordField match {
@@ -539,6 +553,20 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
           throw new IllegalStateException("Illehgal abstract record field parameter: " + param.toCoqCode)
       }.reduceRight(_ TYPE_=> _)
     }
+  }
+
+  private def partitionRecordFields(recordFields: List[RecordField]): (List[RecordField], List[RecordField]) = {
+    val (typeParams, params) = recordFields.partition {
+      case AbstractRecordField(_, None, Type)                  => true
+      case AbstractRecordField(_, _, typeTerm)                 => false
+      case ConcreteRecordField(_, _, Some(Type), bodyTypeTerm) => true
+      case ConcreteRecordField(_, _, Some(typeTerm), bodyTerm) => false
+      case anythingElse =>
+        throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
+    }
+
+    (typeParams, params)
+
   }
 
 }

@@ -9,9 +9,11 @@ import org.scalatest.Matchers.convertToAnyShouldWrapper
 
 import CustomMatchers.generateScalaCode
 
+import scala.of.coq.parsercombinators.compiler.Currify
+
 class ScalaOfCoqCurrifiedTest extends FunSuite {
 
-  implicit val scalaOfCoq = TestUtils.currifiedScalaOfCoq
+  implicit val curryingStrategy = Currify
 
   test("""Testing Scala conversion of
         Definition curryAdd : Z -> Z -> Z :=

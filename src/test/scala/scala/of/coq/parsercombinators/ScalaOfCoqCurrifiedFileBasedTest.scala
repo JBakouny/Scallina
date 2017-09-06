@@ -49,6 +49,7 @@ import java.io.File
 import java.net.URL
 
 import TestUtils._
+import scala.of.coq.parsercombinators.compiler.Currify
 
 class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
 
@@ -64,7 +65,7 @@ class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
 
     val outputString = optionalCoqAst.fold(coqAST.toString) {
       coqTrees =>
-        currifiedScalaOfCoq.createObjectFileCode(fileName, coqTrees)
+        new ScalaOfCoq(coqTrees, Currify).createObjectFileCode(fileName)
     }
 
     normalizeWhitespace(outputString)
