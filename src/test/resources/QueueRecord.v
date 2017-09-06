@@ -25,11 +25,11 @@ Definition ListQueue := Build_Queue
 .
 
 Definition DListQueue := Build_Queue
-  (list nat * list nat) 
+  ((list nat) * (list nat)) 
   (nil, nil)
-  (fun (x : nat) (l : list nat * list nat) => 
+  (fun (x : nat) (l : (list nat) * (list nat)) => 
     let (back, front) := l in 
-    (cons x back,front))
+    (x :: back,front))
   (fun l =>
     let (back, front) := l in 
     match front with 
