@@ -620,6 +620,44 @@ class CoqTermParserTest extends FunSuite {
         ExplicitQualidApplication(Qualid(List(Ident("field"))), List(Qualid(List(Ident("nat"))), Number(7)))))
   }
 
+  test("""Testing "aFunction 3 (record.(f) (7 :: nil))" """) {
+    CoqTermParser("aFunction 3 (record.(f) (7 :: nil))") should parse(
+      UncurriedTermApplication(
+        Qualid(List(Ident("aFunction"))),
+        List(
+          Argument(None, Number(3)),
+          Argument(None,
+            BetweenParenthesis(
+              UncurriedTermApplication(
+                SimpleProjection(Qualid(List(Ident("record"))), Qualid(List(Ident("f")))),
+                List(Argument(None, BetweenParenthesis(InfixOperator(Number(7), "::", Qualid(List(Ident("nil"))))))))))))
+    )
+  }
+
+  test("""Testing "aFunction 3 (record.(f (7 :: nil)))" """) {
+    CoqTermParser("aFunction 3 (record.(f (7 :: nil)))") should parse(
+      UncurriedTermApplication(
+        Qualid(List(Ident("aFunction"))),
+        List(
+          Argument(None, Number(3)),
+          Argument(None,
+            BetweenParenthesis(
+              ApplicationProjection(
+                Qualid(List(Ident("record"))),
+                UncurriedTermApplication(
+                  Qualid(List(Ident("f"))),
+                  List(
+                    Argument(None,
+                      BetweenParenthesis(
+                        InfixOperator(Number(7), "::", Qualid(List(Ident("nil"))))))))
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
   test("""Testing "anIdentifier" """) {
     CoqTermParser("anIdentifier") should parse(Qualid(List(Ident("anIdentifier"))))
   }

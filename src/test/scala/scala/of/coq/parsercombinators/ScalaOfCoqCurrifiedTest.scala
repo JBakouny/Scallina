@@ -168,6 +168,43 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
+          Fixpoint insertElems (Q: Queue) (q: Q.(T)) (n: nat) : Q.(T) :=
+          match n with
+            0 => q
+          | S m => Q.(push) n (insertElems Q q m)
+          end.
+
+          Definition createQueue (Q: Queue) (n: nat) : Q.(T) := insertElems Q Q.(empty) n.
+
+          Definition createListQueue(n: nat) := createQueue ListQueue n.
+
+          Definition createDListQueue(n: nat) := createQueue DListQueue n.
+       """) {
+    CoqParser("""
+          Fixpoint insertElems (Q: Queue) (q: Q.(T)) (n: nat) : Q.(T) :=
+          match n with
+            0 => q
+          | S m => Q.(push) n (insertElems Q q m)
+          end.
+
+          Definition createQueue (Q: Queue) (n: nat) : Q.(T) := insertElems Q Q.(empty) n.
+
+          Definition createListQueue(n: nat) := createQueue ListQueue n.
+
+          Definition createDListQueue(n: nat) := createQueue DListQueue n.
+      """) should generateScalaCode("""
+      "def insertElems(Q: Queue)(q: Q.T)(n: Nat): Q.T =
+      "  n match {
+      "    case Zero => q
+      "    case S(m) => Q.push(n)(insertElems(Q)(q)(m))
+      "  }
+      "def createQueue(Q: Queue)(n: Nat): Q.T = insertElems(Q)(Q.empty)(n)
+      "def createListQueue(n: Nat) = createQueue(ListQueue)(n)
+      "def createDListQueue(n: Nat) = createQueue(DListQueue)(n)
+      """)
+  }
+
+  test("""Testing Scala conversion of
         Record TestRecord :=
         {
           testAbstractField : nat;
@@ -243,6 +280,25 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
+      Definition testRecordFunction {A B} (R: @ TestRecord A B) := R.(f1).
+      Definition test1 := testRecordInstance.(f1).
+      Definition test2 := testRecordInstance.(f2) true.
+      Definition test3 := testRecordFunction testRecordInstance.
+       """) {
+    CoqParser("""
+      Definition testRecordFunction {A B} (R: @ TestRecord A B) := R.(f1).
+      Definition test1 := testRecordInstance.(f1).
+      Definition test2 := testRecordInstance.(f2) true.
+      Definition test3 := testRecordFunction testRecordInstance.
+      """) should generateScalaCode("""
+      "def testRecordFunction[A, B](R: TestRecord[A, B]) = R.f1
+      "def test1 = testRecordInstance.f1
+      "def test2 = testRecordInstance.f2(true)
+      "def test3 = testRecordFunction(testRecordInstance)
+      """)
+  }
+
+  test("""Testing Scala conversion of
           Record ComplicatedRecord :=
           newComplicatedRecord {
             B : Type := nat;
@@ -263,6 +319,19 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  type T[A] = List[A]
       "  def f: T[B] => T[B]
       "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+          Definition prepend (a : nat) (l: list nat) := a :: l.
+          Definition test := prepend 3 (record.(f) (7 :: nil)).
+       """) {
+    CoqParser("""
+        Definition prepend (a : nat) (l: list nat) := a :: l.
+        Definition test := prepend 3 (record.(f) (7 :: nil)).
+      """) should generateScalaCode("""
+      "def prepend(a: Nat)(l: List[Nat]) = a :: l
+      "def test = prepend(3)(record.f(7 :: Nil))
       """)
   }
 }

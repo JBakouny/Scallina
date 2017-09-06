@@ -55,6 +55,7 @@ import scala.of.coq.parsercombinators.parser.RecordField
 import scala.of.coq.parsercombinators.parser.RecordField
 import scala.of.coq.parsercombinators.parser.AbstractRecordField
 import scala.of.coq.parsercombinators.parser.ConcreteRecordField
+import scala.of.coq.parsercombinators.parser.SimpleProjection
 
 class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
 
@@ -130,6 +131,8 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
     case InfixOperator(leftOp, op, rightOp) => createInfixOperator(leftOp, convertToScalaInfixOperator(op), rightOp)
     case patternMatch @ Match(_, _, _) =>
       PatternUtils.convertPatternMatch(patternMatch)
+    case SimpleProjection(recordInstance, Qualid(List(Ident(fieldName)))) =>
+      createFieldSelection(recordInstance, fieldName)
     case Qualid(List(Ident(primitiveValue))) if qualidIsPrimitiveValueInScala(primitiveValue) =>
       convertQualitToPrimitiveValue(primitiveValue)
     case Qualid(xs) =>
@@ -156,6 +159,8 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
     case Term_->(typeTerm1, typeTerm2) =>
       // TODO (Joseph Bakouny): Coq -> in lemmas can have a different significance, check how this can be supported if needed ?
       coqTypeToTreeHuggerType(typeTerm1).TYPE_=>(coqTypeToTreeHuggerType(typeTerm2))
+    case SimpleProjection(recordInstance, Qualid(List(Ident(fieldName)))) =>
+      TYPE_REF(createFieldSelection(recordInstance, fieldName))
     case Qualid(xs) =>
       TYPE_REF(xs.map { case Ident(name) => convertType(name) }.mkString("."))
     case BetweenParenthesis(term) =>
@@ -186,6 +191,10 @@ class ScalaOfCoq(curryingStrategy: CurryingStrategy) {
         }
       )
     }
+
+  private def createFieldSelection(recordInstance: Term, fieldName: String) = {
+    termToTreeHuggerAst(recordInstance).DOT(fieldName)
+  }
 
   private def convertToScalaInfixOperator(coqOp: String): String = coqOp match {
     case "<=?"            => "<="
