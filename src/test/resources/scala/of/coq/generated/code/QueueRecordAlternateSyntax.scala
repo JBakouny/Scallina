@@ -1,14 +1,14 @@
 import scala.of.coq.lang._
 import Nat._
 import MoreLists._
-object QueueRecord {
+object QueueRecordAlternateSyntax {
   trait Queue {
     type T
     def empty: T
     def push: Nat => T => T
     def pop: T => Option[(Nat, T)]
   }
-  def Build_Queue[T](empty: T)(push: Nat => T => T)(pop: T => Option[(Nat, T)]): Queue = {
+  def newQueue[T](empty: T)(push: Nat => T => T)(pop: T => Option[(Nat, T)]): Queue = {
     type Queue_T = T
     def Queue_empty = empty
     def Queue_push = push
@@ -20,11 +20,11 @@ object QueueRecord {
       def pop: T => Option[(Nat, T)] = Queue_pop
     }
   }
-  def ListQueue = Build_Queue[List[Nat]](Nil)((x: Nat) => (l: List[Nat]) => x :: l)(l => rev(l) match {
+  def ListQueue = newQueue[List[Nat]](Nil)((x: Nat) => (l: List[Nat]) => x :: l)(l => rev(l) match {
     case Nil => None
     case hd :: tl => Some((hd, rev(tl)))
   })
-  def DListQueue = Build_Queue[(List[Nat], List[Nat])]((Nil, Nil))((x: Nat) => { (l: (List[Nat], List[Nat])) =>
+  def DListQueue = newQueue[(List[Nat], List[Nat])]((Nil, Nil))((x: Nat) => { (l: (List[Nat], List[Nat])) =>
     val (back, front) = l
     (x :: back, front)
   })({ l =>

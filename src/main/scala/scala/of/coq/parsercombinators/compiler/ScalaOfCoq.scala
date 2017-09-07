@@ -179,22 +179,51 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       throw new IllegalStateException("The following Coq type is not supported: " + anythingElse.toCoqCode);
   }
 
-  private def createApplication(functionTerm: Term, arguments: List[Argument]): Tree =
-    {
-      /*
+  private def createApplication(functionTerm: Term, arguments: List[Argument]): Tree = {
+    val (typeArguments, valueArguments) = functionTerm match {
+      case Qualid(List(Ident(constructorName))) if (
+        constructorToRecordTypeFields.get(constructorName).isDefined
+        && constructorToRecordTypeFields(constructorName).size == arguments.size
+      ) =>
+        val (typeArgumentsWithBool, valueArgumentsWithBool) = (arguments zip constructorToRecordTypeFields(constructorName)).partition { case (arg, isTypeArgument) => isTypeArgument }
+        (
+          typeArgumentsWithBool.map { case (arg, b) => arg },
+          valueArgumentsWithBool.map { case (arg, b) => arg }
+        )
+      case _ =>
+        (List[Argument](), arguments)
+    }
+    curryingStrategy.createApplication(
+      convertFunctionTermToTreeHuggerAst(functionTerm, typeArguments),
+      valueArguments.map(convertValueArgumentToTreeHuggerAst)
+    )
+  }
+
+  private def convertFunctionTermToTreeHuggerAst(functionTerm: Term, typeArguments: List[Argument] = List[Argument]()) = {
+    val basicFunctionTerm = termToTreeHuggerAst(functionTerm)
+    if (typeArguments.isEmpty)
+      basicFunctionTerm
+    else
+      basicFunctionTerm.APPLYTYPE(typeArguments.map(convertTypeArgumentToToTreeHuggerType))
+  }
+
+  private def convertTypeArgumentToToTreeHuggerType(arg: Argument): Type = arg match {
+    case Argument(None, BetweenParenthesis(argValue)) => coqTypeToTreeHuggerType(argValue) // remove parenthesis since they are not needed in Scala
+    case Argument(None, argValue)                     => coqTypeToTreeHuggerType(argValue)
+    case anythingElse =>
+      throw new IllegalStateException("This Coq type cannot be converted to Scala: " + anythingElse.toCoqCode)
+  }
+
+  private def convertValueArgumentToTreeHuggerAst(arg: Argument): Tree = arg match {
+    /*
      * Note (Joseph Bakouny): The Coq syntax "(ident := term)" should not be converted to Scala named arguments
      * since Coq only allows the application of this syntax to implicit parameters.
      * It should also be noted that implicit paremeters are currently converted to generics in Scala.
      */
-      curryingStrategy.createApplication(
-        termToTreeHuggerAst(functionTerm),
-        arguments.map {
-          case Argument(None, BetweenParenthesis(argValue)) => termToTreeHuggerAst(argValue) // remove parenthesis since they are not needed in Scala
-          case Argument(None, argValue)                     => termToTreeHuggerAst(argValue)
-          case Argument(Some(Ident(argName)), argValue)     => REF(argName) := termToTreeHuggerAst(argValue)
-        }
-      )
-    }
+    case Argument(None, BetweenParenthesis(argValue)) => termToTreeHuggerAst(argValue) // remove parenthesis since they are not needed in Scala
+    case Argument(None, argValue)                     => termToTreeHuggerAst(argValue)
+    case Argument(Some(Ident(argName)), argValue)     => REF(argName) := termToTreeHuggerAst(argValue)
+  }
 
   private def createFieldSelection(recordInstance: Term, fieldName: String) = {
     termToTreeHuggerAst(recordInstance).DOT(fieldName)

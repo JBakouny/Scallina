@@ -503,4 +503,236 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "})((Nil, Nil))
       """)
   }
+
+  test("""Testing Scala conversion of
+          Require Import Coq.Lists.List.
+
+          Record Queue :=
+          {
+            T : Type;
+            empty : T;
+            push : nat -> T -> T;
+            pop : T -> option (nat * T)
+          }.
+
+          Definition ListQueue := Build_Queue
+            (list nat)
+            nil
+            (fun (x : nat) (l : list nat) => x :: l)
+            (fun l =>
+              match rev l with
+                | nil => None
+                | hd :: tl => Some (hd, rev tl) end)
+          .
+
+          Definition DListQueue := Build_Queue
+            ((list nat) * (list nat))
+            (nil, nil)
+            (fun (x : nat) (l : (list nat) * (list nat)) =>
+              let (back, front) := l in
+              (x :: back,front))
+            (fun l =>
+              let (back, front) := l in
+              match front with
+                | nil =>
+                   match rev back with
+                      | nil => None
+                      | hd :: tl => Some (hd, (nil, tl))
+                   end
+                | hd :: tl => Some (hd, (back, tl))
+              end)
+          .
+       """) {
+    CoqParser("""
+          Require Import Coq.Lists.List.
+
+          Record Queue :=
+          {
+            T : Type;
+            empty : T;
+            push : nat -> T -> T;
+            pop : T -> option (nat * T)
+          }.
+
+          Definition ListQueue := Build_Queue
+            (list nat)
+            nil
+            (fun (x : nat) (l : list nat) => x :: l)
+            (fun l =>
+              match rev l with
+                | nil => None
+                | hd :: tl => Some (hd, rev tl) end)
+          .
+
+          Definition DListQueue := Build_Queue
+            ((list nat) * (list nat))
+            (nil, nil)
+            (fun (x : nat) (l : (list nat) * (list nat)) =>
+              let (back, front) := l in
+              (x :: back,front))
+            (fun l =>
+              let (back, front) := l in
+              match front with
+                | nil =>
+                   match rev back with
+                      | nil => None
+                      | hd :: tl => Some (hd, (nil, tl))
+                   end
+                | hd :: tl => Some (hd, (back, tl))
+              end)
+          .
+      """) should generateScalaCode("""
+      "trait Queue {
+      "  type T
+      "  def empty: T
+      "  def push: Nat => T => T
+      "  def pop: T => Option[(Nat, T)]
+      "}
+      "def Build_Queue[T](empty: T)(push: Nat => T => T)(pop: T => Option[(Nat, T)]): Queue = {
+      "  type Queue_T = T
+      "  def Queue_empty = empty
+      "  def Queue_push = push
+      "  def Queue_pop = pop
+      "  new Queue {
+      "    type T = Queue_T
+      "    def empty: T = Queue_empty
+      "    def push: Nat => T => T = Queue_push
+      "    def pop: T => Option[(Nat, T)] = Queue_pop
+      "  }
+      "}
+      "def ListQueue = Build_Queue[List[Nat]](Nil)((x: Nat) => (l: List[Nat]) => x :: l)(l => rev(l) match {
+      "  case Nil      => None
+      "  case hd :: tl => Some((hd, rev(tl)))
+      "})
+      "def DListQueue = Build_Queue[(List[Nat], List[Nat])]((Nil, Nil))((x: Nat) => { (l: (List[Nat], List[Nat])) =>
+      "  val (back, front) = l
+      "  (x :: back, front)
+      "})({ l =>
+      "  val (back, front) = l
+      "  front match {
+      "    case Nil => rev(back) match {
+      "      case Nil      => None
+      "      case hd :: tl => Some((hd, (Nil, tl)))
+      "    }
+      "    case hd :: tl => Some((hd, (back, tl)))
+      "  }
+      "})
+      """)
+  }
+
+  test("""Testing Scala conversion of
+          Require Import Coq.Lists.List.
+
+          Record Queue :=
+          newQueue {
+            T : Type;
+            empty : T;
+            push (x : nat) (q : T) : T;
+            pop (q: T) : option (nat * T)
+          }.
+
+          Definition ListQueue := newQueue
+            (list nat)
+            nil
+            (fun (x : nat) (l : list nat) => x :: l)
+            (fun l =>
+              match rev l with
+                | nil => None
+                | hd :: tl => Some (hd, rev tl) end)
+          .
+
+          Definition DListQueue := newQueue
+            ((list nat) * (list nat))
+            (nil, nil)
+            (fun (x : nat) (l : (list nat) * (list nat)) =>
+              let (back, front) := l in
+              (x :: back,front))
+            (fun l =>
+              let (back, front) := l in
+              match front with
+                | nil =>
+                   match rev back with
+                      | nil => None
+                      | hd :: tl => Some (hd, (nil, tl))
+                   end
+                | hd :: tl => Some (hd, (back, tl))
+              end)
+          .
+       """) {
+    CoqParser("""
+          Require Import Coq.Lists.List.
+
+          Record Queue :=
+          newQueue {
+            T : Type;
+            empty : T;
+            push (x : nat) (q : T) : T;
+            pop (q: T) : option (nat * T)
+          }.
+
+          Definition ListQueue := newQueue
+            (list nat)
+            nil
+            (fun (x : nat) (l : list nat) => x :: l)
+            (fun l =>
+              match rev l with
+                | nil => None
+                | hd :: tl => Some (hd, rev tl) end)
+          .
+
+          Definition DListQueue := newQueue
+            ((list nat) * (list nat))
+            (nil, nil)
+            (fun (x : nat) (l : (list nat) * (list nat)) =>
+              let (back, front) := l in
+              (x :: back,front))
+            (fun l =>
+              let (back, front) := l in
+              match front with
+                | nil =>
+                   match rev back with
+                      | nil => None
+                      | hd :: tl => Some (hd, (nil, tl))
+                   end
+                | hd :: tl => Some (hd, (back, tl))
+              end)
+          .
+      """) should generateScalaCode("""
+      "trait Queue {
+      "  type T
+      "  def empty: T
+      "  def push: Nat => T => T
+      "  def pop: T => Option[(Nat, T)]
+      "}
+      "def newQueue[T](empty: T)(push: Nat => T => T)(pop: T => Option[(Nat, T)]): Queue = {
+      "  type Queue_T = T
+      "  def Queue_empty = empty
+      "  def Queue_push = push
+      "  def Queue_pop = pop
+      "  new Queue {
+      "    type T = Queue_T
+      "    def empty: T = Queue_empty
+      "    def push: Nat => T => T = Queue_push
+      "    def pop: T => Option[(Nat, T)] = Queue_pop
+      "  }
+      "}
+      "def ListQueue = newQueue[List[Nat]](Nil)((x: Nat) => (l: List[Nat]) => x :: l)(l => rev(l) match {
+      "  case Nil      => None
+      "  case hd :: tl => Some((hd, rev(tl)))
+      "})
+      "def DListQueue = newQueue[(List[Nat], List[Nat])]((Nil, Nil))((x: Nat) => { (l: (List[Nat], List[Nat])) =>
+      "  val (back, front) = l
+      "  (x :: back, front)
+      "})({ l =>
+      "  val (back, front) = l
+      "  front match {
+      "    case Nil => rev(back) match {
+      "      case Nil      => None
+      "      case hd :: tl => Some((hd, (Nil, tl)))
+      "    }
+      "    case hd :: tl => Some((hd, (back, tl)))
+      "  }
+      "})
+      """)
+  }
 }
