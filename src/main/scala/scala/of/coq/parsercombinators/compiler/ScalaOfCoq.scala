@@ -58,6 +58,7 @@ import scala.of.coq.parsercombinators.parser.ConcreteRecordField
 import scala.of.coq.parsercombinators.parser.SimpleProjection
 
 import RecordPreprocessor._
+import scala.of.coq.parsercombinators.parser.RecordInstantiation
 
 class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
@@ -83,6 +84,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       List() // The above commands do not generate any Scala code
     case Definition(id, binders, Some(Type), bodyTypeTerm) =>
       List(createTypeAliasDefinition(id, binders) := coqTypeToTreeHuggerType(bodyTypeTerm))
+    case Definition(Ident(name), None, Some(Qualid(List(Ident(recordType)))), RecordInstantiation(concreteRecordFields)) =>
+      List(RecordUtils.convertRecordInstance(name, recordType, concreteRecordFields))
     case Definition(id, binders, typeTerm, bodyTerm) =>
       List(createDefinition(id, binders, typeTerm) := termToTreeHuggerAst(bodyTerm))
     case Inductive(InductiveBody(Ident(parentName), parentBinders, _, indBodyItems)) =>
@@ -527,6 +530,26 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
         convertRecord(record),
         createRecordConstructionFunction(record)
       )
+    }
+
+    def convertRecordInstance(name: String, recordType: String, concreteRecordFields: List[ConcreteRecordField]): Tree = {
+
+      val abstractFields: Map[String, AbstractRecordField] = (
+        for {
+          Record(_, Ident(recordName), None, (None | Some(Type)), _, fields) <- coqTrees if (recordName == recordType)
+          abstractField @ AbstractRecordField(fieldName, _, _) <- fields
+        } yield (convertNameToString(fieldName) -> abstractField)
+      ).toMap
+
+      OBJECTDEF(name).withParents(List(TYPE_REF(recordType))) :=
+        BLOCK(
+          concreteRecordFields.map {
+            case ConcreteRecordField(name, _, _, bodyTerm) =>
+              val AbstractRecordField(abstractFieldName, binders, typeTerm) = abstractFields(convertNameToString(name))
+
+              ConcreteRecordField(name, binders, Some(typeTerm), bodyTerm)
+          }.map(convertConcreteRecordField)
+        )
     }
 
     private def convertRecord(record: Record): Tree = {
