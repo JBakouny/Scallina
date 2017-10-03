@@ -67,6 +67,12 @@ case class Record(
       "\n}."
 }
 
+case class RecordInstantiation(fields: List[ConcreteRecordField]) extends Term {
+  def toCoqCode = "{|\n" +
+    fields.map(_.toCoqCode).mkString(";\n") +
+    "\n|}."
+}
+
 // Start of RecordKeyword
 sealed trait RecordKeyword extends CoqAST
 

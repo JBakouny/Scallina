@@ -123,6 +123,56 @@ class CoqParserTest extends FunSuite {
   }
 
   test("""Testing
+      Definition ListQueue : Queue := {|
+        t := list nat;
+        empty := nil;
+        push x l := x :: l;
+        pop := fun l =>
+          match rev l with
+            | nil => None
+            | hd :: tl => Some (hd, rev tl)
+          end
+      |}.
+    """) {
+    CoqParser("""
+      Definition ListQueue : Queue := {|
+        t := list nat;
+        empty := nil;
+        push x l := x :: l;
+        pop := fun l =>
+          match rev l with
+            | nil => None
+            | hd :: tl => Some (hd, rev tl)
+          end
+      |}.
+      """) should parse(
+      List(
+        Definition(
+          Ident("ListQueue"),
+          None,
+          Some(Qualid(List(Ident("Queue")))),
+          RecordInstantiation(
+            List(
+              ConcreteRecordField(Name(Some(Ident("t"))), None, None,
+                UncurriedTermApplication(Qualid(List(Ident("list"))), List(Argument(None, Qualid(List(Ident("nat"))))))),
+              ConcreteRecordField(Name(Some(Ident("empty"))), None, None,
+                Qualid(List(Ident("nil")))),
+              ConcreteRecordField(Name(Some(Ident("push"))), Some(Binders(List(ExplicitSimpleBinder(Name(Some(Ident("x")))), ExplicitSimpleBinder(Name(Some(Ident("l"))))))), None,
+                InfixOperator(Qualid(List(Ident("x"))), "::", Qualid(List(Ident("l"))))),
+              ConcreteRecordField(Name(Some(Ident("pop"))), None, None,
+                Fun(
+                  Binders(List(ExplicitSimpleBinder(Name(Some(Ident("l")))))),
+                  Match(List(
+                    MatchItem(UncurriedTermApplication(Qualid(List(Ident("rev"))), List(Argument(None, Qualid(List(Ident("l")))))), None, None)), None,
+                    List(
+                      PatternEquation(List(MultPattern(List(QualidPattern(Qualid(List(Ident("nil"))))))),
+                        Qualid(List(Ident("None")))),
+                      PatternEquation(List(MultPattern(List(InfixPattern(QualidPattern(Qualid(List(Ident("hd")))), "::", QualidPattern(Qualid(List(Ident("tl")))))))),
+                        UncurriedTermApplication(Qualid(List(Ident("Some"))), List(Argument(None, TupleValue(List(Qualid(List(Ident("hd"))), UncurriedTermApplication(Qualid(List(Ident("rev"))), List(Argument(None, Qualid(List(Ident("tl"))))))))))))))))))))
+    )
+  }
+
+  test("""Testing
     Inductive Tree : Type :=
       Leaf : Tree
     | Node(l r : Tree): Tree.

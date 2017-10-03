@@ -177,6 +177,8 @@ object CoqLexer extends StdLexical {
   delimiters += """\/"""
   delimiters += "^"
   delimiters += "~"
+  delimiters += "{|"
+  delimiters += "|}"
 
   // Added delimiters:
   delimiters += "'" // for the letPatternIn production

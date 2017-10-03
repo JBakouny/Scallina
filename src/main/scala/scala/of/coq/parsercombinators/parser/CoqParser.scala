@@ -105,14 +105,19 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       case CoqLexer.Keyword("CoInductive") => CoInductiveRecordKeyword
     })
 
-  private lazy val recordField: P[RecordField] = (
+  private lazy val concreteRecordField: P[ConcreteRecordField] =
     name ~ (binders ?) ~ opt(":" ~> term) ~ ":=" ~ term ^^ {
       case name ~ binders ~ typeTerm ~ lex_:= ~ bodyTerm => ConcreteRecordField(name, binders, typeTerm, bodyTerm)
     }
-    | name ~ (binders ?) ~ ":" ~ term ^^ {
+
+  private lazy val abstractRecordField: P[AbstractRecordField] =
+    name ~ (binders ?) ~ ":" ~ term ^^ {
       case name ~ binders ~ lex_: ~ typeTerm => AbstractRecordField(name, binders, typeTerm)
     }
 
+  private lazy val recordField: P[RecordField] = (
+    concreteRecordField
+    | abstractRecordField
   )
 
   // TODO (Joseph Bakouny): Consider supporting list of fixBodies for a Fixpoint and also CoFixpoint
@@ -254,6 +259,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       | numberLiteral
       | parenthesis
       | tupleValue
+      | recordInstantiation
     )
 
     /**
@@ -398,6 +404,11 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
         | applicationProjection
         | simpleProjection
       )
+    }
+    private lazy val recordInstantiation: P[RecordInstantiation] = {
+      "{|" ~> repsep(concreteRecordField, ";") <~ "|}" ^^ {
+        RecordInstantiation(_)
+      }
     }
 
   }
