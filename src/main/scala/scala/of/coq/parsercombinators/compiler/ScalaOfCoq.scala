@@ -545,9 +545,9 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
               val potentialException =
                 new IllegalStateException("The method signatures of instance " + instanceName + " should conform to signatures defined in record " + recordType + ":\n" +
-                  implementedBinders + "\n" +
+                  implementedBinders.fold("()")(_.toCoqCode) + "\n" +
                   "Differ from:\n" +
-                  definedBinders)
+                  definedBinders.fold("()")(_.toCoqCode))
 
               ConcreteRecordField(name,
                 annotateParamsWithType(definedBinders, implementedBinders, potentialException),
@@ -575,9 +575,13 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
             throw potentialException
 
           Some(Binders(expandedDefBinders.zip(expandedImplBinders).map {
-            case (ExplicitBinderWithType(List(_), typeTerm), ExplicitSimpleBinder(implName)) => ExplicitBinderWithType(List(implName), typeTerm)
+            case (ExplicitBinderWithType(List(_), typeTerm), ExplicitSimpleBinder(implName))           => ExplicitBinderWithType(List(implName), typeTerm)
             case (ExplicitBinderWithType(List(_), _), implBinder @ ExplicitBinderWithType(List(_), _)) => implBinder
-            case _ => throw potentialException
+            case (defBinder, implBinder) =>
+              throw new IllegalStateException(
+                "Unexpected record definition parameter: " + defBinder.toCoqCode + "\n" +
+                  "And corresponding record instance parameter: " + implBinder.toCoqCode
+              )
           }))
 
         }

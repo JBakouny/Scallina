@@ -61,6 +61,30 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
+  test("""Testing that a different signature between record definition and instanciation is not supported
+          Require Import Coq.Lists.List.
+
+          Record TestRecord := {
+            test (x y: nat) (l: list nat) : nat
+          }.
+
+          Definition RecordInstance : TestRecord := {|
+            test a := fun _ _ => a
+          |}.
+       """) {
+    coqParserShouldFailToGenerateScalaCodeFor("""
+          Require Import Coq.Lists.List.
+
+          Record TestRecord := {
+            test (x y: nat) (l: list nat) : nat
+          }.
+
+          Definition RecordInstance : TestRecord := {|
+            test a := fun _ _ => a
+          |}.
+        """)
+  }
+
   test("""Testing Scala conversion of
         Definition curryAdd : Z -> Z -> Z :=
           fun (x y : Z) => x.
@@ -629,6 +653,44 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case Nil      => None
       "    case hd :: tl => Some((hd, rev(tl)))
       "  }
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+          Require Import Coq.Lists.List.
+
+          Record TestRecord := {
+            push (x y: nat) (l: list nat) : nat
+          }.
+
+          Definition RecordInstance : TestRecord := {|
+            push a b l := a
+          |}.
+       """) {
+    CoqParser("""
+          Require Import Coq.Lists.List.
+
+          Record TestRecord := {
+            test (x y: nat) (l: list nat) : nat
+          }.
+
+          Definition RecordInstance : TestRecord := {|
+            test a b l := a
+          |}.
+
+      """) should generateScalaCode("""
+      "trait TestRecord {
+      "  def test: Nat => Nat => List[Nat] => Nat
+      "}
+      "def Build_TestRecord(test: Nat => Nat => List[Nat] => Nat): TestRecord = {
+      "  def TestRecord_test = test
+      "  new TestRecord {
+      "    def test: Nat => Nat => List[Nat] => Nat = TestRecord_test
+      "  }
+      "}
+      "object RecordInstance extends TestRecord {
+      "  def test: Nat => Nat => List[Nat] => Nat = (a: Nat) => (b: Nat) => (l: List[Nat]) => a
       "}
       """)
   }
