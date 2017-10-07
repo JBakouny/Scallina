@@ -59,6 +59,7 @@ import scala.of.coq.parsercombinators.parser.SimpleProjection
 
 import RecordPreprocessor._
 import scala.of.coq.parsercombinators.parser.RecordInstantiation
+import scala.of.coq.parsercombinators.parser.Binder
 
 class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
@@ -532,25 +533,63 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       )
     }
 
-    def convertRecordInstance(name: String, recordType: String, concreteRecordFields: List[ConcreteRecordField]): Tree = {
+    def convertRecordInstance(instanceName: String, recordType: String, concreteRecordFields: List[ConcreteRecordField]): Tree = {
 
-      val abstractFields: Map[String, AbstractRecordField] = (
-        for {
-          Record(_, Ident(recordName), None, (None | Some(Type)), _, fields) <- coqTrees if (recordName == recordType)
-          abstractField @ AbstractRecordField(fieldName, _, _) <- fields
-        } yield (convertNameToString(fieldName) -> abstractField)
-      ).toMap
+      val abstractFields = fetchRecordAbstractFields(recordType)
 
-      OBJECTDEF(name).withParents(List(TYPE_REF(recordType))) :=
+      OBJECTDEF(instanceName).withParents(List(TYPE_REF(recordType))) :=
         BLOCK(
           concreteRecordFields.map {
-            case ConcreteRecordField(name, _, _, bodyTerm) =>
-              val AbstractRecordField(abstractFieldName, binders, typeTerm) = abstractFields(convertNameToString(name))
+            case ConcreteRecordField(name, implementedBinders, _, bodyTerm) =>
+              val AbstractRecordField(abstractFieldName, definedBinders, typeTerm) = abstractFields(convertNameToString(name))
 
-              ConcreteRecordField(name, binders, Some(typeTerm), bodyTerm)
+              val potentialException =
+                new IllegalStateException("The method signatures of instance " + instanceName + " should conform to signatures defined in record " + recordType + ":\n" +
+                  implementedBinders + "\n" +
+                  "Differ from:\n" +
+                  definedBinders)
+
+              ConcreteRecordField(name,
+                annotateParamsWithType(definedBinders, implementedBinders, potentialException),
+                Some(typeTerm),
+                bodyTerm)
           }.map(convertConcreteRecordField)
         )
     }
+
+    private def annotateParamsWithType(definedBinders: Option[Binders], implementedBinders: Option[Binders], potentialException: Exception): Option[Binders] = {
+      (definedBinders, implementedBinders) match {
+        case (None, None)                   => None
+        case (None, Some(Binders(binders))) => throw potentialException
+        case (Some(Binders(binders)), None) => throw potentialException
+        case (Some(Binders(defBinders)), Some(Binders(implBinders))) => {
+          def expandExplicitBinders(binders: List[Binder]) = binders.flatMap {
+            case ExplicitBinderWithType(names, typeTerm) => names.map(name => ExplicitBinderWithType(List(name), typeTerm))
+            case anthingElse                             => List(anthingElse)
+          }
+
+          val expandedDefBinders = expandExplicitBinders(defBinders)
+          val expandedImplBinders = expandExplicitBinders(implBinders)
+
+          if (expandedDefBinders.length != expandedImplBinders.length)
+            throw potentialException
+
+          Some(Binders(expandedDefBinders.zip(expandedImplBinders).map {
+            case (ExplicitBinderWithType(List(_), typeTerm), ExplicitSimpleBinder(implName)) => ExplicitBinderWithType(List(implName), typeTerm)
+            case (ExplicitBinderWithType(List(_), _), implBinder @ ExplicitBinderWithType(List(_), _)) => implBinder
+            case _ => throw potentialException
+          }))
+
+        }
+      }
+    }
+
+    private def fetchRecordAbstractFields(recordType: String): Map[String, AbstractRecordField] = (
+      for {
+        Record(_, Ident(recordName), None, (None | Some(Type)), _, fields) <- coqTrees if (recordName == recordType)
+        abstractField @ AbstractRecordField(fieldName, _, _) <- fields
+      } yield (convertNameToString(fieldName) -> abstractField)
+    ).toMap
 
     private def convertRecord(record: Record): Tree = {
       val Record(_, Ident(recordName), binders, (None | Some(Type)), _, fields) = record

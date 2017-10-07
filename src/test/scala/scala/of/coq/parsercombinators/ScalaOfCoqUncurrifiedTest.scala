@@ -11,16 +11,11 @@ import CustomMatchers.generateScalaCode
 
 import scala.of.coq.parsercombinators.compiler.NoCurrying
 
+import scala.of.coq.parsercombinators.TestUtils.coqParserShouldFailToGenerateScalaCodeFor
+
 class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   implicit val curryingStrategy = NoCurrying
-
-  def coqParserShouldFailToGenerateScalaCodeFor(coqCode: String) {
-    val parseResult = CoqParser(coqCode)
-    assertThrows[IllegalStateException] {
-      parseResult.map(new ScalaOfCoq(_, curryingStrategy).generateScalaCode)
-    }
-  }
 
   test("""Testing that explicit Type parameters are not supported if the return type is not Type
       Definition illegalFunction (x: Type) := x -> x.
