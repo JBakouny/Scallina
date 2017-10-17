@@ -1042,4 +1042,187 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "})
       """)
   }
+
+  // TODO(Joseph Bakouny): How to convert nat_rect to Scala?
+  ignore("""Testing Scala conversion of
+        Require Import List.
+
+        Record Queue := {
+          t : Type;
+          empty : t;
+          push : nat -> t -> t;
+          pop : t -> option (nat * t)
+        }.
+
+        Definition ListQueue : Queue := {|
+          t := list nat;
+          empty := nil;
+          push := fun x l => x :: l;
+          pop := fun l =>
+            match rev l with
+              | nil => None
+              | hd :: tl => Some (hd, rev tl) end
+        |}.
+
+        Definition DListQueue : Queue := {|
+          t := (list nat) * (list nat);
+          empty := (nil, nil);
+          push := fun x l =>
+            let (back, front) := l in
+            (x :: back,front);
+          pop := fun l =>
+            let (back, front) := l in
+            match front with
+              | nil =>
+                 match rev back with
+                    | nil => None
+                    | hd :: tl => Some (hd, (nil, tl))
+                 end
+              | hd :: tl => Some (hd, (back, tl))
+            end
+        |}.
+
+        Definition bind_option {A B} (f : A -> option B) (x : option A) :
+          option B :=
+          match x with
+           | Some x => f x
+           | None => None
+          end.
+
+        Definition bind_option2 {A B C} (f : A -> B -> option C)
+           (x : option (A * B)) : option C :=
+        bind_option
+          (fun yz : A * B =>
+           let (y, z) := yz : A * B in f y z) x.
+
+        Definition program (Q : Queue) (n : nat) :=
+        let q :=
+          nat_rect (fun _ : nat => Q.(t))
+            (empty Q) (push Q) (S n) in
+        let q0 :=
+          nat_rect (fun _ : nat => option Q.(t))
+            (Some q)
+            (fun (_ : nat) (q0 : option Q.(t)) =>
+             bind_option
+               (fun q1 : Q.(t) =>
+                bind_option2
+                  (fun (x : nat) (q2 : Q.(t)) =>
+                   bind_option2
+                     (fun (y : nat) (q3 : Q.(t)) =>
+                      Some (push Q (x + y) q3))
+                     (pop Q q2)) (pop Q q1)) q0) n in
+        bind_option
+          (fun q1 : Q.(t) => option_map fst (pop Q q1))
+          q0
+        .
+       """) {
+    CoqParser("""
+        Require Import List.
+
+        Record Queue := {
+          t : Type;
+          empty : t;
+          push : nat -> t -> t;
+          pop : t -> option (nat * t)
+        }.
+
+        Definition ListQueue : Queue := {|
+          t := list nat;
+          empty := nil;
+          push := fun x l => x :: l;
+          pop := fun l =>
+            match rev l with
+              | nil => None
+              | hd :: tl => Some (hd, rev tl) end
+        |}.
+
+        Definition DListQueue : Queue := {|
+          t := (list nat) * (list nat);
+          empty := (nil, nil);
+          push := fun x l =>
+            let (back, front) := l in
+            (x :: back,front);
+          pop := fun l =>
+            let (back, front) := l in
+            match front with
+              | nil =>
+                 match rev back with
+                    | nil => None
+                    | hd :: tl => Some (hd, (nil, tl))
+                 end
+              | hd :: tl => Some (hd, (back, tl))
+            end
+        |}.
+
+        Definition bind_option {A B} (f : A -> option B) (x : option A) :
+          option B :=
+          match x with
+           | Some x => f x
+           | None => None
+          end.
+
+        Definition bind_option2 {A B C} (f : A -> B -> option C)
+           (x : option (A * B)) : option C :=
+        bind_option
+          (fun (yz : A * B) =>
+           let (y, z) := yz : A * B in f y z) x.
+
+        Definition program (Q : Queue) (n : nat) :=
+        let q :=
+          nat_rect (fun _ : nat => Q.(t))
+            (empty Q) (push Q) (S n) in
+        let q0 :=
+          nat_rect (fun _ : nat => option Q.(t))
+            (Some q)
+            (fun (_ : nat) (q0 : option Q.(t)) =>
+             bind_option
+               (fun q1 : Q.(t) =>
+                bind_option2
+                  (fun (x : nat) (q2 : Q.(t)) =>
+                   bind_option2
+                     (fun (y : nat) (q3 : Q.(t)) =>
+                      Some (push Q (x + y) q3))
+                     (pop Q q2)) (pop Q q1)) q0) n in
+        bind_option
+          (fun q1 : Q.(t) => option_map fst (pop Q q1))
+          q0
+        .
+      """) should generateScalaCode("""
+      "trait Queue {
+      "  type T
+      "  def empty: T
+      "  def push: Nat => T => T
+      "  def pop: T => Option[(Nat, T)]
+      "}
+      "def newQueue[T](empty: T)(push: Nat => T => T)(pop: T => Option[(Nat, T)]): Queue = {
+      "  type Queue_T = T
+      "  def Queue_empty = empty
+      "  def Queue_push = push
+      "  def Queue_pop = pop
+      "  new Queue {
+      "    type T = Queue_T
+      "    def empty: T = Queue_empty
+      "    def push: Nat => T => T = Queue_push
+      "    def pop: T => Option[(Nat, T)] = Queue_pop
+      "  }
+      "}
+      "def ListQueue = newQueue[List[Nat]](Nil)((x: Nat) => (l: List[Nat]) => x :: l)(l => rev(l) match {
+      "  case Nil      => None
+      "  case hd :: tl => Some((hd, rev(tl)))
+      "})
+      "def DListQueue = newQueue[(List[Nat], List[Nat])]((Nil, Nil))((x: Nat) => { (l: (List[Nat], List[Nat])) =>
+      "  val (back, front) = l
+      "  (x :: back, front)
+      "})({ l =>
+      "  val (back, front) = l
+      "  front match {
+      "    case Nil => rev(back) match {
+      "      case Nil      => None
+      "      case hd :: tl => Some((hd, (Nil, tl)))
+      "    }
+      "    case hd :: tl => Some((hd, (back, tl)))
+      "  }
+      "})
+      """)
+  }
 }
