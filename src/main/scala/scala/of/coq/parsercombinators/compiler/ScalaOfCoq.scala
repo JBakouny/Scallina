@@ -526,6 +526,10 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
   object RecordUtils {
 
+    /*
+     * TODO(Joseph Bakouny): Do not generate record constructor function when the constructor name of the record is not explicitly specified or
+     * when the constructor is not actually used in the code
+     */
     def createTreeHuggerAstFromRecord(record: Record): List[Tree] = {
       List(
         convertRecord(record),
