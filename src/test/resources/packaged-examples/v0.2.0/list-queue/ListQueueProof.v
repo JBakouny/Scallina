@@ -1,46 +1,8 @@
 Load ListQueueParam.
 
 
-Definition bind_option {A B} (f : A -> option B) (x : option A) : 
-  option B := 
-  match x with 
-   | Some x => f x
-   | None => None
-  end.
-
-Definition bind_option2 {A B C} (f : A -> B -> option C) 
-   (x : option (A * B)) : option C :=
-bind_option
-  (fun yz : A * B =>
-   let (y, z) := yz : A * B in f y z) x.
-
-
-Definition program (Q : Queue) (n : nat) :=
-let q :=
-  nat_rect (fun _ : nat => Q.(t)) 
-    (empty Q) (push Q) (S n) in
-let q0 :=
-  nat_rect (fun _ : nat => option Q.(t)) 
-    (Some q)
-    (fun (_ : nat) (q0 : option Q.(t)) =>
-     bind_option
-       (fun q1 : Q.(t) =>
-        bind_option2
-          (fun (x : nat) (q2 : Q.(t)) =>
-           bind_option2
-             (fun (y : nat) (q3 : Q.(t)) =>
-              Some (push Q (x + y) q3))
-             (pop Q q2)) (pop Q q1)) q0) n in
-bind_option
-  (fun q1 : Q.(t) => option_map fst (pop Q q1))
-  q0
-.
-
-
 (*
 Install the paramcoq plugin to run this code:
-
-
 *)
 Add LoadPath "~/paramcoq/src".
 Add LoadPath "~/paramcoq/test-suite".
