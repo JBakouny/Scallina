@@ -1,0 +1,28 @@
+Commands required to use the parametricity plugin with Coq 8.6.1:
+
+
+First under bash:
+—————————————————
+git clone https://github.com/CohenCyril/paramcoq
+cd paramcoq 
+
+
+Second in a text editor:
+————————————————————————
+On a Mac, replace “sed” by “gsed” in the MakeFile
+
+
+Third in bash:
+——————————————
+make
+
+
+Fourth (already done in ListQueueProof.v):
+——————————————————————————————————————————
+- Add the below Coq command to the Coq file that needs to use the parametricity plugin:
+Add LoadPath "~/paramcoq/src".
+Add LoadPath "~/paramcoq/test-suite".
+
+Alternatively, this step can also be done in the _CoqProject file.
+
+ 
