@@ -16,6 +16,7 @@ Changes to the original code:
 This is not a requirement of Scallina, but it is what is mostly used in the origial code.
 - Replace "cons" by "::".
 - Inline all used-defined Coq notations.
+- Create a non-depdently typed custom nat_rect function to use in the program.
 *)
 
 
@@ -68,32 +69,38 @@ Definition bind_option {A B} (f : A -> option B) (x : option A) :
 Definition bind_option2 {A B C} (f : A -> B -> option C) 
    (x : option (A * B)) : option C :=
 bind_option
-  (fun yz : A * B =>
-   let (y, z) := yz : A * B in f y z) x.
+  (fun (yz : A * B) =>
+   let (y, z) := yz in f y z) x.
 
-Fixpoint fold {P : Type} (f : P)
-  (f0 : nat -> P -> P) (n : nat) :=
+Fixpoint nat_rect {P : Type} (f : P)
+  (f0 : nat -> P -> P) (n : nat) : P :=
   match n with
   | 0 => f
-  | S n0 => f0 n0 (fold f f0 n0)
+  | S n0 => f0 n0 (nat_rect f f0 n0)
+  end.
+
+Definition option_map {A B} (f:A->B) (o : option A) : option B :=
+  match o with
+    | Some a => Some (f a)
+    | None => None
   end.
 
 Definition program (Q : Queue) (n : nat) :=
 let q :=
-  fold (empty Q) (push Q) (S n) in
+  nat_rect Q.(empty) Q.(push) (S n) in
 let q0 :=
-  fold
+  nat_rect
     (Some q)
     (fun (_ : nat) (q0 : option Q.(t)) =>
      bind_option
-       (fun q1 : Q.(t) =>
+       (fun (q1 : Q.(t)) =>
         bind_option2
           (fun (x : nat) (q2 : Q.(t)) =>
            bind_option2
              (fun (y : nat) (q3 : Q.(t)) =>
-              Some (push Q (x + y) q3))
-             (pop Q q2)) (pop Q q1)) q0) n in
+              Some (Q.(push) (x + y) q3))
+             (Q.(pop) q2)) (Q.(pop) q1)) q0) n in
 bind_option
-  (fun q1 : Q.(t) => option_map fst (pop Q q1))
+  (fun (q1 : Q.(t)) => option_map fst (Q.(pop) q1))
   q0
 .
