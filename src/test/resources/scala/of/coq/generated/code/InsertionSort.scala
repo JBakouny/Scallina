@@ -1,5 +1,6 @@
 import scala.of.coq.lang._
 import Nat._
+import Pairs._
 import MoreLists._
 object InsertionSort {
   def insert(i: Nat)(l: List[Nat]): List[Nat] =

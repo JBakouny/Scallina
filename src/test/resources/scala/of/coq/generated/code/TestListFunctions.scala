@@ -1,5 +1,6 @@
 import scala.of.coq.lang._
 import Nat._
+import Pairs._
 import MoreLists._
 object TestListFunctions {
   def f(x: Nat): Nat = x * 3
