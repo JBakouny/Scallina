@@ -1,5 +1,6 @@
 import scala.of.coq.lang._
 import Nat._
+import Pairs._
 import MoreLists._
 object ListQueueParam {
   trait Queue {
@@ -47,31 +48,39 @@ object ListQueueParam {
       }
     }
   }
-  def bind_option[A, B](f: A => Option[B])(x: Option[A]): Option[B] =
+  def bind_option[A, B](x: Option[A])(f: A => Option[B]): Option[B] =
     x match {
       case Some(x) => f(x)
       case None => None
     }
-  def bind_option2[A, B, C](f: A => B => Option[C])(x: Option[(A, B)]): Option[C] = bind_option({ (yz: (A, B)) =>
+  def bind_option2[A, B, C](x: Option[(A, B)])(f: A => B => Option[C]): Option[C] = bind_option(x)({ (yz: (A, B)) =>
     val (y, z) = yz
     f(y)(z)
-  })(x)
-  def nat_rect[P](f: P)(f0: Nat => P => P)(n: Nat): P =
-    n match {
-      case Zero => f
-      case S(n0) => f0(n0)(nat_rect(f)(f0)(n0))
-    }
-  def option_map[A, B](f: A => B)(o: Option[A]): Option[B] =
+  })
+  def option_map[A, B](o: Option[A])(f: A => B): Option[B] =
     o match {
       case Some(a) => Some(f(a))
       case None => None
     }
-  def program(Q: Queue)(n: Nat) = {
-    val q = nat_rect(Q.empty)(Q.push)(S(n))
-    {
-      val q0 = nat_rect(Some(q))(_ => (q0: Option[Q.t]) => bind_option((q1: Q.t) => bind_option2((x: Nat) => (q2: Q.t) => bind_option2((y: Nat) => (q3: Q.t) => Some(Q.push(x + y)(q3)))(Q.pop(q2)))(Q.pop(q1)))(q0))(n)
-      bind_option((q1: Q.t) => option_map(fst)(Q.pop(q1)))(q0)
+  def nat_rect[P](op: Nat => P => P)(n: Nat)(x: P): P =
+    n match {
+      case Zero => x
+      case S(n0) => op(n0)(nat_rect(op)(n0)(x))
     }
+  def sumElems(Q: Queue)(q0: Option[Q.t]): Option[Q.t] = bind_option(q0)({ (q1: Q.t) =>
+    val x_q1 = Q.pop(q1)
+    bind_option2(x_q1)((x: Nat) => { (q2: Q.t) =>
+      val y_q3 = Q.pop(q2)
+      bind_option2(y_q3)((y: Nat) => { (q3: Q.t) =>
+        val sum = x + y
+        Some(Q.push(sum)(q3))
+      })
+    })
+  })
+  def program(Q: Queue)(n: Nat): Option[Nat] = {
+    val q: Q.t = nat_rect(Q.push)(S(n))(Q.empty)
+    val q0: Option[Q.t] = nat_rect(_ => (q0: Option[Q.t]) => sumElems(Q)(q0))(n)(Some(q))
+    bind_option(q0)((q1: Q.t) => option_map(Q.pop(q1))(fst))
   }
 }
 

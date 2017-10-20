@@ -59,48 +59,70 @@ Definition DListQueue : Queue := {|
     end
 |}.
 
-Definition bind_option {A B} (f : A -> option B) (x : option A) : 
-  option B := 
+Definition bind_option {A B}
+(x : option A)
+(f : A -> option B) : option B := 
   match x with 
    | Some x => f x
    | None => None
   end.
 
-Definition bind_option2 {A B C} (f : A -> B -> option C) 
-   (x : option (A * B)) : option C :=
-bind_option
+Definition bind_option2 {A B C}
+(x : option (A * B))
+(f : A -> B -> option C) : option C :=
+bind_option x
   (fun (yz : A * B) =>
-   let (y, z) := yz in f y z) x.
+   let (y, z) := yz in f y z).
 
-Fixpoint nat_rect {P : Type} (f : P)
-  (f0 : nat -> P -> P) (n : nat) : P :=
-  match n with
-  | 0 => f
-  | S n0 => f0 n0 (nat_rect f f0 n0)
-  end.
 
-Definition option_map {A B} (f:A->B) (o : option A) : option B :=
+Definition option_map {A B}
+(o : option A) (f : A -> B)
+: option B :=
   match o with
     | Some a => Some (f a)
     | None => None
   end.
 
-Definition program (Q : Queue) (n : nat) :=
-let q :=
-  nat_rect Q.(empty) Q.(push) (S n) in
-let q0 :=
-  nat_rect
-    (Some q)
-    (fun (_ : nat) (q0 : option Q.(t)) =>
-     bind_option
-       (fun (q1 : Q.(t)) =>
-        bind_option2
-          (fun (x : nat) (q2 : Q.(t)) =>
-           bind_option2
-             (fun (y : nat) (q3 : Q.(t)) =>
-              Some (Q.(push) (x + y) q3))
-             (Q.(pop) q2)) (Q.(pop) q1)) q0) n in
-bind_option
-  (fun (q1 : Q.(t)) => option_map fst (Q.(pop) q1))
-  q0
+
+Fixpoint nat_rect {P : Type}
+  (op : nat -> P -> P) (n : nat) (x : P) : P :=
+  match n with
+  | 0 => x
+  | S n0 => op n0 (nat_rect op n0 x)
+  end.
+
+Definition sumElems(Q : Queue)(q0: option Q.(t)) : option Q.(t) :=
+bind_option q0
+(fun (q1 : Q.(t)) =>
+ let x_q1 := Q.(pop) q1
+ in
+ bind_option2 x_q1
+  (fun (x : nat) (q2 : Q.(t)) =>
+   let y_q3 := Q.(pop) q2
+   in
+   bind_option2 y_q3
+    (fun (y : nat) (q3 : Q.(t)) =>
+      let sum := x + y
+      in Some (Q.(push) sum q3)
+    )
+  )
+)
 .
+
+Definition program (Q : Queue) (n : nat) : option nat :=
+(* q := 0::1::2::...::n *)
+let q : Q.(t) :=
+  nat_rect Q.(push) (S n) Q.(empty)
+in
+let q0 : option Q.(t) :=
+  nat_rect
+    (fun _ (q0: option Q.(t)) => sumElems Q q0)
+    n
+    (Some q)
+in
+bind_option q0
+  (fun (q1 : Q.(t)) => option_map (Q.(pop) q1) fst)
+.
+
+
+

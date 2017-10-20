@@ -159,4 +159,3 @@ reflexivity.
 Defined.
 Print program.
 Print program_R.
-*)
