@@ -48,39 +48,32 @@ object ListQueueParam {
       }
     }
   }
-  def bind_option[A, B](x: Option[A])(f: A => Option[B]): Option[B] =
-    x match {
-      case Some(x) => f(x)
-      case None => None
-    }
-  def bind_option2[A, B, C](x: Option[(A, B)])(f: A => B => Option[C]): Option[C] = bind_option(x)({ (yz: (A, B)) =>
-    val (y, z) = yz
-    f(y)(z)
-  })
-  def option_map[A, B](o: Option[A])(f: A => B): Option[B] =
-    o match {
-      case Some(a) => Some(f(a))
-      case None => None
-    }
-  def nat_rect[P](op: Nat => P => P)(n: Nat)(x: P): P =
+  def loop[P](op: Nat => P => P)(n: Nat)(x: P): P =
     n match {
       case Zero => x
-      case S(n0) => op(n0)(nat_rect(op)(n0)(x))
+      case S(n0) => op(n0)(loop(op)(n0)(x))
     }
-  def sumElems(Q: Queue)(q0: Option[Q.t]): Option[Q.t] = bind_option(q0)({ (q1: Q.t) =>
-    val x_q1 = Q.pop(q1)
-    bind_option2(x_q1)((x: Nat) => { (q2: Q.t) =>
-      val y_q3 = Q.pop(q2)
-      bind_option2(y_q3)((y: Nat) => { (q3: Q.t) =>
-        val sum = x + y
-        Some(Q.push(sum)(q3))
-      })
-    })
-  })
+  def sumElems(Q: Queue)(q: Option[Q.t]): Option[Q.t] =
+    q match {
+      case Some(q1) => Q.pop(q1) match {
+        case Some((x, q2)) => Q.pop(q2) match {
+          case Some((y, q3)) => Some(Q.push(x + y)(q3))
+          case None => None
+        }
+        case None => None
+      }
+      case None => None
+    }
   def program(Q: Queue)(n: Nat): Option[Nat] = {
-    val q: Q.t = nat_rect(Q.push)(S(n))(Q.empty)
-    val q0: Option[Q.t] = nat_rect(_ => (q0: Option[Q.t]) => sumElems(Q)(q0))(n)(Some(q))
-    bind_option(q0)((q1: Q.t) => option_map(Q.pop(q1))(fst))
+    val q = loop(Q.push)(S(n))(Q.empty)
+    val q0 = loop(_ => (q0: Option[Q.t]) => sumElems(Q)(q0))(n)(Some(q))
+    q0 match {
+      case Some(q1) => Q.pop(q1) match {
+        case Some((x, q2)) => Some(x)
+        case None => None
+      }
+      case None => None
+    }
   }
 }
 
