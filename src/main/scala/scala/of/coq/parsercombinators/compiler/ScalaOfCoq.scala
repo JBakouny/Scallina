@@ -113,25 +113,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       createApplication(functionTerm, arguments)
     case Fun(binders, bodyTerm) =>
       createAnonymousFunction(binders, bodyTerm)
-    case SimpleLetIn(Ident(id), binders, typeTerm, inputTerm, mainTerm) =>
-      BLOCK(
-        typeTerm.fold(VAL(id))(t => VAL(id, coqTypeToTreeHuggerType(t))) :=
-          binders.fold(termToTreeHuggerAst(inputTerm))(createAnonymousFunction(_, inputTerm)),
-        termToTreeHuggerAst(mainTerm)
-      )
-    case LetConstructorArgsIn(names, _, inputTerm, mainTerm) =>
-      // TODO(Joseph Bakouny): consider supporting inductives with one constructor that are not tuples
-      BLOCK(
-        VAL(convertTuple(names, PatternUtils.convertNameToPatternVar)) :=
-          termToTreeHuggerAst(inputTerm),
-        termToTreeHuggerAst(mainTerm)
-      )
-    case LetPatternIn(pattern, inputTerm, _, mainTerm) =>
-      BLOCK(
-        VAL(PatternUtils.convertPattern(pattern)) :=
-          termToTreeHuggerAst(inputTerm),
-        termToTreeHuggerAst(mainTerm)
-      )
+    case letIn @ (SimpleLetIn(_, _, _, _, _) | LetConstructorArgsIn(_, _, _, _) | LetPatternIn(_, _, _, _)) =>
+      BLOCK(blockTermToTreeHuggerAstList(letIn))
     case TermIf(conditionTerm, _, thenTerm, elseTerm) =>
       IF(termToTreeHuggerAst(conditionTerm)).THEN(termToTreeHuggerAst(thenTerm)).ELSE(termToTreeHuggerAst(elseTerm))
     case UncurriedTermApplication(functionTerm, arguments) =>
@@ -153,6 +136,27 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       convertTuple(tupleTerms, termToTreeHuggerAst)
     case anythingElse =>
       throw new IllegalStateException("The following Coq term is not supported: " + anythingElse.toCoqCode);
+  }
+
+  private def blockTermToTreeHuggerAstList(term: Term): List[Tree] = term match {
+    case SimpleLetIn(Ident(id), binders, typeTerm, inputTerm, mainTerm) =>
+      (
+        typeTerm.fold(VAL(id))(t => VAL(id, coqTypeToTreeHuggerType(t))) :=
+        binders.fold(termToTreeHuggerAst(inputTerm))(createAnonymousFunction(_, inputTerm))
+      ) :: blockTermToTreeHuggerAstList(mainTerm)
+    case LetConstructorArgsIn(names, _, inputTerm, mainTerm) =>
+      // TODO(Joseph Bakouny): consider supporting inductives with one constructor that are not tuples
+      (
+        VAL(convertTuple(names, PatternUtils.convertNameToPatternVar)) :=
+        termToTreeHuggerAst(inputTerm)
+      ) :: blockTermToTreeHuggerAstList(mainTerm)
+    case LetPatternIn(pattern, inputTerm, _, mainTerm) =>
+      (
+        VAL(PatternUtils.convertPattern(pattern)) :=
+        termToTreeHuggerAst(inputTerm)
+      ) :: blockTermToTreeHuggerAstList(mainTerm)
+    case nonBlockGeneratingTerm =>
+      List(termToTreeHuggerAst(nonBlockGeneratingTerm))
   }
 
   private def coqTypeToScalaCode(typeTerm: Term): String = treeToString(coqTypeToTreeHuggerType(typeTerm))
