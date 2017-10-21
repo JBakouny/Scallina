@@ -189,7 +189,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of
         Record Queue :=
-        {
+        Build_Queue {
           T : Type;
           empty : T;
           push : nat -> T -> T;
@@ -198,7 +198,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
        """) {
     CoqParser("""
         Record Queue :=
-        {
+        Build_Queue {
           T : Type;
           empty : T;
           push : nat -> T -> T;
@@ -302,7 +302,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of
         Record TestRecord :=
-        {
+        Build_TestRecord {
           testAbstractField : nat;
           testConcreteField : nat := testAbstractField + 3;
           testFunction (x : nat) : nat := x + 7;
@@ -311,7 +311,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
        """) {
     CoqParser("""
       Record TestRecord :=
-      {
+      Build_TestRecord {
         testAbstractField : nat;
         testConcreteField : nat := testAbstractField + 3;
         testFunction (x : nat) : nat := x + 7;
@@ -335,7 +335,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of
         Record TestRecord {A} :=
-        {
+        Build_TestRecord {
           testAbstractField : A;
           testConcreteField : A := testAbstractField;
           testFunction (x : A) : A := x;
@@ -344,7 +344,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
        """) {
     CoqParser("""
       Record TestRecord {A} :=
-      {
+      Build_TestRecord {
         testAbstractField : A;
         testConcreteField : A := testAbstractField;
         testFunction (x : A) : A := x;
@@ -542,18 +542,6 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def push: Nat => t => t
       "  def pop: t => Option[(Nat, t)]
       "}
-      "def Build_Queue[t](empty: t)(push: Nat => t => t)(pop: t => Option[(Nat, t)]): Queue = {
-      "  type Queue_t = t
-      "  def Queue_empty = empty
-      "  def Queue_push = push
-      "  def Queue_pop = pop
-      "  new Queue {
-      "    type t = Queue_t
-      "    def empty: t = Queue_empty
-      "    def push: Nat => t => t = Queue_push
-      "    def pop: t => Option[(Nat, t)] = Queue_pop
-      "  }
-      "}
       "object ListQueue extends Queue {
       "  type t = List[Nat]
       "  def empty: t = Nil
@@ -633,18 +621,6 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def push: Nat => t => t
       "  def pop: t => Option[(Nat, t)]
       "}
-      "def Build_Queue[t](empty: t)(push: Nat => t => t)(pop: t => Option[(Nat, t)]): Queue = {
-      "  type Queue_t = t
-      "  def Queue_empty = empty
-      "  def Queue_push = push
-      "  def Queue_pop = pop
-      "  new Queue {
-      "    type t = Queue_t
-      "    def empty: t = Queue_empty
-      "    def push: Nat => t => t = Queue_push
-      "    def pop: t => Option[(Nat, t)] = Queue_pop
-      "  }
-      "}
       "object ListQueue extends Queue {
       "  type t = List[Nat]
       "  def empty: t = Nil
@@ -671,7 +647,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
     CoqParser("""
           Require Import Coq.Lists.List.
 
-          Record TestRecord := {
+          Record TestRecord := Build_TestRecord {
             test (x y: nat) (l: list nat) : nat
           }.
 
@@ -699,7 +675,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Require Import Coq.Lists.List.
 
           Record Queue :=
-          {
+          Build_Queue {
             T : Type;
             push : nat -> T -> T;
             pop : T -> option (nat * T);
@@ -738,7 +714,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Require Import Coq.Lists.List.
 
           Record Queue :=
-          {
+          Build_Queue {
             T : Type;
             push : nat -> T -> T;
             pop : T -> option (nat * T);
@@ -815,7 +791,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Require Import Coq.Lists.List.
 
           Record Queue :=
-          {
+          Build_Queue {
             T : Type;
             empty : T;
             push : nat -> T -> T;
@@ -854,7 +830,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Require Import Coq.Lists.List.
 
           Record Queue :=
-          {
+          Build_Queue {
             T : Type;
             empty : T;
             push : nat -> T -> T;
@@ -1250,18 +1226,6 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def empty: t
       "  def push: Nat => t => t
       "  def pop: t => Option[(Nat, t)]
-      "}
-      "def Build_Queue[t](empty: t)(push: Nat => t => t)(pop: t => Option[(Nat, t)]): Queue = {
-      "  type Queue_t = t
-      "  def Queue_empty = empty
-      "  def Queue_push = push
-      "  def Queue_pop = pop
-      "  new Queue {
-      "    type t = Queue_t
-      "    def empty: t = Queue_empty
-      "    def push: Nat => t => t = Queue_push
-      "    def pop: t => Option[(Nat, t)] = Queue_pop
-      "  }
       "}
       "object ListQueue extends Queue {
       "  type t = List[Nat]

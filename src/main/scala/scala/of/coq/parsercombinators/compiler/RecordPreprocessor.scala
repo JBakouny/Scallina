@@ -14,9 +14,9 @@ object RecordPreprocessor {
 
   def computeConstructorToRecordTypeFields(coqTrees: List[Sentence]): Map[RecordConstructorName, List[IsRecordTypeField]] = {
     for {
-      r @ Record(_, Ident(recordName), _, (None | Some(Type)), constructor, fields) <- coqTrees
+      Record(_, Ident(recordName), _, (None | Some(Type)), Some(Ident(constructorName)), fields) <- coqTrees
     } yield (
-      computeRecordConstructorName(r) ->
+      constructorName ->
       fields.map(recordFieldIsTypeField)
     )
   }.toMap
@@ -30,10 +30,4 @@ object RecordPreprocessor {
       case anythingElse =>
         throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
     }
-  
-  def computeRecordConstructorName(record: Record): String = {
-    val Record(_, Ident(recordName), _, (None | Some(Type)), constructor, _) = record
-    constructor.fold("Build_" + recordName) { case Ident(constructorName) => constructorName }
-  }
-
 }

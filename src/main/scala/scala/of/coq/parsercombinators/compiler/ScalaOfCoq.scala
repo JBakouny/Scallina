@@ -531,15 +531,16 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
   object RecordUtils {
 
-    /*
-     * TODO(Joseph Bakouny): Do not generate record constructor function when the constructor name of the record is not explicitly specified or
-     * when the constructor is not actually used in the code
-     */
     def createTreeHuggerAstFromRecord(record: Record): List[Tree] = {
-      List(
-        convertRecord(record),
-        createRecordConstructionFunction(record)
-      )
+      val recordDef = convertRecord(record)
+      val optionalConstructor = createRecordConstructionFunction(record)
+
+      // Note: Scallina does not generate the record constructor if its name is not explicitly specified
+      optionalConstructor.fold {
+        List(recordDef)
+      } {
+        List(recordDef, _)
+      }
     }
 
     def convertRecordInstance(instanceName: String, recordType: String, concreteRecordFields: List[ConcreteRecordField]): Tree = {
@@ -613,32 +614,40 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
         )
     }
 
-    private def createRecordConstructionFunction(record: Record): Tree = {
+    private def createRecordConstructionFunction(record: Record): Option[Tree] = {
 
-      val constructorName = computeRecordConstructorName(record)
-      val Record(_, Ident(recordName), binders, (None | Some(Type)), _, fields) = record
-      val abstractFields = filterAbstractRecordFields(fields)
+      val constructor = computeRecordConstructorName(record)
 
-      val typeBinderParams = convertTypeBindersToTypeVars(binders)
+      constructor.map { constructorName =>
+        val Record(_, Ident(recordName), binders, (None | Some(Type)), _, fields) = record
+        val abstractFields = filterAbstractRecordFields(fields)
 
-      val recordType = createTypeWithGenericParams(recordName, typeBinderParams.map(typeVar => TYPE_REF(typeVar.name)))
-      val declaration = DEF(constructorName, recordType)
+        val typeBinderParams = convertTypeBindersToTypeVars(binders)
 
-      val (typeFields, valueFields) = abstractFields.partition(recordFieldIsTypeField)
-      val typeFieldParams = convertTypeFieldsToTypeVars(typeFields)
-      val valueFieldParams = convertValueFieldsToParams(valueFields)
+        val recordType = createTypeWithGenericParams(recordName, typeBinderParams.map(typeVar => TYPE_REF(typeVar.name)))
+        val declaration = DEF(constructorName, recordType)
 
-      val namePrefix = recordName + "_"
-      curryingStrategy.createDefinition(
-        declaration.withTypeParams(typeBinderParams ::: typeFieldParams),
-        valueFieldParams
-      ) := BLOCK(
-          createFieldAliases(abstractFields, namePrefix) :+
-            NEW(
-              ANONDEF(recordType) :=
-                BLOCK(assignFieldAliasesToNewRecordAbstractField(abstractFields, namePrefix))
-            )
-        )
+        val (typeFields, valueFields) = abstractFields.partition(recordFieldIsTypeField)
+        val typeFieldParams = convertTypeFieldsToTypeVars(typeFields)
+        val valueFieldParams = convertValueFieldsToParams(valueFields)
+
+        val namePrefix = recordName + "_"
+        curryingStrategy.createDefinition(
+          declaration.withTypeParams(typeBinderParams ::: typeFieldParams),
+          valueFieldParams
+        ) := BLOCK(
+            createFieldAliases(abstractFields, namePrefix) :+
+              NEW(
+                ANONDEF(recordType) :=
+                  BLOCK(assignFieldAliasesToNewRecordAbstractField(abstractFields, namePrefix))
+              )
+          )
+      }
+    }
+
+    private def computeRecordConstructorName(record: Record): Option[String] = {
+      val Record(_, Ident(recordName), _, (None | Some(Type)), constructor, _) = record
+      constructor.map { case Ident(constructorName) => constructorName }
     }
 
     private def filterAbstractRecordFields(fields: List[RecordField]): List[AbstractRecordField] =
