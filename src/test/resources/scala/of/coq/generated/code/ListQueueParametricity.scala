@@ -9,18 +9,6 @@ object ListQueueParametricity {
     def push: Nat => t => t
     def pop: t => Option[(Nat, t)]
   }
-  def Build_Queue[t](empty: t)(push: Nat => t => t)(pop: t => Option[(Nat, t)]): Queue = {
-    type Queue_t = t
-    def Queue_empty = empty
-    def Queue_push = push
-    def Queue_pop = pop
-    new Queue {
-      type t = Queue_t
-      def empty: t = Queue_empty
-      def push: Nat => t => t = Queue_push
-      def pop: t => Option[(Nat, t)] = Queue_pop
-    }
-  }
   object ListQueue extends Queue {
     type t = List[Nat]
     def empty: t = Nil

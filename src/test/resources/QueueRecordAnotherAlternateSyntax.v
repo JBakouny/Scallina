@@ -6,7 +6,7 @@ https://github.com/parametricity-coq/paramcoq/blob/master/test-suite/ListQueue.v
 Require Import Coq.Lists.List.
 
 Record Queue :=
-{
+Build_Queue {
   T : Type;
   push : nat -> T -> T;
   pop : T -> option (nat * T);
