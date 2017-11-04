@@ -17,6 +17,15 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   implicit val curryingStrategy = NoCurrying
 
+  /*
+   * TODO(Joseph Bakouny) - Error handling:
+   * Consider implementing a typechecker for the subset of Gallina that
+   * we support in order to make sure that all Gallina constructions that do not conform to this subset
+   * are explicitly rejected by Scallina's front end.
+   *
+   * Currently, a significant verification is made by Scallina's back-end which throws exceptions when
+   * it encounters Gallina constructions that cannot be translated to Scala.
+   */
   test("""Testing that explicit Type parameters are not supported if the return type is not Type
       Definition illegalFunction (x: Type) := x -> x.
        """) {
