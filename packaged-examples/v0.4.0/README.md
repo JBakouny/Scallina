@@ -1,4 +1,4 @@
-Scallina’ Demonstration
+Scallina's Demonstration
 -----------------------
 
 Scallina’s functionalities are demonstrated through the extraction of Scala programs from source Gallina programs. This directory exhibits such extraction examples. Each example includes: the source Gallina code, the lemmas verifying its correctness and the synthesized Scala code.
