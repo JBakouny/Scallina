@@ -406,8 +406,9 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
        *  In fact, in future versions, it might not be necessary to consider all implicit parameters as type params.
        *  Consider supporting converting implicit non-type params to Scala implicits.
        */
-      case ImplicitBinder(_, _)         => true
-      case ExplicitBinderWithType(_, _) => false
+      case ImplicitBinder(_, Some(Type)) => true
+      case ImplicitBinder(_, None)       => true
+      case ExplicitBinderWithType(_, _)  => false
       case anythingElse =>
         throw new IllegalStateException("The following parameter notation is not supported: " + anythingElse.toCoqCode);
     }
