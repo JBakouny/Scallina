@@ -122,7 +122,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     case UncurriedTermApplication(functionTerm, arguments) =>
       createApplication(functionTerm, arguments)
     case InfixOperator(leftOp, op, rightOp) => createInfixOperator(leftOp, convertToScalaInfixOperator(op), rightOp)
-    case patternMatch @ Match(_, _, _) =>
+    // TODO(Joseph Bakouny): Check if the return type of the match should always be ignored
+    case patternMatch @ Match(_, None, _) =>
       PatternUtils.convertPatternMatch(patternMatch)
     case SimpleProjection(recordInstance, Qualid(List(Ident(fieldName)))) =>
       createFieldSelection(recordInstance, fieldName)
