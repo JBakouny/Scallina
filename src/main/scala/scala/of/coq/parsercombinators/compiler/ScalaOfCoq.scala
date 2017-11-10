@@ -60,6 +60,7 @@ import scala.of.coq.parsercombinators.parser.SimpleProjection
 import RecordPreprocessor._
 import scala.of.coq.parsercombinators.parser.RecordInstantiation
 import scala.of.coq.parsercombinators.parser.Binder
+import scala.of.coq.parsercombinators.parser.LoadCommand
 
 class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
@@ -82,7 +83,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
   private def toTreeHuggerAst(coqTrees: List[Sentence]): List[Tree] = coqTrees.flatMap(t => toTreeHuggerAst(t))
 
   private def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
-    case RequireImport(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _) =>
+    case RequireImport(_, _) | LoadCommand(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _) =>
       List() // The above commands do not generate any Scala code
     case Definition(id, binders, Some(Type), bodyTypeTerm) =>
       List(createTypeAliasDefinition(id, binders) := coqTypeToTreeHuggerType(bodyTypeTerm))

@@ -9,9 +9,13 @@ sealed trait CoqAST {
 // Start of sentence
 sealed trait Sentence extends CoqAST
 
-//TODO (Joseph Bakouny): This AST is not in the grammar, consider a more in-depth support for modules!
-case class RequireImport(moduleName: Qualid) extends Sentence {
-  def toCoqCode: String = "Require Import " + moduleName.toCoqCode + "."
+//TODO (Joseph Bakouny): This AST is not in the grammar, consider a more in-depth support for modules.
+case class RequireImport(moduleName: Qualid, shouldExport: Boolean = false) extends Sentence {
+  def toCoqCode: String = "Require " + (if (shouldExport) "Export" else "Import") + " " + moduleName.toCoqCode + "."
+}
+
+case class LoadCommand(moduleName: Qualid) extends Sentence {
+  def toCoqCode: String = "Load " + moduleName.toCoqCode + "."
 }
 
 /*

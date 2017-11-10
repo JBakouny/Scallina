@@ -30,7 +30,8 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   type P[+T] = PackratParser[T]
 
   lazy val sentence: P[Sentence] = (
-    requireImport
+    importCommand
+    | loadCommand
     | argumentsCommand
     | scopeCommand
     | definition
@@ -40,9 +41,14 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     | assertion <~ proof
   )
 
-  //TODO (Joseph Bakouny): This production is not in the official grammar... consider a more in-depth support for modules!
-  private lazy val requireImport: P[RequireImport] =
-    "Require" ~ "Import" ~> qualid <~ "." ^^ { RequireImport(_) }
+  //TODO (Joseph Bakouny): This production is not in the official grammar... consider a more in-depth support for modules.
+  private lazy val importCommand: P[RequireImport] = (
+    "Require" ~ "Import" ~> qualid <~ "." ^^ { RequireImport(_, false) }
+    | "Require" ~ "Export" ~> qualid <~ "." ^^ { RequireImport(_, true) }
+  )
+
+  private lazy val loadCommand: P[LoadCommand] =
+    "Load" ~> qualid <~ "." ^^ { LoadCommand(_) }
 
   /*
    *  NOTE: This production is not in the grammar, it supports the commands of the form:
