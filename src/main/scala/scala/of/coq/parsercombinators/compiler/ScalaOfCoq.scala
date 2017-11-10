@@ -173,7 +173,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     case Term_->(typeTerm1, typeTerm2) =>
       // TODO (Joseph Bakouny): Coq -> in lemmas can have a different significance, check how this can be supported if needed ?
       coqTypeToTreeHuggerType(typeTerm1).TYPE_=>(coqTypeToTreeHuggerType(typeTerm2))
-    case SimpleProjection(recordInstance, Qualid(List(Ident(fieldName)))) =>
+    case SimpleProjection(recordInstance @ Qualid(List(Ident(_))), Qualid(List(Ident(fieldName)))) =>
       TYPE_REF(createFieldSelection(recordInstance, fieldName))
     case Qualid(xs) =>
       TYPE_REF(xs.map { case Ident(name) => convertType(name) }.mkString("."))
