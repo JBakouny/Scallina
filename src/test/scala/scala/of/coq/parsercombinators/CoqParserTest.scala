@@ -534,7 +534,8 @@ class CoqParserTest extends FunSuite {
     )
   }
 
-  test("""Testing
+  // TODO (Joseph Bakouny): Inductive records are currently not supported.
+  ignore("""Testing
       Inductive Queue :=
       {
         T : Type;
@@ -567,7 +568,8 @@ class CoqParserTest extends FunSuite {
     )
   }
 
-  test("""Testing
+  // TODO (Joseph Bakouny): CoInductive records are currently not supported.
+  ignore("""Testing
       CoInductive Queue :=
       {
         T : Type;

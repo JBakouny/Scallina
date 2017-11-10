@@ -107,8 +107,9 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     accept("recordKeyword", {
       case CoqLexer.Keyword("Record")      => RecordKeyword
       case CoqLexer.Keyword("Structure")   => StructureKeyword
-      case CoqLexer.Keyword("Inductive")   => InductiveRecordKeyword
-      case CoqLexer.Keyword("CoInductive") => CoInductiveRecordKeyword
+      // TODO(Joseph Bakouny): These two record keywords are currently not supported.
+      //case CoqLexer.Keyword("Inductive")   => InductiveRecordKeyword
+      //case CoqLexer.Keyword("CoInductive") => CoInductiveRecordKeyword
     })
 
   private lazy val concreteRecordField: P[ConcreteRecordField] =
