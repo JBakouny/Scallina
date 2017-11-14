@@ -85,6 +85,18 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
+  test("""Testing that Gallina path-depdendent types are restricted to the ones starting with an identifier
+        Definition f (Q: Queue) : Queue := Q.
+
+        Definition createQueue (Q: Queue) (n: nat) : (f Q).(T) := insertElems Q Q.(empty) n.
+       """) {
+    coqParserShouldFailToGenerateScalaCodeFor("""
+        Definition f (Q: Queue) : Queue := Q.
+
+        Definition createQueue (Q: Queue) (n: nat) : (f Q).(T) := insertElems Q Q.(empty) n.
+        """)
+  }
+
   test("""Testing Scala conversion of
         Definition curryAdd : Z -> Z -> Z :=
           fun (x y : Z) => x.

@@ -60,6 +60,14 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         """)
   }
 
+  test("""Testing that implicit value binders are not supported
+      Definition illegalFunction {x: nat} (y : nat) := x + y.
+       """) {
+    coqParserShouldFailToGenerateScalaCodeFor("""
+        Definition illegalFunction {x: nat} (y : nat) := x + y.
+        """)
+  }
+
   test("""Testing that implicit anonymous function parameters are not supported
         Definition illegalDef :=
           fun {A} (x : A) => x.
@@ -72,6 +80,16 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of "Require Import Coq.Arith.PeanoNat." """) {
     CoqParser("Require Import Coq.Arith.PeanoNat.") should
+      generateScalaCode("")
+  }
+
+  test("""Testing Scala conversion of "Require Export Coq.Arith.PeanoNat." """) {
+    CoqParser("Require Export Coq.Arith.PeanoNat.") should
+      generateScalaCode("")
+  }
+
+  test("""Testing Scala conversion of "Load MyCoqProgram." """) {
+    CoqParser("Load MyCoqProgram.") should
       generateScalaCode("")
   }
 
