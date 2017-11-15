@@ -61,6 +61,8 @@ import RecordPreprocessor._
 import scala.of.coq.parsercombinators.parser.RecordInstantiation
 import scala.of.coq.parsercombinators.parser.Binder
 import scala.of.coq.parsercombinators.parser.LoadCommand
+import scala.of.coq.parsercombinators.parser.FunctionBody
+import scala.of.coq.parsercombinators.parser.FunctionDef
 
 class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
@@ -98,7 +100,9 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
        */
       createCaseClassHierarchy(parentBinders, parentName, indBodyItems)
     case Fixpoint(FixBody(id, binders, _, typeTerm, bodyTerm)) =>
-      // NOTE(Joseph Bakouny): Struct annotations should be ignored in Scala
+      List(createDefinition(id, Some(binders), typeTerm) := termToTreeHuggerAst(bodyTerm))
+    // NOTE(Joseph Bakouny): annotations should be ignored in Scala
+    case FunctionDef(FunctionBody(id, binders, _, typeTerm, bodyTerm)) =>
       List(createDefinition(id, Some(binders), typeTerm) := termToTreeHuggerAst(bodyTerm))
     case record @ Record(_, _, _, (None | Some(Type)), _, _) =>
       RecordUtils.createTreeHuggerAstFromRecord(record)

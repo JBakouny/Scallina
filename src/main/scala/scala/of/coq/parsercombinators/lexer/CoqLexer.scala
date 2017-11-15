@@ -191,7 +191,9 @@ object CoqLexer extends StdLexical {
   reserved += "Record"
   reserved += "Structure"
   reserved += "Fixpoint"
+  reserved += "Function"
   reserved += "struct"
+  reserved += "measure"
 
   reserved += "Theorem"
   reserved += "Lemma"

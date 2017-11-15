@@ -53,6 +53,10 @@ case class Fixpoint(fixBody: FixBody) extends Sentence {
   def toCoqCode: String = "Fixpoint " + fixBody.toCoqCode + "."
 }
 
+case class FunctionDef(functionBody: FunctionBody) extends Sentence {
+  def toCoqCode: String = "Function " + functionBody.toCoqCode + "."
+}
+
 case class Record(
     keyword: RecordKeyword,
     id: Ident,
@@ -446,16 +450,29 @@ case class FixBodies(fixBody: FixBody) extends Term {
   def toCoqCode: String = fixBody.toCoqCode
 }
 
-case class FixBody(ident: Ident, binders: Binders, annotation: Option[Annotation], typeTerm: Option[Term], bodyTerm: Term) extends CoqAST {
+abstract sealed class RecursiveFunBody(ident: Ident, binders: Binders, annot: Option[Annotation], typeTerm: Option[Term], bodyTerm: Term)
+    extends CoqAST {
   def toCoqCode: String =
     ident.toCoqCode + " " + binders.toCoqCode +
-      annotation.fold("")(" " + _.toCoqCode) +
+      annot.fold("")(" " + _.toCoqCode) +
       typeTerm.fold("")(" : " + _.toCoqCode) +
       " := " + bodyTerm.toCoqCode
 }
 
-case class Annotation(ident: Ident) extends CoqAST {
+case class FixBody(ident: Ident, binders: Binders, annotation: Option[FixAnnotation], typeTerm: Option[Term], bodyTerm: Term)
+  extends RecursiveFunBody(ident, binders, annotation, typeTerm, bodyTerm)
+
+case class FunctionBody(ident: Ident, binders: Binders, annotation: Annotation, typeTerm: Option[Term], bodyTerm: Term)
+  extends RecursiveFunBody(ident, binders, Some(annotation), typeTerm, bodyTerm)
+
+sealed trait Annotation extends CoqAST
+
+case class FixAnnotation(ident: Ident) extends Annotation {
   def toCoqCode: String = "{ struct " + ident.toCoqCode + " }"
+}
+
+case class FunAnnotation(anonFun: Fun, ident: Ident) extends Annotation {
+  def toCoqCode: String = "{ measure (" + anonFun.toCoqCode + ") " + ident.toCoqCode + " }"
 }
 
 /**

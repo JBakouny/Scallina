@@ -1003,7 +1003,7 @@ class CoqParserTest extends FunSuite {
               ExplicitBinderWithType(
                 List(Name(Some(Ident("t")))),
                 Qualid(List(Ident("Tree")))))),
-            Some(Annotation(Ident("t"))),
+            Some(FixAnnotation(Ident("t"))),
             Some(Qualid(List(Ident("nat")))),
             Match(
               List(MatchItem(Qualid(List(Ident("t"))), None, None)),
@@ -1130,6 +1130,68 @@ class CoqParserTest extends FunSuite {
                   List(Name(Some(Ident("n")))),
                   Qualid(List(Ident("nat")))))),
             None,
+            Some(Qualid(List(Ident("nat")))),
+            Match(
+              List(MatchItem(Qualid(List(Ident("xs"))), None, None)),
+              None,
+              List(
+                PatternEquation(
+                  List(MultPattern(List(QualidPattern(Qualid(List(Ident("nil"))))))),
+                  Qualid(List(Ident("n")))),
+                PatternEquation(
+                  List(MultPattern(List(InfixPattern(UnderscorePattern, "::", QualidPattern(Qualid(List(Ident("ys")))))))),
+                  UncurriedTermApplication(
+                    Qualid(List(Ident("lenTailrec"))),
+                    List(
+                      Argument(None, Qualid(List(Ident("ys")))),
+                      Argument(None, BetweenParenthesis(InfixOperator(Number(1), "+", Qualid(List(Ident("n"))))))))))))))
+    )
+  }
+
+  test("""Testing
+          Function lenTailrec {A} (xs : list A) (n : nat) { measure (fun xs => length(xs)) xs } : nat :=
+          match xs with
+          | nil => n
+          | _ :: ys => lenTailrec ys (1 + n)
+          end.
+          Proof.
+          intros.
+          simpl.
+          omega.
+          Qed.
+          """) {
+    CoqParser("""
+          Function lenTailrec {A} (xs : list A) (n : nat) { measure (fun xs => length(xs)) xs } : nat :=
+          match xs with
+          | nil => n
+          | _ :: ys => lenTailrec ys (1 + n)
+          end.
+          Proof.
+          intros.
+          simpl.
+          omega.
+          Qed.
+          """) should parse(
+      List(
+        FunctionDef(
+          FunctionBody(
+            Ident("lenTailrec"),
+            Binders(
+              List(
+                ImplicitBinder(List(Name(Some(Ident("A")))), None),
+                ExplicitBinderWithType(
+                  List(Name(Some(Ident("xs")))),
+                  UncurriedTermApplication(Qualid(List(Ident("list"))), List(Argument(None, Qualid(List(Ident("A"))))))),
+                ExplicitBinderWithType(
+                  List(Name(Some(Ident("n")))),
+                  Qualid(List(Ident("nat")))))),
+            FunAnnotation(
+              Fun(
+                Binders(List(ExplicitSimpleBinder(Name(Some(Ident("xs")))))),
+                UncurriedTermApplication(
+                  Qualid(List(Ident("length"))),
+                  List(Argument(None, BetweenParenthesis(Qualid(List(Ident("xs")))))))),
+              Ident("xs")),
             Some(Qualid(List(Ident("nat")))),
             Match(
               List(MatchItem(Qualid(List(Ident("xs"))), None, None)),

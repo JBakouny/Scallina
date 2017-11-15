@@ -38,6 +38,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     | inductive
     | record
     | fixPoint
+    | functionDef
     | assertion <~ proof
   )
 
@@ -105,8 +106,8 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   private lazy val recordKeyword: P[RecordKeyword] =
     accept("recordKeyword", {
-      case CoqLexer.Keyword("Record")      => RecordKeyword
-      case CoqLexer.Keyword("Structure")   => StructureKeyword
+      case CoqLexer.Keyword("Record")    => RecordKeyword
+      case CoqLexer.Keyword("Structure") => StructureKeyword
       // TODO(Joseph Bakouny): These two record keywords are currently not supported.
       //case CoqLexer.Keyword("Inductive")   => InductiveRecordKeyword
       //case CoqLexer.Keyword("CoInductive") => CoInductiveRecordKeyword
@@ -130,6 +131,9 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   // TODO (Joseph Bakouny): Consider supporting list of fixBodies for a Fixpoint and also CoFixpoint
   private lazy val fixPoint: P[Fixpoint] =
     "Fixpoint" ~> fixBody <~ "." ^^ { Fixpoint(_) }
+
+  private lazy val functionDef: P[FunctionDef] =
+    "Function" ~> functionBody <~ "." ~ (proof ?) ^^ { FunctionDef(_) }
 
   private lazy val assertion: P[Assertion] =
     assertionKeyword ~ identifier ~ (binders ?) ~ ":" ~ term <~ "." ^^ {
@@ -198,10 +202,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   // TODO (Joseph Bakouny): consider adding the original definition of fixBody outside AbstractTerm
   private lazy val fixBody: P[FixBody] = Term.fixBody
-
-  private lazy val annotation: P[Annotation] = {
-    "{" ~ "struct" ~> identifier <~ "}" ^^ { case id @ Ident(_) => Annotation(id) }
-  }
+  private lazy val functionBody: P[FunctionBody] = Term.functionBody
 
   /**
    * This is just a helper function used in the function matchItem, it is not present in the original grammar.
@@ -368,8 +369,13 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       fixBody ^^ { FixBodies(_) }
 
     lazy val fixBody: P[FixBody] =
-      identifier ~ binders ~ (annotation ?) ~ opt(":" ~> term) ~ ":=" ~ term ^^ {
+      identifier ~ binders ~ (fixAnnotation ?) ~ opt(":" ~> term) ~ ":=" ~ term ^^ {
         case id ~ binders ~ annotation ~ typeTerm ~ lex_:= ~ bodyTerm => FixBody(id, binders, annotation, typeTerm, bodyTerm)
+      }
+
+    lazy val functionBody: P[FunctionBody] =
+      identifier ~ binders ~ annotation ~ opt(":" ~> term) ~ ":=" ~ term ^^ {
+        case id ~ binders ~ annotation ~ typeTerm ~ lex_:= ~ bodyTerm => FunctionBody(id, binders, annotation, typeTerm, bodyTerm)
       }
 
     private lazy val matchItem: P[MatchItem] =
@@ -418,6 +424,17 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       }
     }
 
+    private lazy val annotation: P[Annotation] = fixAnnotation | funAnnotation
+
+    private lazy val fixAnnotation: P[FixAnnotation] = {
+      "{" ~ "struct" ~> identifier <~ "}" ^^ { case id @ Ident(_) => FixAnnotation(id) }
+    }
+
+    private lazy val funAnnotation: P[FunAnnotation] = {
+      "{" ~ "measure" ~> ("(" ~> fun <~ ")") ~ identifier <~ "}" ^^ {
+        case anonFun ~ id => FunAnnotation(anonFun, id)
+      }
+    }
   }
 
   private object Term extends AbstractTerm {

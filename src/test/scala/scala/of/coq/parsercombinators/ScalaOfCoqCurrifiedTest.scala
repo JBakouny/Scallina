@@ -126,6 +126,102 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
+      Function merge {A} (less: A -> A -> bool) (z: (list A) * (list A))
+      { measure (fun z => length (fst z) + length (snd z)) z } : list A :=
+       let (l1, l2) := z in
+       match l1 with
+       | nil => l2
+       | x1::l1_ =>
+         match l2 with
+         | nil => l1
+         | x2::l2_ =>
+           if less x1 x2 then x1 :: merge less (l1_, l2)
+           else x2 :: merge less (l1, l2_)
+         end
+       end.
+
+      Proof.
+       - intros.
+         auto.
+       - intros.
+         simpl.
+         apply Lt.lt_n_S.
+         apply Plus.plus_lt_compat_l.
+         auto.
+      Qed.
+       """) {
+    CoqParser("""
+      Function merge {A} (less: A -> A -> bool) (z: (list A) * (list A))
+      { measure (fun z => length (fst z) + length (snd z)) z } : list A :=
+       let (l1, l2) := z in
+       match l1 with
+       | nil => l2
+       | x1::l1_ =>
+         match l2 with
+         | nil => l1
+         | x2::l2_ =>
+           if less x1 x2 then x1 :: merge less (l1_, l2)
+           else x2 :: merge less (l1, l2_)
+         end
+       end.
+
+      Proof.
+       - intros.
+         auto.
+       - intros.
+         simpl.
+         apply Lt.lt_n_S.
+         apply Plus.plus_lt_compat_l.
+         auto.
+      Qed.
+      """) should generateScalaCode("""
+      "def merge[A](less: A => A => Boolean)(z: (List[A], List[A])): List[A] = {
+      "  val (l1, l2) = z
+      "  l1 match {
+      "    case Nil => l2
+      "    case x1 :: l1_ => l2 match {
+      "      case Nil => l1
+      "      case x2 :: l2_ => if (less(x1)(x2)) x1 :: merge(less)((l1_, l2))
+      "      else x2 :: merge(less)((l1, l2_))
+      "    }
+      "  }
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+      Function lenTailrec {A} (xs : list A) (n : nat) { measure (fun xs => length(xs)) xs } : nat :=
+      match xs with
+      | nil => n
+      | _ :: ys => lenTailrec ys (1 + n)
+      end.
+      Proof.
+        intros.
+        simpl.
+        omega.
+      Qed.
+       """) {
+    CoqParser("""
+      Function lenTailrec {A} (xs : list A) (n : nat) { measure (fun xs => length(xs)) xs } : nat :=
+      match xs with
+      | nil => n
+      | _ :: ys => lenTailrec ys (1 + n)
+      end.
+      Proof.
+        intros.
+        simpl.
+        omega.
+      Qed.
+      """) should generateScalaCode("""
+      "def lenTailrec[A](xs: List[A])(n: Nat): Nat =
+      "  xs match {
+      "    case Nil     => n
+      "    case _ :: ys => lenTailrec(ys)(1 + n)
+      "  }
+      """)
+  }
+
+  test("""Testing Scala conversion of
           Require Import Omega.
 
           Inductive Tree (A: Type) :=

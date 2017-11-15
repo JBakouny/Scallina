@@ -46,7 +46,7 @@ import scala.of.coq.parsercombinators.parser.NumberPattern
 import scala.of.coq.parsercombinators.parser.MatchItemPattern
 import scala.of.coq.parsercombinators.parser.LetFixIn
 import scala.of.coq.parsercombinators.parser.FixBody
-import scala.of.coq.parsercombinators.parser.Annotation
+import scala.of.coq.parsercombinators.parser.FixAnnotation
 import scala.of.coq.parsercombinators.parser.InfixOperator
 import scala.of.coq.parsercombinators.parser.TupleValue
 import scala.of.coq.parsercombinators.parser.SimpleProjection
@@ -300,7 +300,7 @@ class CoqTermParserTest extends FunSuite {
         FixBody(Ident("right"),
           Binders(List(
             ExplicitBinderWithType(List(Name(Some(Ident("l"))), Name(Some(Ident("r")))), Qualid(List(Ident("nat")))))),
-          Some(Annotation(Ident("l"))),
+          Some(FixAnnotation(Ident("l"))),
           None,
           Qualid(List(Ident("r")))),
         UncurriedTermApplication(
