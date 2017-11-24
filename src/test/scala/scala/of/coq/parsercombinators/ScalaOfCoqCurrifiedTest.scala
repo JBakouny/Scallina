@@ -275,7 +275,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           | Node l r => Node (map l f) (map r f)
           end.
       """) should generateScalaCode("""
-        "sealed abstract class Tree[A]
+        "sealed abstract class Tree[+A]
         "case class Leaf[A](value: A) extends Tree[A]
         "case class Node[A](l: Tree[A], r: Tree[A]) extends Tree[A]
         "object Node {

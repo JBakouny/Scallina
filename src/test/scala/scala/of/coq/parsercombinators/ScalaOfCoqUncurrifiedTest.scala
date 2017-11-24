@@ -634,13 +634,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         """)
   }
 
-  /*
-   *   TODO(Joseph Bakouny): Fix the empty case class issue:
-   *   An empty case class is not generated with the correct parenthesis "()".
-   *
-   *   This is probably an issue with treehugger.scala.
-   */
-  ignore("""Testing Scala conversion of
+  test("""Testing Scala conversion of
           Inductive Tree {A : Type} :=
             Leaf
           | Node (info: A) (left: @Tree A) (right: @ Tree A).
@@ -650,9 +644,9 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
             Leaf
           | Node (info: A) (left: @Tree A) (right: @ Tree A).
       """) should generateScalaCode("""
-        "sealed abstract class Tree[A]
-        "case class Leaf[A]() extends Tree[A]
-        "case class Node[A](info: A, l: Tree[A], r: Tree[A]) extends Tree[A]
+        "sealed abstract class Tree[+A]
+        "case object Leaf extends Tree[Nothing]
+        "case class Node[A](info: A, left: Tree[A], right: Tree[A]) extends Tree[A]
         """)
   }
 
@@ -732,7 +726,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
               | Leaf (value: A) : Tree
               | Node (info: B) (left: @Tree A B) (right: @Tree A B) : Tree.
       """) should generateScalaCode("""
-        "sealed abstract class Tree[A, B]
+        "sealed abstract class Tree[+A, +B]
         "case class Leaf[A, B](value: A) extends Tree[A, B]
         "case class Node[A, B](info: B, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B]
         """)
@@ -748,7 +742,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
           | Leaf {C : Type} (firstValue: A) (secondValue: C)
           | Node {D} (firstValue: B) (secondValue: D) (left: @Tree A B) (right: @Tree A B) : Tree.
       """) should generateScalaCode("""
-        "sealed abstract class Tree[A, B]
+        "sealed abstract class Tree[+A, +B]
         "case class Leaf[A, B, C](firstValue: A, secondValue: C) extends Tree[A, B]
         "case class Node[A, B, D](firstValue: B, secondValue: D, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B]
         """)
@@ -892,7 +886,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
           | Node l r => Node (map l f) (map r f)
           end.
       """) should generateScalaCode("""
-        "sealed abstract class Tree[A]
+        "sealed abstract class Tree[+A]
         "case class Leaf[A](value: A) extends Tree[A]
         "case class Node[A](l: Tree[A], r: Tree[A]) extends Tree[A]
         "def size[A](t: Tree[A]): Nat =

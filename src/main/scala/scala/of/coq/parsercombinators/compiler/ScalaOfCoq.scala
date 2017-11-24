@@ -350,11 +350,11 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       )
 
   private def createCaseClassHierarchy(parentBinders: Option[Binders], parentName: String, indBodyItems: List[InductiveBodyItem]) = {
-    val parentTypeDefs = convertTypeBindersToTypeVars(parentBinders)
+    val covariantParentTypeDefs = convertTypeBindersToTypeVars(parentBinders, true)
 
     val parentDeclaration: Tree =
       CLASSDEF(parentName)
-        .withTypeParams(parentTypeDefs)
+        .withTypeParams(covariantParentTypeDefs)
         .withFlags(Flags.SEALED)
         .withFlags(Flags.ABSTRACT)
         .tree
@@ -375,7 +375,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
              */
             val caseObjectDeclaration: Tree =
               CASEOBJECTDEF(name)
-                .withParents(parentName)
+                .withParents(createTypeWithGenericParams(parentName, covariantParentTypeDefs.map(_ => TYPE_REF("Nothing"))))
                 .tree
 
             List(caseObjectDeclaration)
@@ -383,6 +383,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
             binders =>
               val (typeDefs, paramsDefs) = partitionParams(binders)
 
+              val parentTypeDefs = convertTypeBindersToTypeVars(parentBinders)
               val caseClassDeclaration: Tree =
                 CASECLASSDEF(name)
                   .withTypeParams(parentTypeDefs ::: typeDefs)
@@ -436,11 +437,19 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     (implicitBinders, paramsDefs)
   }
 
-  private def convertTypeBindersToTypeVars(typeBinders: Option[Binders]) =
+  private def convertTypeBindersToTypeVars(typeBinders: Option[Binders], covariant: Boolean = false) =
     typeBinders.fold(List[TypeDefTreeStart]()) {
       case Binders(binders) =>
-        def convertNamesToTypeVars(names: List[Name]) =
-          for { Name(Some(Ident(nameString))) <- names } yield TYPEVAR(nameString)
+        def convertNamesToTypeVars(names: List[Name]) = {
+          for {
+            Name(Some(Ident(nameString))) <- names
+          } yield (
+            if (covariant)
+              TYPEVAR(COVARIANT(nameString))
+            else
+              TYPEVAR(nameString)
+          )
+        }
         binders.flatMap {
           case ExplicitSimpleBinder(name)          => convertNamesToTypeVars(List(name))
           case ExplicitBinderWithType(names, Type) => convertNamesToTypeVars(names)
