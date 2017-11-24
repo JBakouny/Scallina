@@ -11,19 +11,17 @@ Local Open Scope Z_scope.
 Inductive color := Red | Black.
 
 Inductive tree V : Type :=
-| E(default: V) : tree V 
+| E : tree V 
 | T(c: color) (l: tree V) (key: Z) (value: V) (r: tree V): tree V.
 
-Arguments E {V} _.
+Arguments E {V}.
 Arguments T {V} _ _ _ _ _.
 
-Definition empty_tree {V} (default: V) := E default.
-
-Fixpoint lookup {V} (x: Z) (t : tree V) : V :=
+Fixpoint lookup {V} (default: V) (x: Z) (t : tree V) : V :=
   match t with
-  | E default => default
-  | T _ tl k v tr => if (x <? k) then lookup x tl 
-                         else if (k <? x) then lookup x tr
+  | E => default
+  | T _ tl k v tr => if (x <? k) then lookup default x tl 
+                         else if (k <? x) then lookup default x tr
                          else v
   end.
 
@@ -47,13 +45,13 @@ Definition balance {V} (rb : color) (t1: tree V) (k : Z) (vk: V) (t2: tree V) : 
 
 Definition makeBlack {V} (t : tree V) : tree V := 
   match t with 
-  | E dflt => E dflt
+  | E => E
   | T _ a x vx b => T Black a x vx b
   end.
 
 Fixpoint ins {V} (x : Z) (vx: V) (s: tree V) : tree V :=
  match s with 
- | E dflt => T Red (E dflt) x vx (E dflt)
+ | E => T Red E x vx E
  | T c a y vy b => if (x <? y) then balance c (ins x vx a) y vy b
                         else if (y <? x) then balance c a y vy (ins x vx b)
                         else T c a x vx b

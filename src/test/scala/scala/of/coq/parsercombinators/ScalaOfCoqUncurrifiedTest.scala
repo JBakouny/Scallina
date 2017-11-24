@@ -901,4 +901,170 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         "  }
         """)
   }
+
+  test("""Testing Scala conversion of
+        (*
+        Inspired from:
+        https://www.cs.princeton.edu/~appel/vfa/Redblack.html
+        *)
+
+        Require Import Coq.ZArith.ZArith.
+
+        Local Open Scope Z_scope.
+
+        Inductive color := Red | Black.
+
+        Inductive tree V : Type :=
+        | E : tree V
+        | T(c: color) (l: tree V) (key: Z) (value: V) (r: tree V): tree V.
+
+        Arguments E {V}.
+        Arguments T {V} _ _ _ _ _.
+
+        Fixpoint lookup {V} (default: V) (x: Z) (t : tree V) : V :=
+          match t with
+          | E => default
+          | T _ tl k v tr => if (x <? k) then lookup default x tl
+                                 else if (k <? x) then lookup default x tr
+                                 else v
+          end.
+
+        Definition balance {V} (rb : color) (t1: tree V) (k : Z) (vk: V) (t2: tree V) : tree V:=
+         match rb with Red => T Red t1 k vk t2
+         | _ =>
+         match t1 with
+         | T Red (T Red a x vx b) y vy c =>
+              T Red (T Black a x vx b) y vy (T Black c k vk t2)
+         | T Red a x vx (T Red b y vy c) =>
+              T Red (T Black a x vx b) y vy (T Black c k vk t2)
+         | a => match t2 with
+                    | T Red (T Red b y vy c) z vz d =>
+                  T Red (T Black t1 k vk b) y vy (T Black c z vz d)
+                    | T Red b y vy (T Red c z vz d)  =>
+                  T Red (T Black t1 k vk b) y vy (T Black c z vz d)
+                    | _ => T Black t1 k vk t2
+                    end
+          end
+         end.
+
+        Definition makeBlack {V} (t : tree V) : tree V :=
+          match t with
+          | E => E
+          | T _ a x vx b => T Black a x vx b
+          end.
+
+        Fixpoint ins {V} (x : Z) (vx: V) (s: tree V) : tree V :=
+         match s with
+         | E => T Red E x vx E
+         | T c a y vy b => if (x <? y) then balance c (ins x vx a) y vy b
+                                else if (y <? x) then balance c a y vy (ins x vx b)
+                                else T c a x vx b
+         end.
+
+        Definition insert {V} (x : Z) (vx : V) (s : tree V) : tree V := makeBlack (ins x vx s).
+
+       """) {
+    CoqParser("""
+        (*
+        Inspired from:
+        https://www.cs.princeton.edu/~appel/vfa/Redblack.html
+        *)
+
+        Require Import Coq.ZArith.ZArith.
+
+        Local Open Scope Z_scope.
+
+        Inductive color := Red | Black.
+
+        Inductive tree V : Type :=
+        | E : tree V
+        | T(c: color) (l: tree V) (key: Z) (value: V) (r: tree V): tree V.
+
+        Arguments E {V}.
+        Arguments T {V} _ _ _ _ _.
+
+        Fixpoint lookup {V} (default: V) (x: Z) (t : tree V) : V :=
+          match t with
+          | E => default
+          | T _ tl k v tr => if (x <? k) then lookup default x tl
+                                 else if (k <? x) then lookup default x tr
+                                 else v
+          end.
+
+        Definition balance {V} (rb : color) (t1: tree V) (k : Z) (vk: V) (t2: tree V) : tree V:=
+         match rb with Red => T Red t1 k vk t2
+         | _ =>
+         match t1 with
+         | T Red (T Red a x vx b) y vy c =>
+              T Red (T Black a x vx b) y vy (T Black c k vk t2)
+         | T Red a x vx (T Red b y vy c) =>
+              T Red (T Black a x vx b) y vy (T Black c k vk t2)
+         | a => match t2 with
+                    | T Red (T Red b y vy c) z vz d =>
+                  T Red (T Black t1 k vk b) y vy (T Black c z vz d)
+                    | T Red b y vy (T Red c z vz d)  =>
+                  T Red (T Black t1 k vk b) y vy (T Black c z vz d)
+                    | _ => T Black t1 k vk t2
+                    end
+          end
+         end.
+
+        Definition makeBlack {V} (t : tree V) : tree V :=
+          match t with
+          | E => E
+          | T _ a x vx b => T Black a x vx b
+          end.
+
+        Fixpoint ins {V} (x : Z) (vx: V) (s: tree V) : tree V :=
+         match s with
+         | E => T Red E x vx E
+         | T c a y vy b => if (x <? y) then balance c (ins x vx a) y vy b
+                                else if (y <? x) then balance c a y vy (ins x vx b)
+                                else T c a x vx b
+         end.
+
+        Definition insert {V} (x : Z) (vx : V) (s : tree V) : tree V := makeBlack (ins x vx s).
+
+      """) should generateScalaCode("""
+        "sealed abstract class color
+        "case object Red extends color
+        "case object Black extends color
+        "sealed abstract class tree[+V]
+        "case object E extends tree[Nothing]
+        "case class T[V](c: color, l: tree[V], key: BigInt, value: V, r: tree[V]) extends tree[V]
+        "def lookup[V](default: V, x: BigInt, t: tree[V]): V =
+        "  t match {
+        "    case E => default
+        "    case T(_, tl, k, v, tr) => if ((x < k)) lookup(default, x, tl)
+        "    else if ((k < x)) lookup(default, x, tr)
+        "    else v
+        "  }
+        "def balance[V](rb: color, t1: tree[V], k: BigInt, vk: V, t2: tree[V]): tree[V] =
+        "  rb match {
+        "    case Red => T(Red, t1, k, vk, t2)
+        "    case _ => t1 match {
+        "      case T(Red, T(Red, a, x, vx, b), y, vy, c) => T(Red, T(Black, a, x, vx, b), y, vy, T(Black, c, k, vk, t2))
+        "      case T(Red, a, x, vx, T(Red, b, y, vy, c)) => T(Red, T(Black, a, x, vx, b), y, vy, T(Black, c, k, vk, t2))
+        "      case a => t2 match {
+        "        case T(Red, T(Red, b, y, vy, c), z, vz, d) => T(Red, T(Black, t1, k, vk, b), y, vy, T(Black, c, z, vz, d))
+        "        case T(Red, b, y, vy, T(Red, c, z, vz, d)) => T(Red, T(Black, t1, k, vk, b), y, vy, T(Black, c, z, vz, d))
+        "        case _                                     => T(Black, t1, k, vk, t2)
+        "      }
+        "    }
+        "  }
+        "def makeBlack[V](t: tree[V]): tree[V] =
+        "  t match {
+        "    case E                 => E
+        "    case T(_, a, x, vx, b) => T(Black, a, x, vx, b)
+        "  }
+        "def ins[V](x: BigInt, vx: V, s: tree[V]): tree[V] =
+        "  s match {
+        "    case E => T(Red, E, x, vx, E)
+        "    case T(c, a, y, vy, b) => if ((x < y)) balance(c, ins(x, vx, a), y, vy, b)
+        "    else if ((y < x)) balance(c, a, y, vy, ins(x, vx, b))
+        "    else T(c, a, x, vx, b)
+        "  }
+        "def insert[V](x: BigInt, vx: V, s: tree[V]): tree[V] = makeBlack(ins(x, vx, s))
+        """)
+  }
 }
