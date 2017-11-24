@@ -3,7 +3,7 @@ import Nat._
 import Pairs._
 import MoreLists._
 object InductiveDefinition {
-  sealed abstract class Tree[A]
+  sealed abstract class Tree[+A]
   case class Leaf[A](value: A) extends Tree[A]
   case class Node[A](l: Tree[A], r: Tree[A]) extends Tree[A]
   object Node {

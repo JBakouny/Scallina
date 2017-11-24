@@ -3,7 +3,7 @@ import Nat._
 import Pairs._
 import MoreLists._
 object BinarySearchTree {
-  sealed abstract class tree[V]
+  sealed abstract class tree[+V]
   case class E[V](default: V) extends tree[V]
   case class T[V](l: tree[V], key: Nat, value: V, r: tree[V]) extends tree[V]
   object T {
