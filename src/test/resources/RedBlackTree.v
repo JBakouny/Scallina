@@ -11,8 +11,8 @@ Local Open Scope Z_scope.
 Inductive color := Red | Black.
 
 Inductive tree V : Type :=
-| E : tree V 
-| T(c: color) (l: tree V) (key: Z) (value: V) (r: tree V): tree V.
+| E
+| T(c: color) (l: tree V) (key: Z) (value: V) (r: tree V).
 
 Arguments E {V}.
 Arguments T {V} _ _ _ _ _.

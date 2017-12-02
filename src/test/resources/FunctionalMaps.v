@@ -10,7 +10,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
 
 
 Inductive id : Type :=
-  | Id(n: nat): id.
+  | Id(n: nat).
 
 Definition beq_id (id1 id2: id) : bool :=
   match id1,id2 with

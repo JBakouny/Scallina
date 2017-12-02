@@ -455,8 +455,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of
         Inductive Tree : Type :=
-          Leaf : Tree
-        | Node(l r : Tree): Tree.
+          Leaf
+        | Node(l r : Tree).
 
         Fixpoint size (t: Tree) : nat :=
         match t with
@@ -466,8 +466,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
        """) {
     CoqParser("""
         Inductive Tree : Type :=
-          Leaf : Tree
-        | Node(l r : Tree): Tree.
+          Leaf
+        | Node(l r : Tree).
 
         Fixpoint size (t: Tree) : nat :=
         match t with
@@ -488,8 +488,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of
         Inductive Tree :=
-          Leaf (value: nat) : Tree
-        | Node(l r : Tree): Tree.
+          Leaf (value: nat)
+        | Node(l r : Tree).
 
         Fixpoint addToLeaves (t: Tree) (n: nat) : Tree :=
         match t with
@@ -499,8 +499,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
        """) {
     CoqParser("""
       Inductive Tree :=
-        Leaf (value: nat) : Tree
-      | Node(l r : Tree): Tree.
+        Leaf (value: nat)
+      | Node(l r : Tree).
 
       Fixpoint addToLeaves (t: Tree) (n: nat) : Tree :=
       match t with
@@ -652,8 +652,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of
       Inductive Tree :=
-        Leaf (value: nat) : Tree
-      | Node(l r : Tree): Tree.
+        Leaf (value: nat)
+      | Node(l r : Tree).
 
       Fixpoint testFunction (t: Tree) : Tree :=
       match t with
@@ -663,8 +663,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
        """) {
     CoqParser("""
       Inductive Tree :=
-        Leaf (value: nat) : Tree
-      | Node(l r : Tree): Tree.
+        Leaf (value: nat)
+      | Node(l r : Tree).
 
       Fixpoint testFunction (t: Tree) : Tree :=
       match t with
@@ -685,8 +685,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of
       Inductive Tree :=
-        Leaf (value: nat) : Tree
-      | Node(l r : Tree): Tree.
+        Leaf (value: nat)
+      | Node(l r : Tree)
 
       Fixpoint testFunction (t: Tree) : Tree :=
       match t with
@@ -696,8 +696,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
        """) {
     CoqParser("""
       Inductive Tree :=
-        Leaf (value: nat) : Tree
-      | Node(l r : Tree): Tree.
+        Leaf (value: nat)
+      | Node(l r : Tree).
 
       Fixpoint testFunction (t: Tree) : Tree :=
       match t with
@@ -718,13 +718,13 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of
               Inductive Tree {A B : Type} : Type :=
-              | Leaf (value: A) : Tree
-              | Node (info: B) (left: @Tree A B) (right: @Tree A B) : Tree.
+              | Leaf (value: A)
+              | Node (info: B) (left: @Tree A B) (right: @Tree A B).
        """) {
     CoqParser("""
               Inductive Tree {A B : Type} : Type :=
-              | Leaf (value: A) : Tree
-              | Node (info: B) (left: @Tree A B) (right: @Tree A B) : Tree.
+              | Leaf (value: A)
+              | Node (info: B) (left: @Tree A B) (right: @Tree A B).
       """) should generateScalaCode("""
         "sealed abstract class Tree[+A, +B]
         "case class Leaf[A, B](value: A) extends Tree[A, B]
@@ -735,12 +735,12 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
   test("""Testing Scala conversion of
           Inductive Tree {A B : Type} : Type :=
           | Leaf {C : Type} (firstValue: A) (secondValue: C)
-          | Node {D} (firstValue: B) (secondValue: D) (left: @Tree A B) (right: @Tree A B) : Tree.
+          | Node {D} (firstValue: B) (secondValue: D) (left: @Tree A B) (right: @Tree A B).
        """) {
     CoqParser("""
           Inductive Tree {A B : Type} : Type :=
           | Leaf {C : Type} (firstValue: A) (secondValue: C)
-          | Node {D} (firstValue: B) (secondValue: D) (left: @Tree A B) (right: @Tree A B) : Tree.
+          | Node {D} (firstValue: B) (secondValue: D) (left: @Tree A B) (right: @Tree A B).
       """) should generateScalaCode("""
         "sealed abstract class Tree[+A, +B]
         "case class Leaf[A, B, C](firstValue: A, secondValue: C) extends Tree[A, B]
@@ -785,8 +785,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
   test("""Testing Scala conversion of
       Inductive Tree : Type :=
-        Leaf : Tree
-      | Node(l r : Tree): Tree.
+        Leaf
+      | Node(l r : Tree).
 
       Fixpoint size (t: Tree) : nat :=
       match t with
@@ -804,8 +804,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
        """) {
     CoqParser("""
       Inductive Tree : Type :=
-        Leaf : Tree
-      | Node(l r : Tree): Tree.
+        Leaf
+      | Node(l r : Tree).
 
       Fixpoint size (t: Tree) : nat :=
       match t with
@@ -915,8 +915,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         Inductive color := Red | Black.
 
         Inductive tree V : Type :=
-        | E : tree V
-        | T(c: color) (l: tree V) (key: Z) (value: V) (r: tree V): tree V.
+        | E
+        | T(c: color) (l: tree V) (key: Z) (value: V) (r: tree V).
 
         Arguments E {V}.
         Arguments T {V} _ _ _ _ _.
@@ -977,8 +977,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         Inductive color := Red | Black.
 
         Inductive tree V : Type :=
-        | E : tree V
-        | T(c: color) (l: tree V) (key: Z) (value: V) (r: tree V): tree V.
+        | E
+        | T(c: color) (l: tree V) (key: Z) (value: V) (r: tree V).
 
         Arguments E {V}.
         Arguments T {V} _ _ _ _ _.

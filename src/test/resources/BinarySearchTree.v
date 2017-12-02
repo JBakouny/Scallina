@@ -7,8 +7,8 @@ https://www.cs.princeton.edu/~appel/vfa/SearchTree.html
 Require Import Coq.Arith.Arith.
 
 Inductive tree V : Type :=
- | E (default : V): tree V
- | T (l: tree V) (key: nat) (value: V) (r: tree V): tree V.
+ | E (default : V)
+ | T (l: tree V) (key: nat) (value: V) (r: tree V).
 
 Arguments E {V} _.
 Arguments T {V} _ _ _ _.

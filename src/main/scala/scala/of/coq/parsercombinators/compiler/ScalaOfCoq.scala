@@ -365,7 +365,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
          * TODO (Jospeh Bakouny): This case clause ignores the type term.
          * Check what needs to be done with the type Term in future version
          */
-        case InductiveBodyItem(Ident(name), binders, _) =>
+        case InductiveBodyItem(Ident(name), binders, indBodyItemType) =>
+          require(!indBodyItemType.isDefined, "Return types of inductive body items should be ommitted")
           binders.fold {
             /*
              *   TODO(Joseph Bakouny): Fix the empty case class issue:
