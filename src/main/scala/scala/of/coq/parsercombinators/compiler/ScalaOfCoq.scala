@@ -71,6 +71,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       "import Nat._\n" +
       "import Pairs._\n" +
       "import MoreLists._\n" +
+      "import scala.concurrent.Future\n" +
+      "import MoreFutures._\n" +
       createObjectFileCodeWithoutDependantClasses(objectName)
   }
 
