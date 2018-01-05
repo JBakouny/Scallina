@@ -2,6 +2,8 @@ import scala.of.coq.lang._
 import Nat._
 import Pairs._
 import MoreLists._
+import scala.concurrent.Future
+import MoreFutures._
 object MergeWithFunction {
   def merge[A](less: A => A => Boolean)(z: (List[A], List[A])): List[A] = {
     val (l1, l2) = z

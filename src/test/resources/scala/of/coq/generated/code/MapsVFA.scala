@@ -2,6 +2,8 @@ import scala.of.coq.lang._
 import Nat._
 import Pairs._
 import MoreLists._
+import scala.concurrent.Future
+import MoreFutures._
 object MapsVFA {
   type total_map[A] = Nat => A
   def t_empty[A](v: A): total_map[A] = (_ => v)

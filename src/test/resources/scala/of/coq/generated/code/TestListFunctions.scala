@@ -2,6 +2,8 @@ import scala.of.coq.lang._
 import Nat._
 import Pairs._
 import MoreLists._
+import scala.concurrent.Future
+import MoreFutures._
 object TestListFunctions {
   def f(x: Nat): Nat = x * 3
   def l: List[Nat] = 7 :: Nil

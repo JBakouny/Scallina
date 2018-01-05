@@ -2,6 +2,8 @@ import scala.of.coq.lang._
 import Nat._
 import Pairs._
 import MoreLists._
+import scala.concurrent.Future
+import MoreFutures._
 object InductiveDefinition {
   sealed abstract class Tree[+A]
   case class Leaf[A](value: A) extends Tree[A]
