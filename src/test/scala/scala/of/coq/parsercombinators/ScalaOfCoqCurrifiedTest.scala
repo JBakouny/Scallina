@@ -222,6 +222,76 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
+          Inductive Tree :=
+            Leaf
+          | Node (value: nat) (l r: Tree).
+       """) {
+    CoqParser("""
+          Inductive Tree :=
+            Leaf
+          | Node (value: nat) (l r: Tree).
+      """) should generateScalaCode("""
+        "sealed abstract class Tree
+        "case object Leaf extends Tree
+        "case class Node(value: Nat, l: Tree, r: Tree) extends Tree
+        "object Node {
+        "  def apply =
+        "    (value: Nat) => (l: Tree) => (r: Tree) => new Node(value, l, r)
+        "}
+        """)
+  }
+
+  test("""Testing Scala conversion of
+            Inductive Tree A :=
+              Leaf
+            | Node (value: A) (l r: Tree A).
+
+            Arguments Leaf {A}.
+            Arguments Node {A} _ _ _.
+       """) {
+    CoqParser("""
+            Inductive Tree A :=
+              Leaf
+            | Node (value: A) (l r: Tree A).
+
+            Arguments Leaf {A}.
+            Arguments Node {A} _ _ _.
+      """) should generateScalaCode("""
+        "sealed abstract class Tree[+A]
+        "case object Leaf extends Tree[Nothing]
+        "case class Node[A](value: A, l: Tree[A], r: Tree[A]) extends Tree[A]
+        "object Node {
+        "  def apply[A] =
+        "    (value: A) => (l: Tree[A]) => (r: Tree[A]) => new Node(value, l, r)
+        "}
+        """)
+  }
+
+  test("""Testing Scala conversion of
+          Inductive Tree {A B : Type} : Type :=
+          | Leaf {C : Type} (firstValue: A) (secondValue: C)
+          | Node {D} (firstValue: B) (secondValue: D) (left: @Tree A B) (right: @Tree A B).
+       """) {
+    CoqParser("""
+          Inductive Tree {A B : Type} : Type :=
+          | Leaf {C : Type} (v1: A) (v2: C)
+          | Node {D} (v1: B) (v2: D) (l: @Tree A B) (r: @Tree A B).
+      """) should generateScalaCode("""
+        "sealed abstract class Tree[+A, +B]
+        "case class Leaf[A, B, C](v1: A, v2: C) extends Tree[A, B]
+        "object Leaf {
+        "  def apply[A, B, C] =
+        "    (v1: A) => (v2: C) => new Leaf(v1, v2)
+        "}
+        "case class Node[A, B, D](v1: B, v2: D, l: Tree[A, B], r: Tree[A, B]) extends Tree[A, B]
+        "object Node {
+        "  def apply[A, B, D] =
+        "    (v1: B) => (v2: D) => (l: Tree[A, B]) => (r: Tree[A, B]) => new Node(v1, v2, l, r)
+        "}
+        """)
+  }
+
+  test("""Testing Scala conversion of
           Require Import Omega.
 
           Inductive Tree (A: Type) :=
@@ -296,8 +366,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
-        Record Queue :=
-        Build_Queue {
+        Record Queue := {
           T : Type;
           empty : T;
           push : nat -> T -> T;
@@ -305,8 +374,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         }.
        """) {
     CoqParser("""
-        Record Queue :=
-        Build_Queue {
+        Record Queue := {
           T : Type;
           empty : T;
           push : nat -> T -> T;
@@ -318,18 +386,6 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def empty: T
       "  def push: Nat => T => T
       "  def pop: T => Option[(Nat, T)]
-      "}
-      "def Build_Queue[T](empty: T)(push: Nat => T => T)(pop: T => Option[(Nat, T)]): Queue = {
-      "  type Queue_T = T
-      "  def Queue_empty = empty
-      "  def Queue_push = push
-      "  def Queue_pop = pop
-      "  new Queue {
-      "    type T = Queue_T
-      "    def empty: T = Queue_empty
-      "    def push: Nat => T => T = Queue_push
-      "    def pop: T => Option[(Nat, T)] = Queue_pop
-      "  }
       "}
       """)
   }
@@ -1124,6 +1180,118 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case hd :: tl => Some((hd, (back, tl)))
       "  }
       "})
+      """)
+  }
+
+  test("""Testing Scala conversion of
+          Require Import Coq.Lists.List.
+
+          Record Queue := {
+            T : Type;
+            empty : T;
+            push : nat -> T -> T;
+            pop : T -> option (nat * T)
+          }.
+
+          Definition ListQueue : Queue := {|
+            T := list nat;
+            empty := nil;
+            push := fun x l => x :: l;
+            pop := fun l =>
+              match rev l with
+                | nil => None
+                | hd :: tl => Some (hd, rev tl) end
+          |}.
+
+          Definition DListQueue : Queue := {|
+            T := (list nat) * (list nat);
+            empty := (nil, nil);
+            push := fun x l =>
+              let (back, front) := l in
+              (x :: back,front);
+            pop := fun l =>
+              let (back, front) := l in
+              match front with
+                | nil =>
+                   match rev back with
+                      | nil => None
+                      | hd :: tl => Some (hd, (nil, tl))
+                   end
+                | hd :: tl => Some (hd, (back, tl))
+              end
+          |}.
+       """) {
+    CoqParser("""
+          Require Import Coq.Lists.List.
+
+          Record Queue := {
+            T : Type;
+            empty : T;
+            push : nat -> T -> T;
+            pop : T -> option (nat * T)
+          }.
+
+          Definition ListQueue : Queue := {|
+            T := list nat;
+            empty := nil;
+            push := fun x l => x :: l;
+            pop := fun l =>
+              match rev l with
+                | nil => None
+                | hd :: tl => Some (hd, rev tl) end
+          |}.
+
+          Definition DListQueue : Queue := {|
+            T := (list nat) * (list nat);
+            empty := (nil, nil);
+            push := fun x l =>
+              let (back, front) := l in
+              (x :: back,front);
+            pop := fun l =>
+              let (back, front) := l in
+              match front with
+                | nil =>
+                   match rev back with
+                      | nil => None
+                      | hd :: tl => Some (hd, (nil, tl))
+                   end
+                | hd :: tl => Some (hd, (back, tl))
+              end
+          |}.
+      """) should generateScalaCode("""
+      "trait Queue {
+      "  type T
+      "  def empty: T
+      "  def push: Nat => T => T
+      "  def pop: T => Option[(Nat, T)]
+      "}
+      "object ListQueue extends Queue {
+      "  type T = List[Nat]
+      "  def empty: T = Nil
+      "  def push: Nat => T => T = x => l => x :: l
+      "  def pop: T => Option[(Nat, T)] = l => rev(l) match {
+      "    case Nil      => None
+      "    case hd :: tl => Some((hd, rev(tl)))
+      "  }
+      "}
+      "object DListQueue extends Queue {
+      "  type T = (List[Nat], List[Nat])
+      "  def empty: T = (Nil, Nil)
+      "  def push: Nat => T => T = x => { l =>
+      "    val (back, front) = l
+      "    (x :: back, front)
+      "  }
+      "  def pop: T => Option[(Nat, T)] = { l =>
+      "    val (back, front) = l
+      "    front match {
+      "      case Nil => rev(back) match {
+      "        case Nil      => None
+      "        case hd :: tl => Some((hd, (Nil, tl)))
+      "      }
+      "      case hd :: tl => Some((hd, (back, tl)))
+      "    }
+      "  }
+      "}
       """)
   }
 

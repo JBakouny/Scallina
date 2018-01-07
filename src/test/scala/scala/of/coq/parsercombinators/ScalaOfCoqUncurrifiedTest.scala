@@ -739,12 +739,12 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
        """) {
     CoqParser("""
           Inductive Tree {A B : Type} : Type :=
-          | Leaf {C : Type} (firstValue: A) (secondValue: C)
-          | Node {D} (firstValue: B) (secondValue: D) (left: @Tree A B) (right: @Tree A B).
+          | Leaf {C : Type} (v1: A) (v2: C)
+          | Node {D} (v1: B) (v2: D) (l: @Tree A B) (r: @Tree A B).
       """) should generateScalaCode("""
         "sealed abstract class Tree[+A, +B]
-        "case class Leaf[A, B, C](firstValue: A, secondValue: C) extends Tree[A, B]
-        "case class Node[A, B, D](firstValue: B, secondValue: D, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B]
+        "case class Leaf[A, B, C](v1: A, v2: C) extends Tree[A, B]
+        "case class Node[A, B, D](v1: B, v2: D, l: Tree[A, B], r: Tree[A, B]) extends Tree[A, B]
         """)
   }
 
