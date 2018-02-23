@@ -192,6 +192,19 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       """)
   }
 
+  test("""Testing Scala conversion of
+        Definition add : Z -> Z -> Z :=
+          fun (x : Z) => fun (y : Z) => x + y.
+    """) {
+    CoqParser("""
+        Definition add : Z -> Z -> Z :=
+          fun (x : Z) => fun (y : Z) => x + y.
+      """) should generateScalaCode("""
+      "def add: BigInt => BigInt => BigInt =
+      "  (x: BigInt) => (y: BigInt) => x + y
+      """)
+  }
+
   test("""Testing Scala conversion of "Definition add(x y : nat) : nat := x + y." """) {
     CoqParser("""
           Definition add(x y : nat) : nat := x + y.

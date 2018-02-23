@@ -103,10 +103,10 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
     """) {
     CoqParser("""
         Definition curryAdd : Z -> Z -> Z :=
-          fun (x y : Z) => x.
+          fun (x y : Z) => x + y.
       """) should generateScalaCode("""
       "def curryAdd: BigInt => BigInt => BigInt =
-      "  (x: BigInt) => (y: BigInt) => x
+      "  (x: BigInt) => (y: BigInt) => x + y
       """)
   }
 
