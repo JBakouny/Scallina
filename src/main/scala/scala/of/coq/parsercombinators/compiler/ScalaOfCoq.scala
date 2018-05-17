@@ -64,6 +64,8 @@ import scala.of.coq.parsercombinators.parser.LoadCommand
 import scala.of.coq.parsercombinators.parser.FunctionBody
 import scala.of.coq.parsercombinators.parser.FunctionDef
 
+import scala.of.coq.parsercombinators.parser.Set
+
 // TODO(Joseph Bakouny) restrict generics using Set instead of Type
 class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
@@ -90,7 +92,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
   private def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
     case RequireImport(_, _) | LoadCommand(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _) =>
       List() // The above commands do not generate any Scala code
-    case Definition(id, binders, Some(Type), bodyTypeTerm) =>
+    case Definition(id, binders, Some(Set | Type), bodyTypeTerm) =>
       List(createTypeAliasDefinition(id, binders) := coqTypeToTreeHuggerType(bodyTypeTerm))
     case Definition(Ident(name), None, Some(Qualid(List(Ident(recordType)))), RecordInstantiation(concreteRecordFields)) =>
       List(RecordUtils.convertRecordInstance(name, recordType, concreteRecordFields))
@@ -415,7 +417,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
        *  In fact, in future versions, it might not be necessary to consider all implicit parameters as type params.
        *  Consider supporting converting implicit non-type params to Scala implicits.
        */
-      case ImplicitBinder(_, Some(Type)) => true
+      case ImplicitBinder(_, Some(Set | Type)) => true
       case ImplicitBinder(_, None)       => true
       case ExplicitBinderWithType(_, _)  => false
       case anythingElse =>
@@ -456,9 +458,9 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
         }
         binders.flatMap {
           case ExplicitSimpleBinder(name)          => convertNamesToTypeVars(List(name))
-          case ExplicitBinderWithType(names, Type) => convertNamesToTypeVars(names)
+          case ExplicitBinderWithType(names, Set | Type) => convertNamesToTypeVars(names)
           case ImplicitBinder(names, None)         => convertNamesToTypeVars(names)
-          case ImplicitBinder(names, Some(Type))   => convertNamesToTypeVars(names)
+          case ImplicitBinder(names, Some(Set | Type))   => convertNamesToTypeVars(names)
           case anythingElse =>
             throw new IllegalStateException("The following Coq type parameter is not supported: " + anythingElse)
         }
