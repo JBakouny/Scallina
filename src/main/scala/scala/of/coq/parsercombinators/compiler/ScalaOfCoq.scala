@@ -64,6 +64,7 @@ import scala.of.coq.parsercombinators.parser.LoadCommand
 import scala.of.coq.parsercombinators.parser.FunctionBody
 import scala.of.coq.parsercombinators.parser.FunctionDef
 
+// TODO(Joseph Bakouny) restrict generics using Set instead of Type
 class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
   def createObjectFileCode(objectName: String): String = {
