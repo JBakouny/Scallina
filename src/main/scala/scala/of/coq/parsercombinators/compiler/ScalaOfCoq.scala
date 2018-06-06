@@ -292,6 +292,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     case "nat"          => "Nat"
     case "list"         => "List"
     case "option"       => "Option"
+    case "string"       => "String"
     case "bool"         => "Boolean"
     case anyOtherString => anyOtherString
   }
