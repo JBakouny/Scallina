@@ -418,8 +418,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
        *  Consider supporting converting implicit non-type params to Scala implicits.
        */
       case ImplicitBinder(_, Some(Set | Type)) => true
-      case ImplicitBinder(_, None)       => true
-      case ExplicitBinderWithType(_, _)  => false
+      case ImplicitBinder(_, None)             => true
+      case ExplicitBinderWithType(_, _)        => false
       case anythingElse =>
         throw new IllegalStateException("The following parameter notation is not supported: " + anythingElse.toCoqCode);
     }
@@ -457,9 +457,9 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
           )
         }
         binders.flatMap {
-          case ExplicitSimpleBinder(name)          => convertNamesToTypeVars(List(name))
+          case ExplicitSimpleBinder(name)                => convertNamesToTypeVars(List(name))
           case ExplicitBinderWithType(names, Set | Type) => convertNamesToTypeVars(names)
-          case ImplicitBinder(names, None)         => convertNamesToTypeVars(names)
+          case ImplicitBinder(names, None)               => convertNamesToTypeVars(names)
           case ImplicitBinder(names, Some(Set | Type))   => convertNamesToTypeVars(names)
           case anythingElse =>
             throw new IllegalStateException("The following Coq type parameter is not supported: " + anythingElse)
@@ -569,6 +569,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
       val abstractFields = fetchRecordAbstractFields(recordType)
 
+      // TODO (Joseph Bakouny): consider creating an anonymous class if the record instantiation gets its field values from a function argument.
       OBJECTDEF(instanceName).withParents(List(TYPE_REF(recordType))) :=
         BLOCK(
           concreteRecordFields.map {

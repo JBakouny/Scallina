@@ -1295,6 +1295,47 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
+  test("""Testing Scala conversion of Essence of DOT List example
+      Inductive List {A : Set} := newList {
+        isEmpty: bool;
+        head: A;
+        tail: List A
+      }.
+
+      Arguments newList {A} _ _ _.
+
+      Definition cons {A: Set} (hd: A) (tl: (@ List A)) := newList true hd tl.
+       """) {
+    CoqParser("""
+      Inductive List {A : Set} := newList {
+        isEmpty: bool;
+        head: A;
+        tail: List A
+      }.
+
+      Arguments newList {A} _ _ _.
+
+      Definition cons {A: Set} (hd: A) (tl: (@ List A)) := newList true hd tl.
+      """) should generateScalaCode("""
+      "trait List[A] {
+      "  def isEmpty: Boolean
+      "  def head: A
+      "  def tail: List[A]
+      "}
+      "def newList[A](isEmpty: Boolean)(head: A)(tail: List[A]): List[A] = {
+      "  def List_isEmpty = isEmpty
+      "  def List_head = head
+      "  def List_tail = tail
+      "  new List[A] {
+      "    def isEmpty: Boolean = List_isEmpty
+      "    def head: A = List_head
+      "    def tail: List[A] = List_tail
+      "  }
+      "}
+      "def cons[A](hd: A)(tl: List[A]) = newList(true)(hd)(tl)
+      """)
+  }
+
   test("""Testing Scala conversion of
         Require Import List.
 
