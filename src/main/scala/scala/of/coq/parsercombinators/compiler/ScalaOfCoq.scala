@@ -94,8 +94,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       List() // The above commands do not generate any Scala code
     case Definition(id, binders, Some(Set | Type), bodyTypeTerm) =>
       List(createTypeAliasDefinition(id, binders) := coqTypeToTreeHuggerType(bodyTypeTerm))
-    case Definition(Ident(name), None, Some(Qualid(List(Ident(recordType)))), RecordInstantiation(concreteRecordFields)) =>
-      List(RecordUtils.convertRecordInstance(name, recordType, concreteRecordFields))
+    case Definition(Ident(name), args, Some(Qualid(List(Ident(recordType)))), RecordInstantiation(concreteRecordFields)) =>
+      List(RecordUtils.convertRecordInstance(name, args, recordType, concreteRecordFields))
     case Definition(id, binders, typeTerm, bodyTerm) =>
       List(createDefinition(id, binders, typeTerm) := termToTreeHuggerAst(bodyTerm))
     case Inductive(InductiveBody(Ident(parentName), parentBinders, _, indBodyItems)) =>
@@ -565,29 +565,39 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       }
     }
 
-    def convertRecordInstance(instanceName: String, recordType: String, concreteRecordFields: List[ConcreteRecordField]): Tree = {
+    def convertRecordInstance(instanceName: String, args: Option[Binders], recordType: String, concreteRecordFields: List[ConcreteRecordField]): Tree = {
 
       val abstractFields = fetchRecordAbstractFields(recordType)
 
-      // TODO (Joseph Bakouny): consider creating an anonymous class if the record instantiation gets its field values from a function argument.
-      OBJECTDEF(instanceName).withParents(List(TYPE_REF(recordType))) :=
-        BLOCK(
-          concreteRecordFields.map {
-            case ConcreteRecordField(name, implementedBinders, _, bodyTerm) =>
-              val AbstractRecordField(abstractFieldName, definedBinders, typeTerm) = abstractFields(convertNameToString(name))
+      val recordBlock = BLOCK(
+        concreteRecordFields.map {
+          case ConcreteRecordField(name, implementedBinders, _, bodyTerm) =>
+            val AbstractRecordField(abstractFieldName, definedBinders, typeTerm) = abstractFields(convertNameToString(name))
 
-              val potentialException =
-                new IllegalStateException("The method signatures of instance " + instanceName + " should conform to signatures defined in record " + recordType + ":\n" +
-                  implementedBinders.fold("()")(_.toCoqCode) + "\n" +
-                  "Differ from:\n" +
-                  definedBinders.fold("()")(_.toCoqCode))
+            val potentialException =
+              new IllegalStateException("The method signatures of instance " + instanceName + " should conform to signatures defined in record " + recordType + ":\n" +
+                implementedBinders.fold("()")(_.toCoqCode) + "\n" +
+                "Differ from:\n" +
+                definedBinders.fold("()")(_.toCoqCode))
 
-              ConcreteRecordField(name,
-                annotateParamsWithType(definedBinders, implementedBinders, potentialException),
-                Some(typeTerm),
-                bodyTerm)
-          }.map(convertConcreteRecordField)
-        )
+            ConcreteRecordField(name,
+              annotateParamsWithType(definedBinders, implementedBinders, potentialException),
+              Some(typeTerm),
+              bodyTerm)
+        }.map(convertConcreteRecordField)
+      )
+
+      args.fold[Tree](
+        OBJECTDEF(instanceName).withParents(List(TYPE_REF(recordType))) := recordBlock
+      ) {
+          binders =>
+            createDefinition(Ident(instanceName), Some(binders), Some(Qualid(List(Ident(recordType))))) :=
+              NEW(
+                ANONDEF(recordType) :=
+                  recordBlock
+              )
+        }
+
     }
 
     private def annotateParamsWithType(definedBinders: Option[Binders], implementedBinders: Option[Binders], potentialException: Exception): Option[Binders] = {
