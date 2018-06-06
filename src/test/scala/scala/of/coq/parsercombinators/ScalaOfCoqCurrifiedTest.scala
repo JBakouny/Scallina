@@ -1381,6 +1381,71 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
+  test("""Testing Scala conversion of Essence of DOT List example
+      Inductive MyList := {
+        A : Type;
+        isEmpty: bool;
+        head: option A;
+        tail: option MyList
+      }.
+
+      Definition MyCons {B: Set} (hd: B) (tl: MyList) : MyList := {|
+        A := B;
+        isEmpty := true;
+        head := Some hd;
+        tail := Some tl
+      |}.
+
+      Definition MyNil {B: Set} : MyList := {|
+        A := B;
+        isEmpty := false;
+        head := None;
+        tail := None
+      |}.
+       """) {
+    CoqParser("""
+      Inductive MyList := {
+        A : Type;
+        isEmpty: bool;
+        head: option A;
+        tail: option MyList
+      }.
+
+      Definition MyCons {B: Set} (hd: B) (tl: MyList) : MyList := {|
+        A := B;
+        isEmpty := true;
+        head := Some hd;
+        tail := Some tl
+      |}.
+
+      Definition MyNil {B: Set} : MyList := {|
+        A := B;
+        isEmpty := false;
+        head := None;
+        tail := None
+      |}.
+      """) should generateScalaCode("""
+      "trait MyList {
+      "  type A
+      "  def isEmpty: Boolean
+      "  def head: Option[A]
+      "  def tail: Option[MyList]
+      "}
+      "def MyCons[B](hd: B)(tl: MyList): MyList = new MyList {
+      "  type A = B
+      "  def isEmpty: Boolean = true
+      "  def head: Option[A] = Some(hd)
+      "  def tail: Option[MyList] = Some(tl)
+      "}
+      "def MyNil[B]: MyList = new MyList {
+      "  type A = B
+      "  def isEmpty: Boolean = false
+      "  def head: Option[A] = None
+      "  def tail: Option[MyList] = None
+      "}
+      """)
+  }
+
   test("""Testing Scala conversion of
         Require Import List.
 
