@@ -365,6 +365,28 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+        Record aMonoid : Type := {
+          dom : Type;
+          zero : dom;
+          op : dom -> dom -> dom
+        }.
+       """) {
+    CoqParser("""
+        Record aMonoid : Type := {
+          dom : Type;
+          zero : dom;
+          op : dom -> dom -> dom
+        }.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      """)
+  }
+
   test("""Testing Scala conversion of
         Record Queue := {
           T : Type;
