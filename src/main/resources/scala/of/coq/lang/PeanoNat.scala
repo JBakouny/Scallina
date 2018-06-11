@@ -1,5 +1,9 @@
 package scala.of.coq.lang
 
+// TODO (Joseph Bakouny): Consider moving such dependencies to a separate Scala project called "scallina-standard-library"
+// We can use the same sbt to generate two separate jars: see https://www.scala-sbt.org/0.13/docs/Multi-Project.html
+// and https://stackoverflow.com/questions/48540824/how-to-write-a-sbt-file-in-multiple-projects
+
 sealed abstract class Nat {
   def predecessor: Nat = Nat.pred(this)
   def successor: Nat = new S(this)
