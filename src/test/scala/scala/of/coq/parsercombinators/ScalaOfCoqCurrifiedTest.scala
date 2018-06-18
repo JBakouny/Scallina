@@ -98,6 +98,19 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
+      Definition t1 {A B C} (f: A -> B) (g: B -> C) : A -> C :=
+        fun (x : A) => g (f x).
+    """) {
+    CoqParser("""
+      Definition t1 {A B C} (f: A -> B) (g: B -> C) : A -> C :=
+        fun (x : A) => g (f x).
+      """) should generateScalaCode("""
+      "def t1[A, B, C](f: A => B)(g: B => C): A => C =
+      "  (x: A) => g(f(x))
+      """)
+  }
+
+  test("""Testing Scala conversion of
         Definition curryAdd : Z -> Z -> Z :=
           fun (x y : Z) => x.
     """) {
@@ -365,6 +378,41 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
+  test("""Testing Scala conversion of
+        Inductive Tree A := Leaf | Node (v: A) (l r: Tree A).
+        Arguments Leaf {A}.
+        Arguments Node {A} _ _ _.
+        Fixpoint map {A B} (t: Tree A) (f: A -> B) : Tree B :=
+        match t with
+          Leaf => Leaf
+        | Node v l r => Node (f v) (map l f) (map r f)
+        end.
+       """) {
+    CoqParser("""
+        Inductive Tree A := Leaf | Node (v: A) (l r: Tree A).
+        Arguments Leaf {A}.
+        Arguments Node {A} _ _ _.
+        Fixpoint map {A B} (t: Tree A) (f: A -> B) : Tree B :=
+        match t with
+          Leaf => Leaf
+        | Node v l r => Node (f v) (map l f) (map r f)
+        end.
+      """) should generateScalaCode("""
+      "sealed abstract class Tree[+A]
+      "case object Leaf extends Tree[Nothing]
+      "case class Node[A](v: A, l: Tree[A], r: Tree[A]) extends Tree[A]
+      "object Node {
+      "  def apply[A] =
+      "    (v: A) => (l: Tree[A]) => (r: Tree[A]) => new Node(v, l, r)
+      "}
+      "def map[A, B](t: Tree[A])(f: A => B): Tree[B] =
+      "  t match {
+      "    case Leaf          => Leaf
+      "    case Node(v, l, r) => Node(f(v))(map(l)(f))(map(r)(f))
+      "  }
+      """)
+  }
+
   test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
         Record aMonoid : Type := {
           dom : Type;
@@ -384,6 +432,228 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def zero: dom
       "  def op: dom => dom => dom
       "}
+      """)
+  }
+
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+        Record aMonoid : Type := {
+          dom : Type;
+          zero : dom;
+          op : dom -> dom -> dom
+        }.
+
+        Definition natMonoid : aMonoid := {|
+          dom := nat;
+          zero := 0;
+          op := fun (a: nat) (b: nat) => a + b
+        |}.
+       """) {
+    CoqParser("""
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+
+      Definition natMonoid : aMonoid := {|
+        dom := nat;
+        zero := 0;
+        op := fun (a: nat) (b: nat) => a + b
+      |}.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "object natMonoid extends aMonoid {
+      "  type dom = Nat
+      "  def zero: dom = 0
+      "  def op: dom => dom => dom = (a: Nat) => (b: Nat) => a + b
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+      Record aMonoid : Type := newMonoid {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+
+      Definition natMonoid := newMonoid nat 0 (fun (a: nat) (b: nat) => a + b).
+       """) {
+    CoqParser("""
+      Record aMonoid : Type := newMonoid {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+
+      Definition natMonoid := newMonoid nat 0 (fun (a: nat) (b: nat) => a + b).
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "def newMonoid[dom](zero: dom)(op: dom => dom => dom): aMonoid = {
+      "  type aMonoid_dom = dom
+      "  def aMonoid_zero = zero
+      "  def aMonoid_op = op
+      "  new aMonoid {
+      "    type dom = aMonoid_dom
+      "    def zero: dom = aMonoid_zero
+      "    def op: dom => dom => dom = aMonoid_op
+      "  }
+      "}
+      "def natMonoid = newMonoid[Nat](0)((a: Nat) => (b: Nat) => a + b)
+      """)
+  }
+
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+      Require Import ZArith.
+
+      Open Scope Z_scope.
+
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+
+      Definition intMonoid : aMonoid := {|
+        dom := Z;
+        zero := 0;
+        op := fun (a: Z) (b: Z) => a + b
+      |}.
+       """) {
+    CoqParser("""
+      Require Import ZArith.
+
+      Open Scope Z_scope.
+
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+
+      Definition intMonoid : aMonoid := {|
+        dom := Z;
+        zero := 0;
+        op := fun (a: Z) (b: Z) => a + b
+      |}.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "object intMonoid extends aMonoid {
+      "  type dom = BigInt
+      "  def zero: dom = 0
+      "  def op: dom => dom => dom = (a: BigInt) => (b: BigInt) => a + b
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op (a: dom) (b: dom): dom
+      }.
+      Definition genMonoid {A} (z: A) (f: A -> A -> A) : aMonoid := {|
+        dom := A;
+        zero := z;
+        op a b := f a b
+      |}.
+       """) {
+    CoqParser("""
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op (a: dom) (b: dom): dom
+      }.
+      Definition genMonoid {A} (z: A) (f: A -> A -> A) : aMonoid := {|
+        dom := A;
+        zero := z;
+        op a b := f a b
+      |}.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "def genMonoid[A](z: A)(f: A => A => A): aMonoid = new aMonoid {
+      "  type dom = A
+      "  def zero: dom = z
+      "  def op: dom => dom => dom = (a: dom) => (b: dom) => f(a)(b)
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op: dom -> dom -> dom
+      }.
+      Definition genMonoid {A} (z: A) (f: A -> A -> A) : aMonoid := {|
+        dom := A;
+        zero := z;
+        op := fun a b => f a b
+      |}.
+       """) {
+    CoqParser("""
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op: dom -> dom -> dom
+      }.
+      Definition genMonoid {A} (z: A) (f: A -> A -> A) : aMonoid := {|
+        dom := A;
+        zero := z;
+        op := fun a b => f a b
+      |}.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "def genMonoid[A](z: A)(f: A => A => A): aMonoid = new aMonoid {
+      "  type dom = A
+      "  def zero: dom = z
+      "  def op: dom => dom => dom = a => b => f(a)(b)
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op: dom -> dom -> dom
+      }.
+      Definition execute_op(m: aMonoid) (a b: m.(dom)) : m.(dom) := m.(op) a b.
+       """) {
+    CoqParser("""
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op: dom -> dom -> dom
+      }.
+      Definition execute_op(m: aMonoid) (a b: m.(dom)) : m.(dom) := m.(op) a b.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "def execute_op(m: aMonoid)(a: m.dom)(b: m.dom): m.dom = m.op(a)(b)
       """)
   }
 
