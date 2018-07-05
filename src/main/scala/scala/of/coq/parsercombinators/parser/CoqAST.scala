@@ -78,7 +78,7 @@ case class Record(
 case class RecordInstantiation(fields: List[ConcreteRecordField]) extends Term {
   def toCoqCode = "{|\n" +
     fields.map(_.toCoqCode).mkString(";\n") +
-    "\n|}."
+    "\n|}"
 }
 
 // Start of RecordKeyword
