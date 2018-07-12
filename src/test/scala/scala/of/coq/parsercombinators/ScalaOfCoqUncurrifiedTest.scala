@@ -467,6 +467,90 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
+      Inductive Nat : Set :=
+      | Zero
+      | S (n: Nat).
+
+      Definition pred (n : Nat) : Nat :=
+        match n with
+          | Zero => n
+          | S u => u
+        end.
+
+      Fixpoint add (n m : Nat) : Nat :=
+        match n with
+        | Zero => m
+        | S p => S (add p m)
+        end.
+
+      Fixpoint mul (n m : Nat) : Nat :=
+        match n with
+        | Zero => Zero
+        | S p => add m (mul p m)
+        end.
+
+      Fixpoint sub (n m : Nat) : Nat :=
+        match n, m with
+        | S k, S l => sub k l
+        | _, _ => n
+        end.
+       """) {
+    CoqParser("""
+      Inductive Nat : Set :=
+      | Zero
+      | S (n: Nat).
+
+      Definition pred (n : Nat) : Nat :=
+        match n with
+          | Zero => n
+          | S u => u
+        end.
+
+      Fixpoint add (n m : Nat) : Nat :=
+        match n with
+        | Zero => m
+        | S p => S (add p m)
+        end.
+
+      Fixpoint mul (n m : Nat) : Nat :=
+        match n with
+        | Zero => Zero
+        | S p => add m (mul p m)
+        end.
+
+      Fixpoint sub (n m : Nat) : Nat :=
+        match n, m with
+        | S k, S l => sub k l
+        | _, _ => n
+        end.
+      """) should generateScalaCode("""
+        "sealed abstract class Nat
+        "case object Zero extends Nat
+        "case class S(n: Nat) extends Nat
+        "def pred(n: Nat): Nat =
+        "  n match {
+        "    case Zero => n
+        "    case S(u) => u
+        "  }
+        "def add(n: Nat, m: Nat): Nat =
+        "  n match {
+        "    case Zero => m
+        "    case S(p) => S(add(p, m))
+        "  }
+        "def mul(n: Nat, m: Nat): Nat =
+        "  n match {
+        "    case Zero => Zero
+        "    case S(p) => add(m, mul(p, m))
+        "  }
+        "def sub(n: Nat, m: Nat): Nat =
+        "  (n, m) match {
+        "    case (S(k), S(l)) => sub(k, l)
+        "    case (_, _)       => n
+        "  }
+        """)
+  }
+
+  test("""Testing Scala conversion of
         Inductive Tree : Type :=
           Leaf
         | Node(l r : Tree).

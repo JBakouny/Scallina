@@ -9,10 +9,7 @@ sealed abstract class Nat {
   def successor: Nat = new S(this)
   def +(that: Nat): Nat = Nat.add(this, that)
   def *(that: Nat): Nat = Nat.mul(this, that)
-  def -(that: Nat): Nat = (this, that) match {
-    case (S(k), S(l)) => k - l
-    case (_, _)       => this
-  }
+  def -(that: Nat): Nat = Nat.sub(this, that)
 }
 case object Zero extends Nat
 case class S(n: Nat) extends Nat
@@ -39,12 +36,17 @@ object Nat {
   def add(n: Nat, m: Nat): Nat =
     n match {
       case Zero => m
-      case S(p) => S(p + m)
+      case S(p) => S(add(p, m))
     }
   def mul(n: Nat, m: Nat): Nat =
     n match {
-      case Zero => 0
-      case S(p) => m + (p * m)
+      case Zero => Zero
+      case S(p) => add(m, mul(p, m))
+    }
+  def sub(n: Nat, m: Nat): Nat =
+    (n, m) match {
+      case (S(k), S(l)) => sub(k, l)
+      case (_, _)       => n
     }
   //==========================================
 }
