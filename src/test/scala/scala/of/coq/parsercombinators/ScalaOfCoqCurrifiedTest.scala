@@ -124,6 +124,38 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
+      Definition plus (a b : Z) : Z := a + b.
+      Definition higherOrder (f: Z -> Z -> Z) (a b : Z) : Z := f a b.
+      Definition plusAgain : Z -> Z -> Z := higherOrder plus.
+    """) {
+    CoqParser("""
+      Definition plus (a b : Z) : Z := a + b.
+      Definition higherOrder (f: Z -> Z -> Z) (a b : Z) : Z := f a b.
+      Definition plusAgain : Z -> Z -> Z := higherOrder plus.
+      """) should generateScalaCode("""
+      "def plus(a: BigInt)(b: BigInt): BigInt = a + b
+      "def higherOrder(f: BigInt => BigInt => BigInt)(a: BigInt)(b: BigInt): BigInt = f(a)(b)
+      "def plusAgain: BigInt => BigInt => BigInt = higherOrder(plus)
+      """)
+  }
+
+  test("""Testing Scala conversion of
+        Definition plus (a b : nat) : nat := a + b.
+        Definition higherOrder (f: nat -> nat -> nat) (a b : nat) : nat := f a b.
+        Definition plusAgain : nat -> nat -> nat := higherOrder plus.
+    """) {
+    CoqParser("""
+        Definition plus (a b : nat) : nat := a + b.
+        Definition higherOrder (f: nat -> nat -> nat) (a b : nat) : nat := f a b.
+        Definition plusAgain : nat -> nat -> nat := higherOrder plus.
+      """) should generateScalaCode("""
+      "def plus(a: Nat)(b: Nat): Nat = a + b
+      "def higherOrder(f: Nat => Nat => Nat)(a: Nat)(b: Nat): Nat = f(a)(b)
+      "def plusAgain: Nat => Nat => Nat = higherOrder(plus)
+      """)
+  }
+
+  test("""Testing Scala conversion of
     Definition testSimpleLetWithBinders (x: nat) : nat :=
       let f (a b : nat) := a * b in f 7 3.
        """) {
