@@ -17,7 +17,8 @@ case class S(n: Nat) extends Nat
 object Nat {
 
   implicit def apply(n: BigInt): Nat =
-    if (n <= 0) Zero
+    if (n < 0) throw new IllegalArgumentException("Cannot convert negative number " + n + " to a natural number")
+    else if (n == 0) Zero
     else S(apply(n - 1))
 
   implicit def apply(n: Int): Nat = apply(BigInt(n))
