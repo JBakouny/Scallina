@@ -171,6 +171,41 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of
+        Require Import ZArith.
+        Open Scope Z_scope.
+
+        Definition squareDistance (a b: Z * Z) : Z :=
+        let (x1, y1) := a in
+        let ' pair x2 y2 := b in
+        let square (u: Z) := u * u in
+        let x := x2 - x1 in
+        let y := y2 - y1 in
+        (square x) + (square y).
+       """) {
+    CoqParser("""
+        Require Import ZArith.
+        Open Scope Z_scope.
+
+        Definition squareDistance (a b: Z * Z) : Z :=
+        let (x1, y1) := a in
+        let ' pair x2 y2 := b in
+        let square (u: Z) := u * u in
+        let x := x2 - x1 in
+        let y := y2 - y1 in
+        (square x) + (square y).
+      """) should generateScalaCode("""
+      "def squareDistance(a: (BigInt, BigInt))(b: (BigInt, BigInt)): BigInt = {
+      "  val (x1, y1) = a
+      "  val Tuple2(x2, y2) = b
+      "  val square = (u: BigInt) => u * u
+      "  val x = x2 - x1
+      "  val y = y2 - y1
+      "  square(x) + square(y)
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
       Function merge {A} (less: A -> A -> bool) (z: (list A) * (list A))
       { measure (fun z => length (fst z) + length (snd z)) z } : list A :=
        let (l1, l2) := z in
