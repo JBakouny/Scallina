@@ -32,8 +32,8 @@ import scala.of.coq.parsercombinators.parser.ReturnType
 import scala.of.coq.parsercombinators.parser.ExplicitSimpleBinder
 import scala.of.coq.parsercombinators.parser.SimpleLetIn
 import scala.of.coq.parsercombinators.parser.TermIf
-import scala.of.coq.parsercombinators.parser.{ Term_% => Term_% }
-import scala.of.coq.parsercombinators.parser.{ Term_-> => Term_-> }
+import scala.of.coq.parsercombinators.parser.{Term_% => Term_%}
+import scala.of.coq.parsercombinators.parser.{Term_-> => Term_->}
 import scala.of.coq.parsercombinators.parser.Type
 import scala.of.coq.parsercombinators.parser.UncurriedTermApplication
 import scala.of.coq.parsercombinators.parser.UnderscorePattern
@@ -53,9 +53,12 @@ import scala.of.coq.parsercombinators.compiler.Currify
 
 class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
 
-  def fileToString(directory: String, extension: String)(fileName: String): String = {
-    val fileBufferedSource = io.Source.fromURL(getClass.getResource(directory + "/" + fileName + "." + extension));
-    try fileBufferedSource.mkString finally fileBufferedSource.close()
+  def fileToString(directory: String, extension: String)(
+      fileName: String): String = {
+    val fileBufferedSource = io.Source.fromURL(
+      getClass.getResource(directory + "/" + fileName + "." + extension));
+    try fileBufferedSource.mkString
+    finally fileBufferedSource.close()
   }
 
   def actualScalaCode(fileName: String): String = {
@@ -63,18 +66,19 @@ class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
 
     val optionalCoqAst = Option(coqAST.getOrElse(null))
 
-    val outputString = optionalCoqAst.fold(coqAST.toString) {
-      coqTrees =>
-        new ScalaOfCoq(coqTrees, Currify).createObjectFileCode(fileName)
+    val outputString = optionalCoqAst.fold(coqAST.toString) { coqTrees =>
+      new ScalaOfCoq(coqTrees, Currify).createObjectFileCode(fileName)
     }
 
     normalizeWhitespace(outputString)
   }
 
   def expectedScalaCode(fileName: String): String = {
-    val fileStringContents = fileToString("/scala/of/coq/generated/code", "scala")(fileName)
+    val fileStringContents =
+      fileToString("/scala/of/coq/generated/code", "scala")(fileName)
 
-    normalizeWhitespace("package .+".r.replaceAllIn(fileStringContents, _ => ""))
+    normalizeWhitespace(
+      "package .+".r.replaceAllIn(fileStringContents, _ => ""))
   }
 
   def getListOfFiles(dir: URL): List[String] = {
@@ -86,13 +90,15 @@ class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
     }
   }
 
-  ignore("""Testing all Coq file conversions to Scala """) {
+  test("""Testing all Coq file conversions to Scala """) {
 
-    val allCoqFileNames = getListOfFiles(getClass.getResource("/")).filter(_.endsWith(".v"))
-    val allBaseNamesWithoutExtension = allCoqFileNames.map(fileName => """(.*/)?([^/]+)\.v$""".r.replaceFirstIn(fileName, "$2"))
+    val allCoqFileNames =
+      getListOfFiles(getClass.getResource("/")).filter(_.endsWith(".v"))
+    val allBaseNamesWithoutExtension = allCoqFileNames.map(fileName =>
+      """(.*/)?([^/]+)\.v$""".r.replaceFirstIn(fileName, "$2"))
 
     for (name <- allBaseNamesWithoutExtension) {
-      println("Testing " + name)
+      info("Testing " + name)
       assert(actualScalaCode(name) === expectedScalaCode(name))
     }
 
