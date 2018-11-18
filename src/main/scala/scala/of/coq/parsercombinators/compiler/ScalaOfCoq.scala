@@ -237,10 +237,11 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       typeArguments: List[Argument]
   ) = {
     val basicFunctionTerm = termToTreeHuggerAst(functionTerm)
-    if (typeArguments.isEmpty)
+    if (typeArguments.isEmpty) {
       basicFunctionTerm
-    else
+    } else {
       basicFunctionTerm.APPLYTYPE(typeArguments.map(convertTypeArgumentToToTreeHuggerType))
+    }
   }
 
   private def convertTypeArgumentToToTreeHuggerType(arg: Argument): Type =
@@ -488,10 +489,11 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
           for {
             Name(Some(Ident(nameString))) ← names
           } yield
-            if (covariant)
+            if (covariant) {
               TYPEVAR(COVARIANT(nameString))
-            else
+            } else {
               TYPEVAR(nameString)
+            }
         }
         binders.flatMap {
           case ExplicitSimpleBinder(name) ⇒ convertNamesToTypeVars(List(name))
@@ -676,8 +678,9 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
           val expandedDefBinders  = expandExplicitBinders(defBinders)
           val expandedImplBinders = expandExplicitBinders(implBinders)
 
-          if (expandedDefBinders.length != expandedImplBinders.length)
+          if (expandedDefBinders.length != expandedImplBinders.length) {
             throw potentialException
+          }
 
           Some(Binders(expandedDefBinders.zip(expandedImplBinders).map {
             case (ExplicitBinderWithType(List(_), typeTerm), ExplicitSimpleBinder(implName)) ⇒

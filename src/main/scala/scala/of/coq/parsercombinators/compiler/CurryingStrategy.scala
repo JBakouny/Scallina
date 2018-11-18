@@ -48,9 +48,9 @@ object Currify extends CurryingStrategy {
       )
     }
 
-    if (paramDefs.size <= 1)
+    if (paramDefs.size <= 1) {
       None
-    else
+    } else {
       Some(
         OBJECTDEF(name) :=
           BLOCK(
@@ -61,6 +61,7 @@ object Currify extends CurryingStrategy {
               )
           )
       )
+    }
   }
 }
 

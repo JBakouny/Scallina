@@ -46,7 +46,7 @@ object Main {
     nextArgument(Map() withDefaultValue false, Nil, commandLineArgs)
   }
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]): Unit = {
     if (args.length <= 0) {
       printUsageAndExit(1)
     }
@@ -78,10 +78,11 @@ object Main {
           } else {
             val scalaOfCoq = new ScalaOfCoq(
               coqTrees,
-              if (map('uncurrify))
+              if (map('uncurrify)) {
                 NoCurrying
-              else
+              } else {
                 Currify
+              }
             )
             scalaOfCoq.createObjectFileCode(
               fileName.substring(fileName.lastIndexOf("/") + 1, fileName.lastIndexOf("."))

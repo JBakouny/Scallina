@@ -54,14 +54,14 @@ trait CustomMatchers {
     }
   }
 
-  def parse(coqAst: CoqAST) = new TokenParserMatcher(coqAst)
+  def parse(coqAst: CoqAST): TokenParserMatcher[CoqAST] = new TokenParserMatcher(coqAst)
 
-  def parse(coqAst: List[CoqAST]) = new TokenParserMatcher(coqAst)
+  def parse(coqAst: List[CoqAST]): TokenParserMatcher[List[CoqAST]] = new TokenParserMatcher(coqAst)
 
-  def generateScalaCode(scalaCode: String)(implicit curryingStrategy: CurryingStrategy) =
+  def generateScalaCode(scalaCode: String)(implicit curryingStrategy: CurryingStrategy): ScalaCodeMatcher =
     new ScalaCodeMatcher(scalaCode, curryingStrategy)
 
-  def identify(lex: CoqLexer.Token) = new LexemMatcher(lex)
+  def identify(lex: CoqLexer.Token): LexemMatcher[CoqLexer.Token] = new LexemMatcher(lex)
 }
 
 // Make them easy to import with:

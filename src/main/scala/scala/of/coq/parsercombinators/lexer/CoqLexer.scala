@@ -11,7 +11,7 @@ object CoqLexer extends StdLexical {
     *
     * It is, therefore, preferable to use a Scanner instead of calling this method.
     */
-  def apply(s: String) = token(new CharArrayReader(s.toCharArray))
+  def apply(s: String): CoqLexer.ParseResult[CoqLexer.Token] = token(new CharArrayReader(s.toCharArray))
 
   /**
     * Warning: Do not use this method unless you plan on continuing if illegal characters are found.
@@ -22,8 +22,11 @@ object CoqLexer extends StdLexical {
     val scanner = new Scanner(s)
 
     def parseAllTokensHelper(scanner: CoqLexer.Scanner): List[CoqLexer.Token] = {
-      if (scanner.atEnd) Nil
-      else scanner.first :: parseAllTokensHelper(scanner.rest)
+      if (scanner.atEnd) {
+        Nil
+      } else {
+        scanner.first :: parseAllTokensHelper(scanner.rest)
+      }
     }
 
     parseAllTokensHelper(scanner)
