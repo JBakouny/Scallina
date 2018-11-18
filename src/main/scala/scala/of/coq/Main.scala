@@ -1,18 +1,16 @@
 package scala.of.coq
 
-import scala.of.coq.parsercombinators.parser.CoqTermParser
+import scala.of.coq.parsercombinators.compiler.{Currify, NoCurrying, ScalaOfCoq}
 import scala.of.coq.parsercombinators.lexer.CoqLexer
 import scala.of.coq.parsercombinators.parser.CoqParser
-import scala.of.coq.parsercombinators.compiler.ScalaOfCoq
-import scala.of.coq.parsercombinators.compiler.NoCurrying
-import scala.of.coq.parsercombinators.compiler.Currify
 
 object Main {
-  val usage = """
+  val usage =
+    """
     Usage: scala target/scala-2.11/scallina-assembly-<scallina-version>.jar [--uncurrify] [--source] [--trim] [--ast] [--lexer] [--coq] <coq-source-file-1.v> ... <coq-source-file-n.v>
   """
 
-  def printUsageAndExit(exitCode: Int) = {
+  def printUsageAndExit(exitCode: Int): Unit = {
     println(usage)
     System.exit(exitCode)
   }
@@ -20,17 +18,27 @@ object Main {
   type OptionMap = Map[Symbol, Boolean]
   type FileNames = List[String]
 
-  def parseCommandLineArgs(commandLineArgs: List[String]): (OptionMap, FileNames) = {
-    def nextArgument(optionMap: OptionMap, fileNamesAcc: FileNames, commandLineArgs: List[String]): (OptionMap, FileNames) = {
+  def parseCommandLineArgs(
+      commandLineArgs: List[String]): (OptionMap, FileNames) = {
+    def nextArgument(optionMap: OptionMap,
+                     fileNamesAcc: FileNames,
+                     commandLineArgs: List[String]): (OptionMap, FileNames) = {
       commandLineArgs match {
-        case "--source" :: tail    => nextArgument(optionMap ++ Map('source -> true), fileNamesAcc, tail)
-        case "--trim" :: tail      => nextArgument(optionMap ++ Map('trim -> true), fileNamesAcc, tail)
-        case "--ast" :: tail       => nextArgument(optionMap ++ Map('ast -> true), fileNamesAcc, tail)
-        case "--lexer" :: tail     => nextArgument(optionMap ++ Map('lexer -> true), fileNamesAcc, tail)
-        case "--coq" :: tail       => nextArgument(optionMap ++ Map('coq -> true), fileNamesAcc, tail)
-        case "--uncurrify" :: tail => nextArgument(optionMap ++ Map('uncurrify -> true), fileNamesAcc, tail)
-        case fileName :: tail      => nextArgument(optionMap, fileName :: fileNamesAcc, tail)
-        case Nil                   => (optionMap, fileNamesAcc)
+        case "--source" :: tail =>
+          nextArgument(optionMap ++ Map('source -> true), fileNamesAcc, tail)
+        case "--trim" :: tail =>
+          nextArgument(optionMap ++ Map('trim -> true), fileNamesAcc, tail)
+        case "--ast" :: tail =>
+          nextArgument(optionMap ++ Map('ast -> true), fileNamesAcc, tail)
+        case "--lexer" :: tail =>
+          nextArgument(optionMap ++ Map('lexer -> true), fileNamesAcc, tail)
+        case "--coq" :: tail =>
+          nextArgument(optionMap ++ Map('coq -> true), fileNamesAcc, tail)
+        case "--uncurrify" :: tail =>
+          nextArgument(optionMap ++ Map('uncurrify -> true), fileNamesAcc, tail)
+        case fileName :: tail =>
+          nextArgument(optionMap, fileName :: fileNamesAcc, tail)
+        case Nil => (optionMap, fileNamesAcc)
       }
     }
 
@@ -47,36 +55,36 @@ object Main {
       val (map, fileNames) = parseCommandLineArgs(arglist)
 
       for (fileName <- fileNames) {
-        val fileBufferedSource = io.Source.fromFile(fileName);
-        val inputString = try fileBufferedSource.mkString finally fileBufferedSource.close()
+        val fileBufferedSource = io.Source.fromFile(fileName)
+        val inputString = try fileBufferedSource.mkString
+        finally fileBufferedSource.close()
 
         val shouldTrimCode = map('trim)
 
         if (map('source)) {
-          println("Before parsing:");
+          println("Before parsing:")
           println(if (shouldTrimCode) inputString.trim else inputString)
-          println("After parsing:");
+          println("After parsing:")
         }
 
         val coqAST = CoqParser(inputString)
         val optionalCoqAst = Option(coqAST.getOrElse(null))
 
-        val outputString = optionalCoqAst.fold(coqAST.toString) {
-          coqTrees =>
-            val shouldPrintCoqOutput = map('coq)
-            if (shouldPrintCoqOutput) {
-              coqTrees.map(_.toCoqCode).mkString("\n")
-            } else {
-              val scalaOfCoq = new ScalaOfCoq(coqTrees,
-                if (map('uncurrify))
-                  NoCurrying
-                else
-                  Currify
-              )
-              scalaOfCoq.createObjectFileCode(
-                fileName.substring(fileName.lastIndexOf("/") + 1, fileName.lastIndexOf("."))
-              )
-            }
+        val outputString = optionalCoqAst.fold(coqAST.toString) { coqTrees =>
+          val shouldPrintCoqOutput = map('coq)
+          if (shouldPrintCoqOutput) {
+            coqTrees.map(_.toCoqCode).mkString("\n")
+          } else {
+            val scalaOfCoq = new ScalaOfCoq(coqTrees,
+                                            if (map('uncurrify))
+                                              NoCurrying
+                                            else
+                                              Currify)
+            scalaOfCoq.createObjectFileCode(
+              fileName.substring(fileName.lastIndexOf("/") + 1,
+                                 fileName.lastIndexOf("."))
+            )
+          }
         }
 
         println(if (shouldTrimCode) outputString.trim else outputString)

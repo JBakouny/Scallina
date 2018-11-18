@@ -12,22 +12,28 @@ object RecordPreprocessor {
   type RecordConstructorName = String
   type IsRecordTypeField = Boolean
 
-  def computeConstructorToRecordTypeFields(coqTrees: List[Sentence]): Map[RecordConstructorName, List[IsRecordTypeField]] = {
+  def computeConstructorToRecordTypeFields(coqTrees: List[Sentence])
+    : Map[RecordConstructorName, List[IsRecordTypeField]] = {
     for {
-      Record(_, Ident(recordName), _, (None | Some(Type)), Some(Ident(constructorName)), fields) <- coqTrees
-    } yield (
+      Record(_,
+             Ident(_),
+             _,
+             None | Some(Type),
+             Some(Ident(constructorName)),
+             fields) <- coqTrees
+    } yield
       constructorName ->
-      fields.map(recordFieldIsTypeField)
-    )
+        fields.map(recordFieldIsTypeField)
   }.toMap
 
   def recordFieldIsTypeField(recordField: RecordField): Boolean =
     recordField match {
-      case AbstractRecordField(_, None, Type)                  => true
-      case AbstractRecordField(_, _, typeTerm)                 => false
-      case ConcreteRecordField(_, _, Some(Type), bodyTypeTerm) => true
-      case ConcreteRecordField(_, _, Some(typeTerm), bodyTerm) => false
+      case AbstractRecordField(_, None, Type)       => true
+      case AbstractRecordField(_, _, _)             => false
+      case ConcreteRecordField(_, _, Some(Type), _) => true
+      case ConcreteRecordField(_, _, Some(_), _)    => false
       case anythingElse =>
-        throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
+        throw new IllegalStateException(
+          "This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
     }
 }

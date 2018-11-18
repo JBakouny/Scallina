@@ -1,20 +1,10 @@
 package scala.of.coq.parsercombinators
 
-import scala.of.coq.parsercombinators.parser.Binders
-import scala.of.coq.parsercombinators.parser.CoqParser
-import scala.of.coq.parsercombinators.parser.Definition
-import scala.of.coq.parsercombinators.parser.ExplicitBinderWithType
-import scala.of.coq.parsercombinators.parser.Ident
-import scala.of.coq.parsercombinators.parser.ImplicitBinder
-import scala.of.coq.parsercombinators.parser._
-import scala.of.coq.parsercombinators.parser.Qualid
-import scala.of.coq.parsercombinators.parser.Type
-
-import org.scalatest.Finders
 import org.scalatest.FunSuite
 import org.scalatest.Matchers.convertToAnyShouldWrapper
 
-import CustomMatchers.parse
+import scala.of.coq.parsercombinators.CustomMatchers.parse
+import scala.of.coq.parsercombinators.parser.{Binders, CoqParser, Definition, ExplicitBinderWithType, Ident, ImplicitBinder, Qualid, Type, _}
 
 class CoqParserTest extends FunSuite {
 
@@ -32,13 +22,13 @@ class CoqParserTest extends FunSuite {
 
   test("""Testing "Local Open Scope Z_scope." """) {
     CoqParser("Local Open Scope Z_scope.") should parse(
-      List(ScopeCommand(Qualid(List(Ident("Z_scope"))), true))
+      List(ScopeCommand(Qualid(List(Ident("Z_scope"))), isLocal = true))
     )
   }
 
   test("""Testing "Open Scope Z_scope." """) {
     CoqParser("Open Scope Z_scope.") should parse(
-      List(ScopeCommand(Qualid(List(Ident("Z_scope"))), false))
+      List(ScopeCommand(Qualid(List(Ident("Z_scope"))), isLocal = false))
     )
   }
 

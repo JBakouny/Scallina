@@ -1,53 +1,15 @@
 package scala.of.coq.parsercombinators
 
-import scala.of.coq.parsercombinators.parser.CoqTermParser
-import scala.of.coq.parsercombinators.parser.Argument
-import scala.of.coq.parsercombinators.parser.BetweenParenthesis
-import scala.of.coq.parsercombinators.parser.Binders
-import scala.of.coq.parsercombinators.parser.ConstructorPattern
-import scala.of.coq.parsercombinators.parser.DepRetType
-import scala.of.coq.parsercombinators.parser.ExplicitBinderWithType
-import scala.of.coq.parsercombinators.parser.Fix
-import scala.of.coq.parsercombinators.parser.FixBodies
-import scala.of.coq.parsercombinators.parser.FixBody
-import scala.of.coq.parsercombinators.parser.ForAll
-import scala.of.coq.parsercombinators.parser.Fun
-import scala.of.coq.parsercombinators.parser.Ident
-import scala.of.coq.parsercombinators.parser.ImplicitBinder
-import scala.of.coq.parsercombinators.parser.LetConstructorArgsIn
-import scala.of.coq.parsercombinators.parser.LetFixIn
-import scala.of.coq.parsercombinators.parser.LetPatternIn
-import scala.of.coq.parsercombinators.parser.Match
-import scala.of.coq.parsercombinators.parser.MatchItem
-import scala.of.coq.parsercombinators.parser.MultPattern
-import scala.of.coq.parsercombinators.parser.Name
-import scala.of.coq.parsercombinators.parser.Number
-import scala.of.coq.parsercombinators.parser.NumberPattern
-import scala.of.coq.parsercombinators.parser.OrPattern
-import scala.of.coq.parsercombinators.parser.ParenthesisOrPattern
-import scala.of.coq.parsercombinators.parser.PatternEquation
-import scala.of.coq.parsercombinators.parser.Qualid
-import scala.of.coq.parsercombinators.parser.QualidPattern
-import scala.of.coq.parsercombinators.parser.ReturnType
-import scala.of.coq.parsercombinators.parser.ExplicitSimpleBinder
-import scala.of.coq.parsercombinators.parser.SimpleLetIn
-import scala.of.coq.parsercombinators.parser.TermIf
-import scala.of.coq.parsercombinators.parser.{ Term_% => Term_% }
-import scala.of.coq.parsercombinators.parser.{ Term_-> => Term_-> }
-import scala.of.coq.parsercombinators.parser.Type
-import scala.of.coq.parsercombinators.parser.UncurriedTermApplication
-import scala.of.coq.parsercombinators.parser.UnderscorePattern
-
-import org.scalatest.Finders
 import org.scalatest.FunSuite
 import org.scalatest.Matchers.convertToAnyShouldWrapper
 
-import CustomMatchers.parse
+import scala.of.coq.parsercombinators.CustomMatchers.parse
+import scala.of.coq.parsercombinators.parser._
 
 class CoqTermParserFileBasedTest extends FunSuite {
 
   def fileToString(fileName: String): String = {
-    val fileBufferedSource = io.Source.fromURL(getClass.getResource("/TermFragments/" + fileName));
+    val fileBufferedSource = io.Source.fromURL(getClass.getResource("/TermFragments/" + fileName))
     try fileBufferedSource.mkString finally fileBufferedSource.close()
   }
 
