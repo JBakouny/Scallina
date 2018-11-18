@@ -18,27 +18,28 @@ object Main {
   type OptionMap = Map[Symbol, Boolean]
   type FileNames = List[String]
 
-  def parseCommandLineArgs(
-      commandLineArgs: List[String]): (OptionMap, FileNames) = {
-    def nextArgument(optionMap: OptionMap,
-                     fileNamesAcc: FileNames,
-                     commandLineArgs: List[String]): (OptionMap, FileNames) = {
+  def parseCommandLineArgs(commandLineArgs: List[String]): (OptionMap, FileNames) = {
+    def nextArgument(
+        optionMap: OptionMap,
+        fileNamesAcc: FileNames,
+        commandLineArgs: List[String]
+    ): (OptionMap, FileNames) = {
       commandLineArgs match {
-        case "--source" :: tail =>
-          nextArgument(optionMap ++ Map('source -> true), fileNamesAcc, tail)
-        case "--trim" :: tail =>
-          nextArgument(optionMap ++ Map('trim -> true), fileNamesAcc, tail)
-        case "--ast" :: tail =>
-          nextArgument(optionMap ++ Map('ast -> true), fileNamesAcc, tail)
-        case "--lexer" :: tail =>
-          nextArgument(optionMap ++ Map('lexer -> true), fileNamesAcc, tail)
-        case "--coq" :: tail =>
-          nextArgument(optionMap ++ Map('coq -> true), fileNamesAcc, tail)
-        case "--uncurrify" :: tail =>
-          nextArgument(optionMap ++ Map('uncurrify -> true), fileNamesAcc, tail)
-        case fileName :: tail =>
+        case "--source" :: tail ⇒
+          nextArgument(optionMap ++ Map('source → true), fileNamesAcc, tail)
+        case "--trim" :: tail ⇒
+          nextArgument(optionMap ++ Map('trim → true), fileNamesAcc, tail)
+        case "--ast" :: tail ⇒
+          nextArgument(optionMap ++ Map('ast → true), fileNamesAcc, tail)
+        case "--lexer" :: tail ⇒
+          nextArgument(optionMap ++ Map('lexer → true), fileNamesAcc, tail)
+        case "--coq" :: tail ⇒
+          nextArgument(optionMap ++ Map('coq → true), fileNamesAcc, tail)
+        case "--uncurrify" :: tail ⇒
+          nextArgument(optionMap ++ Map('uncurrify → true), fileNamesAcc, tail)
+        case fileName :: tail ⇒
           nextArgument(optionMap, fileName :: fileNamesAcc, tail)
-        case Nil => (optionMap, fileNamesAcc)
+        case Nil ⇒ (optionMap, fileNamesAcc)
       }
     }
 
@@ -54,7 +55,7 @@ object Main {
     try {
       val (map, fileNames) = parseCommandLineArgs(arglist)
 
-      for (fileName <- fileNames) {
+      for (fileName ← fileNames) {
         val fileBufferedSource = io.Source.fromFile(fileName)
         val inputString = try fileBufferedSource.mkString
         finally fileBufferedSource.close()
@@ -67,22 +68,23 @@ object Main {
           println("After parsing:")
         }
 
-        val coqAST = CoqParser(inputString)
+        val coqAST         = CoqParser(inputString)
         val optionalCoqAst = Option(coqAST.getOrElse(null))
 
-        val outputString = optionalCoqAst.fold(coqAST.toString) { coqTrees =>
+        val outputString = optionalCoqAst.fold(coqAST.toString) { coqTrees ⇒
           val shouldPrintCoqOutput = map('coq)
           if (shouldPrintCoqOutput) {
             coqTrees.map(_.toCoqCode).mkString("\n")
           } else {
-            val scalaOfCoq = new ScalaOfCoq(coqTrees,
-                                            if (map('uncurrify))
-                                              NoCurrying
-                                            else
-                                              Currify)
+            val scalaOfCoq = new ScalaOfCoq(
+              coqTrees,
+              if (map('uncurrify))
+                NoCurrying
+              else
+                Currify
+            )
             scalaOfCoq.createObjectFileCode(
-              fileName.substring(fileName.lastIndexOf("/") + 1,
-                                 fileName.lastIndexOf("."))
+              fileName.substring(fileName.lastIndexOf("/") + 1, fileName.lastIndexOf("."))
             )
           }
         }
@@ -101,7 +103,7 @@ object Main {
 
       }
     } catch {
-      case e: Exception => e.printStackTrace(); printUsageAndExit(2);
+      case e: Exception ⇒ e.printStackTrace(); printUsageAndExit(2);
     }
   }
 }

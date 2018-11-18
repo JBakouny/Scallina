@@ -4,7 +4,17 @@ import org.scalatest.FunSuite
 import org.scalatest.Matchers.convertToAnyShouldWrapper
 
 import scala.of.coq.parsercombinators.CustomMatchers.parse
-import scala.of.coq.parsercombinators.parser.{Binders, CoqParser, Definition, ExplicitBinderWithType, Ident, ImplicitBinder, Qualid, Type, _}
+import scala.of.coq.parsercombinators.parser.{
+  Binders,
+  CoqParser,
+  Definition,
+  ExplicitBinderWithType,
+  Ident,
+  ImplicitBinder,
+  Qualid,
+  Type,
+  _
+}
 
 class CoqParserTest extends FunSuite {
 
@@ -16,7 +26,12 @@ class CoqParserTest extends FunSuite {
 
   test("""Testing "Arguments Leaf {A} _." """) {
     CoqParser("Arguments Leaf {A} _.") should parse(
-      List(ArgumentsCommand(Qualid(List(Ident("Leaf"))), Binders(List(ImplicitBinder(List(Name(Some(Ident("A")))), None), ExplicitSimpleBinder(Name(None))))))
+      List(
+        ArgumentsCommand(
+          Qualid(List(Ident("Leaf"))),
+          Binders(List(ImplicitBinder(List(Name(Some(Ident("A")))), None), ExplicitSimpleBinder(Name(None))))
+        )
+      )
     )
   }
 
@@ -61,15 +76,19 @@ class CoqParserTest extends FunSuite {
   test("""Testing "Definition sum(a b: nat) := a + b." """) {
     CoqParser("Definition sum(a b: nat) := a + b.") should parse(
       List(
-        Definition(Ident("sum"),
-          Some(Binders(List(
-            ExplicitBinderWithType(
+        Definition(
+          Ident("sum"),
+          Some(
+            Binders(
               List(
-                Name(Some(Ident("a"))),
-                Name(Some(Ident("b")))),
-              Qualid(List(Ident("nat"))))))),
+                ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b")))), Qualid(List(Ident("nat"))))
+              )
+            )
+          ),
           None,
-          InfixOperator(Qualid(List(Ident("a"))), "+", Qualid(List(Ident("b"))))))
+          InfixOperator(Qualid(List(Ident("a"))), "+", Qualid(List(Ident("b"))))
+        )
+      )
     )
   }
 
@@ -78,11 +97,18 @@ class CoqParserTest extends FunSuite {
       List(
         Definition(
           Ident("right"),
-          Some(Binders(List(
-            ImplicitBinder(List(Name(Some(Ident("A")))), Some(Type)),
-            ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b")))), Qualid(List(Ident("A"))))))),
+          Some(
+            Binders(
+              List(
+                ImplicitBinder(List(Name(Some(Ident("A")))), Some(Type)),
+                ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b")))), Qualid(List(Ident("A"))))
+              )
+            )
+          ),
           None,
-          Qualid(List(Ident("a")))))
+          Qualid(List(Ident("a")))
+        )
+      )
     )
   }
 
@@ -91,11 +117,18 @@ class CoqParserTest extends FunSuite {
       List(
         Definition(
           Ident("right"),
-          Some(Binders(List(
-            ImplicitBinder(List(Name(Some(Ident("A")))), Some(Type)),
-            ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b")))), Qualid(List(Ident("A"))))))),
+          Some(
+            Binders(
+              List(
+                ImplicitBinder(List(Name(Some(Ident("A")))), Some(Type)),
+                ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b")))), Qualid(List(Ident("A"))))
+              )
+            )
+          ),
           Some(Qualid(List(Ident("A")))),
-          Qualid(List(Ident("a")))))
+          Qualid(List(Ident("a")))
+        )
+      )
     )
   }
 
@@ -104,11 +137,18 @@ class CoqParserTest extends FunSuite {
       List(
         Definition(
           Ident("right"),
-          Some(Binders(List(
-            ImplicitBinder(List(Name(Some(Ident("A")))), None),
-            ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b")))), Qualid(List(Ident("A"))))))),
+          Some(
+            Binders(
+              List(
+                ImplicitBinder(List(Name(Some(Ident("A")))), None),
+                ExplicitBinderWithType(List(Name(Some(Ident("a"))), Name(Some(Ident("b")))), Qualid(List(Ident("A"))))
+              )
+            )
+          ),
           Some(Qualid(List(Ident("A")))),
-          Qualid(List(Ident("a")))))
+          Qualid(List(Ident("a")))
+        )
+      )
     )
   }
 
@@ -143,22 +183,84 @@ class CoqParserTest extends FunSuite {
           Some(Qualid(List(Ident("Queue")))),
           RecordInstantiation(
             List(
-              ConcreteRecordField(Name(Some(Ident("t"))), None, None,
-                UncurriedTermApplication(Qualid(List(Ident("list"))), List(Argument(None, Qualid(List(Ident("nat"))))))),
-              ConcreteRecordField(Name(Some(Ident("empty"))), None, None,
-                Qualid(List(Ident("nil")))),
-              ConcreteRecordField(Name(Some(Ident("push"))), Some(Binders(List(ExplicitSimpleBinder(Name(Some(Ident("x")))), ExplicitSimpleBinder(Name(Some(Ident("l"))))))), None,
-                InfixOperator(Qualid(List(Ident("x"))), "::", Qualid(List(Ident("l"))))),
-              ConcreteRecordField(Name(Some(Ident("pop"))), None, None,
+              ConcreteRecordField(
+                Name(Some(Ident("t"))),
+                None,
+                None,
+                UncurriedTermApplication(Qualid(List(Ident("list"))), List(Argument(None, Qualid(List(Ident("nat"))))))
+              ),
+              ConcreteRecordField(Name(Some(Ident("empty"))), None, None, Qualid(List(Ident("nil")))),
+              ConcreteRecordField(
+                Name(Some(Ident("push"))),
+                Some(
+                  Binders(
+                    List(ExplicitSimpleBinder(Name(Some(Ident("x")))), ExplicitSimpleBinder(Name(Some(Ident("l")))))
+                  )
+                ),
+                None,
+                InfixOperator(Qualid(List(Ident("x"))), "::", Qualid(List(Ident("l"))))
+              ),
+              ConcreteRecordField(
+                Name(Some(Ident("pop"))),
+                None,
+                None,
                 Fun(
                   Binders(List(ExplicitSimpleBinder(Name(Some(Ident("l")))))),
-                  Match(List(
-                    MatchItem(UncurriedTermApplication(Qualid(List(Ident("rev"))), List(Argument(None, Qualid(List(Ident("l")))))), None, None)), None,
+                  Match(
                     List(
-                      PatternEquation(List(MultPattern(List(QualidPattern(Qualid(List(Ident("nil"))))))),
-                        Qualid(List(Ident("None")))),
-                      PatternEquation(List(MultPattern(List(InfixPattern(QualidPattern(Qualid(List(Ident("hd")))), "::", QualidPattern(Qualid(List(Ident("tl")))))))),
-                        UncurriedTermApplication(Qualid(List(Ident("Some"))), List(Argument(None, TupleValue(List(Qualid(List(Ident("hd"))), UncurriedTermApplication(Qualid(List(Ident("rev"))), List(Argument(None, Qualid(List(Ident("tl"))))))))))))))))))))
+                      MatchItem(
+                        UncurriedTermApplication(
+                          Qualid(List(Ident("rev"))),
+                          List(Argument(None, Qualid(List(Ident("l")))))
+                        ),
+                        None,
+                        None
+                      )
+                    ),
+                    None,
+                    List(
+                      PatternEquation(
+                        List(MultPattern(List(QualidPattern(Qualid(List(Ident("nil"))))))),
+                        Qualid(List(Ident("None")))
+                      ),
+                      PatternEquation(
+                        List(
+                          MultPattern(
+                            List(
+                              InfixPattern(
+                                QualidPattern(Qualid(List(Ident("hd")))),
+                                "::",
+                                QualidPattern(Qualid(List(Ident("tl"))))
+                              )
+                            )
+                          )
+                        ),
+                        UncurriedTermApplication(
+                          Qualid(List(Ident("Some"))),
+                          List(
+                            Argument(
+                              None,
+                              TupleValue(
+                                List(
+                                  Qualid(List(Ident("hd"))),
+                                  UncurriedTermApplication(
+                                    Qualid(List(Ident("rev"))),
+                                    List(Argument(None, Qualid(List(Ident("tl")))))
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -174,16 +276,30 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Inductive(
-          InductiveBody(Ident("Tree"), None, Some(Type),
+          InductiveBody(
+            Ident("Tree"),
+            None,
+            Some(Type),
             List(
-              InductiveBodyItem(Ident("Leaf"),
-                None,
-                Some(Qualid(List(Ident("Tree"))))),
-              InductiveBodyItem(Ident("Node"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(Name(Some(Ident("l"))), Name(Some(Ident("r")))), Qualid(List(Ident("Tree"))))))),
-                Some(Qualid(List(Ident("Tree")))))))))
-
+              InductiveBodyItem(Ident("Leaf"), None, Some(Qualid(List(Ident("Tree"))))),
+              InductiveBodyItem(
+                Ident("Node"),
+                Some(
+                  Binders(
+                    List(
+                      ExplicitBinderWithType(
+                        List(Name(Some(Ident("l"))), Name(Some(Ident("r")))),
+                        Qualid(List(Ident("Tree")))
+                      )
+                    )
+                  )
+                ),
+                Some(Qualid(List(Ident("Tree"))))
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -199,16 +315,30 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Inductive(
-          InductiveBody(Ident("Tree"), None, None,
+          InductiveBody(
+            Ident("Tree"),
+            None,
+            None,
             List(
-              InductiveBodyItem(Ident("Leaf"),
-                None,
-                Some(Qualid(List(Ident("Tree"))))),
-              InductiveBodyItem(Ident("Node"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(Name(Some(Ident("l"))), Name(Some(Ident("r")))), Qualid(List(Ident("Tree"))))))),
-                Some(Qualid(List(Ident("Tree")))))))))
-
+              InductiveBodyItem(Ident("Leaf"), None, Some(Qualid(List(Ident("Tree"))))),
+              InductiveBodyItem(
+                Ident("Node"),
+                Some(
+                  Binders(
+                    List(
+                      ExplicitBinderWithType(
+                        List(Name(Some(Ident("l"))), Name(Some(Ident("r")))),
+                        Qualid(List(Ident("Tree")))
+                      )
+                    )
+                  )
+                ),
+                Some(Qualid(List(Ident("Tree"))))
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -224,16 +354,30 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Inductive(
-          InductiveBody(Ident("Tree"), None, None,
+          InductiveBody(
+            Ident("Tree"),
+            None,
+            None,
             List(
-              InductiveBodyItem(Ident("Leaf"),
-                None,
-                None),
-              InductiveBodyItem(Ident("Node"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(Name(Some(Ident("l"))), Name(Some(Ident("r")))), Qualid(List(Ident("Tree"))))))),
-                None)))))
-
+              InductiveBodyItem(Ident("Leaf"), None, None),
+              InductiveBodyItem(
+                Ident("Node"),
+                Some(
+                  Binders(
+                    List(
+                      ExplicitBinderWithType(
+                        List(Name(Some(Ident("l"))), Name(Some(Ident("r")))),
+                        Qualid(List(Ident("Tree")))
+                      )
+                    )
+                  )
+                ),
+                None
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -251,33 +395,31 @@ class CoqParserTest extends FunSuite {
         Inductive(
           InductiveBody(
             Ident("Tree"),
-            Some(Binders(List(
-              ImplicitBinder(
-                List(
-                  Name(Some(Ident("A"))),
-                  Name(Some(Ident("B")))),
-                Some(Type))))),
+            Some(Binders(List(ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), Some(Type))))),
             None,
             List(
-              InductiveBodyItem(Ident("Leaf"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("value")))),
-                    Qualid(List(Ident("A"))))))),
-                None),
-              InductiveBodyItem(Ident("Node"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("info")))),
-                    Qualid(List(Ident("B")))),
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("left")))),
-                    Qualid(List(Ident("Tree")))),
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("right")))),
-                    Qualid(List(Ident("Tree"))))))),
-                None)))))
-
+              InductiveBodyItem(
+                Ident("Leaf"),
+                Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("value")))), Qualid(List(Ident("A"))))))),
+                None
+              ),
+              InductiveBodyItem(
+                Ident("Node"),
+                Some(
+                  Binders(
+                    List(
+                      ExplicitBinderWithType(List(Name(Some(Ident("info")))), Qualid(List(Ident("B")))),
+                      ExplicitBinderWithType(List(Name(Some(Ident("left")))), Qualid(List(Ident("Tree")))),
+                      ExplicitBinderWithType(List(Name(Some(Ident("right")))), Qualid(List(Ident("Tree"))))
+                    )
+                  )
+                ),
+                None
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -295,33 +437,31 @@ class CoqParserTest extends FunSuite {
         Inductive(
           InductiveBody(
             Ident("Tree"),
-            Some(Binders(List(
-              ImplicitBinder(
-                List(
-                  Name(Some(Ident("A"))),
-                  Name(Some(Ident("B")))),
-                Some(Type))))),
+            Some(Binders(List(ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), Some(Type))))),
             Some(Type),
             List(
-              InductiveBodyItem(Ident("Leaf"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("value")))),
-                    Qualid(List(Ident("A"))))))),
-                Some(Qualid(List(Ident("Tree"))))),
-              InductiveBodyItem(Ident("Node"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("info")))),
-                    Qualid(List(Ident("B")))),
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("left")))),
-                    Qualid(List(Ident("Tree")))),
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("right")))),
-                    Qualid(List(Ident("Tree"))))))),
-                Some(Qualid(List(Ident("Tree")))))))))
-
+              InductiveBodyItem(
+                Ident("Leaf"),
+                Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("value")))), Qualid(List(Ident("A"))))))),
+                Some(Qualid(List(Ident("Tree"))))
+              ),
+              InductiveBodyItem(
+                Ident("Node"),
+                Some(
+                  Binders(
+                    List(
+                      ExplicitBinderWithType(List(Name(Some(Ident("info")))), Qualid(List(Ident("B")))),
+                      ExplicitBinderWithType(List(Name(Some(Ident("left")))), Qualid(List(Ident("Tree")))),
+                      ExplicitBinderWithType(List(Name(Some(Ident("right")))), Qualid(List(Ident("Tree"))))
+                    )
+                  )
+                ),
+                Some(Qualid(List(Ident("Tree"))))
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -339,40 +479,43 @@ class CoqParserTest extends FunSuite {
         Inductive(
           InductiveBody(
             Ident("tree"),
-            Some(Binders(List(
-              ImplicitBinder(
-                List(
-                  Name(Some(Ident("A"))),
-                  Name(Some(Ident("B")))),
-                Some(Type))))),
+            Some(Binders(List(ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), Some(Type))))),
             None,
             List(
-              InductiveBodyItem(Ident("Leaf"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("value")))),
-                    Qualid(List(Ident("A"))))))),
-                None),
-              InductiveBodyItem(Ident("Node"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("info")))),
-                    Qualid(List(Ident("B")))),
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("left")))),
-                    ExplicitQualidApplication(
-                      Qualid(List(Ident("tree"))),
-                      List(
-                        Qualid(List(Ident("A"))),
-                        Qualid(List(Ident("B")))))),
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("right")))),
-                    ExplicitQualidApplication(
-                      Qualid(List(Ident("tree"))),
-                      List(
-                        Qualid(List(Ident("A"))),
-                        Qualid(List(Ident("B"))))))))),
-                None)))))
+              InductiveBodyItem(
+                Ident("Leaf"),
+                Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("value")))), Qualid(List(Ident("A"))))))),
+                None
+              ),
+              InductiveBodyItem(
+                Ident("Node"),
+                Some(
+                  Binders(
+                    List(
+                      ExplicitBinderWithType(List(Name(Some(Ident("info")))), Qualid(List(Ident("B")))),
+                      ExplicitBinderWithType(
+                        List(Name(Some(Ident("left")))),
+                        ExplicitQualidApplication(
+                          Qualid(List(Ident("tree"))),
+                          List(Qualid(List(Ident("A"))), Qualid(List(Ident("B"))))
+                        )
+                      ),
+                      ExplicitBinderWithType(
+                        List(Name(Some(Ident("right")))),
+                        ExplicitQualidApplication(
+                          Qualid(List(Ident("tree"))),
+                          List(Qualid(List(Ident("A"))), Qualid(List(Ident("B"))))
+                        )
+                      )
+                    )
+                  )
+                ),
+                None
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -390,41 +533,43 @@ class CoqParserTest extends FunSuite {
         Inductive(
           InductiveBody(
             Ident("tree"),
-            Some(Binders(List(
-              ImplicitBinder(
-                List(
-                  Name(Some(Ident("A"))),
-                  Name(Some(Ident("B")))),
-                None)))),
+            Some(Binders(List(ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), None)))),
             None,
             List(
-              InductiveBodyItem(Ident("Leaf"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("value")))),
-                    Qualid(List(Ident("A"))))))),
-                None),
-              InductiveBodyItem(Ident("Node"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("info")))),
-                    Qualid(List(Ident("B")))),
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("left")))),
-                    ExplicitQualidApplication(
-                      Qualid(List(Ident("tree"))),
-                      List(
-                        Qualid(List(Ident("A"))),
-                        Qualid(List(Ident("B")))))),
-                  ExplicitBinderWithType(List(
-                    Name(Some(Ident("right")))),
-                    ExplicitQualidApplication(
-                      Qualid(List(Ident("tree"))),
-                      List(
-                        Qualid(List(Ident("A"))),
-                        Qualid(List(Ident("B"))))))))),
-                None)))))
-
+              InductiveBodyItem(
+                Ident("Leaf"),
+                Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("value")))), Qualid(List(Ident("A"))))))),
+                None
+              ),
+              InductiveBodyItem(
+                Ident("Node"),
+                Some(
+                  Binders(
+                    List(
+                      ExplicitBinderWithType(List(Name(Some(Ident("info")))), Qualid(List(Ident("B")))),
+                      ExplicitBinderWithType(
+                        List(Name(Some(Ident("left")))),
+                        ExplicitQualidApplication(
+                          Qualid(List(Ident("tree"))),
+                          List(Qualid(List(Ident("A"))), Qualid(List(Ident("B"))))
+                        )
+                      ),
+                      ExplicitBinderWithType(
+                        List(Name(Some(Ident("right")))),
+                        ExplicitQualidApplication(
+                          Qualid(List(Ident("tree"))),
+                          List(Qualid(List(Ident("A"))), Qualid(List(Ident("B"))))
+                        )
+                      )
+                    )
+                  )
+                ),
+                None
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -448,26 +593,36 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          RecordKeyword, Ident("Queue"),
-          None, None, None,
+          RecordKeyword,
+          Ident("Queue"),
+          None,
+          None,
+          None,
           List(
             AbstractRecordField(Name(Some(Ident("T"))), None, Type),
             AbstractRecordField(Name(Some(Ident("empty"))), None, Qualid(List(Ident("T")))),
             AbstractRecordField(
-              Name(Some(Ident("push"))), None,
+              Name(Some(Ident("push"))),
+              None,
               Term_->(
                 Qualid(List(Ident("nat"))),
                 Term_->(Qualid(List(Ident("T"))), Qualid(List(Ident("T"))))
               )
             ),
             AbstractRecordField(
-              Name(Some(Ident("pop"))), None,
+              Name(Some(Ident("pop"))),
+              None,
               Term_->(
                 Qualid(List(Ident("T"))),
                 UncurriedTermApplication(
                   Qualid(List(Ident("option"))),
                   List(
-                    Argument(None, BetweenParenthesis(InfixOperator(Qualid(List(Ident("nat"))), "*", Qualid(List(Ident("T"))))))))
+                    Argument(
+                      None,
+                      BetweenParenthesis(InfixOperator(Qualid(List(Ident("nat"))), "*", Qualid(List(Ident("T")))))
+                    )
+                  )
+                )
               )
             )
           )
@@ -496,26 +651,36 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          StructureKeyword, Ident("Queue"),
-          None, None, None,
+          StructureKeyword,
+          Ident("Queue"),
+          None,
+          None,
+          None,
           List(
             AbstractRecordField(Name(Some(Ident("T"))), None, Type),
             AbstractRecordField(Name(Some(Ident("empty"))), None, Qualid(List(Ident("T")))),
             AbstractRecordField(
-              Name(Some(Ident("push"))), None,
+              Name(Some(Ident("push"))),
+              None,
               Term_->(
                 Qualid(List(Ident("nat"))),
                 Term_->(Qualid(List(Ident("T"))), Qualid(List(Ident("T"))))
               )
             ),
             AbstractRecordField(
-              Name(Some(Ident("pop"))), None,
+              Name(Some(Ident("pop"))),
+              None,
               Term_->(
                 Qualid(List(Ident("T"))),
                 UncurriedTermApplication(
                   Qualid(List(Ident("option"))),
                   List(
-                    Argument(None, BetweenParenthesis(InfixOperator(Qualid(List(Ident("nat"))), "*", Qualid(List(Ident("T"))))))))
+                    Argument(
+                      None,
+                      BetweenParenthesis(InfixOperator(Qualid(List(Ident("nat"))), "*", Qualid(List(Ident("T")))))
+                    )
+                  )
+                )
               )
             )
           )
@@ -541,12 +706,16 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          InductiveRecordKeyword, Ident("Queue"),
-          None, None, None,
+          InductiveRecordKeyword,
+          Ident("Queue"),
+          None,
+          None,
+          None,
           List(
             AbstractRecordField(Name(Some(Ident("T"))), None, Type),
             AbstractRecordField(
-              Name(Some(Ident("push"))), None,
+              Name(Some(Ident("push"))),
+              None,
               Term_->(
                 Qualid(List(Ident("nat"))),
                 Term_->(Qualid(List(Ident("T"))), Qualid(List(Ident("T"))))
@@ -575,12 +744,16 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          CoInductiveRecordKeyword, Ident("Queue"),
-          None, None, None,
+          CoInductiveRecordKeyword,
+          Ident("Queue"),
+          None,
+          None,
+          None,
           List(
             AbstractRecordField(Name(Some(Ident("T"))), None, Type),
             AbstractRecordField(
-              Name(Some(Ident("push"))), None,
+              Name(Some(Ident("push"))),
+              None,
               Term_->(
                 Qualid(List(Ident("nat"))),
                 Term_->(Qualid(List(Ident("T"))), Qualid(List(Ident("T"))))
@@ -608,8 +781,11 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          RecordKeyword, Ident("TestRecord"),
-          None, None, None,
+          RecordKeyword,
+          Ident("TestRecord"),
+          None,
+          None,
+          None,
           List(
             AbstractRecordField(
               Name(Some(Ident("testAbstractField"))),
@@ -644,8 +820,11 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          RecordKeyword, Ident("TestRecord"),
-          None, None, None,
+          RecordKeyword,
+          Ident("TestRecord"),
+          None,
+          None,
+          None,
           List(
             AbstractRecordField(
               Name(Some(Ident("testAbstractField"))),
@@ -680,8 +859,11 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          RecordKeyword, Ident("TestRecord"),
-          None, Some(Type), None,
+          RecordKeyword,
+          Ident("TestRecord"),
+          None,
+          Some(Type),
+          None,
           List(
             AbstractRecordField(
               Name(Some(Ident("testAbstractField"))),
@@ -716,9 +898,11 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          RecordKeyword, Ident("TestRecord"),
+          RecordKeyword,
+          Ident("TestRecord"),
           Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("y")))), Qualid(List(Ident("nat"))))))),
-          None, None,
+          None,
+          None,
           List(
             AbstractRecordField(
               Name(Some(Ident("testAbstractField"))),
@@ -753,9 +937,11 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          RecordKeyword, Ident("TestRecord"),
+          RecordKeyword,
+          Ident("TestRecord"),
           Some(Binders(List(ImplicitBinder(List(Name(Some(Ident("A")))), None)))),
-          None, None,
+          None,
+          None,
           List(
             AbstractRecordField(
               Name(Some(Ident("testAbstractField"))),
@@ -790,8 +976,11 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          RecordKeyword, Ident("TestRecord"),
-          None, None, None,
+          RecordKeyword,
+          Ident("TestRecord"),
+          None,
+          None,
+          None,
           List(
             AbstractRecordField(
               Name(None),
@@ -830,30 +1019,43 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Record(
-          RecordKeyword, Ident("TestRecord"),
+          RecordKeyword,
+          Ident("TestRecord"),
           Some(Binders(List(ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), None)))),
           None,
           Some(Ident("newTestRecord")),
           List(
+            AbstractRecordField(Name(Some(Ident("f1"))), None, Qualid(List(Ident("A")))),
             AbstractRecordField(
-              Name(Some(Ident("f1"))), None,
-              Qualid(List(Ident("A")))),
-            AbstractRecordField(
-              Name(Some(Ident("f2"))), None,
-              Term_->(Qualid(List(Ident("B"))), Qualid(List(Ident("A"))))))),
+              Name(Some(Ident("f2"))),
+              None,
+              Term_->(Qualid(List(Ident("B"))), Qualid(List(Ident("A"))))
+            )
+          )
+        ),
         Definition(
-          Ident("testRecordInstance"), None, None,
+          Ident("testRecordInstance"),
+          None,
+          None,
           UncurriedTermApplication(
             Qualid(List(Ident("newTestRecord"))),
             List(
               Argument(None, Qualid(List(Ident("nat")))),
               Argument(None, Qualid(List(Ident("bool")))),
               Argument(None, Number(7)),
-              Argument(None,
+              Argument(
+                None,
                 BetweenParenthesis(
-                  Fun(Binders(List(
-                    ExplicitBinderWithType(List(Name(Some(Ident("b")))), Qualid(List(Ident("bool")))))),
-                    TermIf(Qualid(List(Ident("b"))), None, Number(3), Number(17)))))))))
+                  Fun(
+                    Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("b")))), Qualid(List(Ident("bool")))))),
+                    TermIf(Qualid(List(Ident("b"))), None, Number(3), Number(17))
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -866,13 +1068,24 @@ class CoqParserTest extends FunSuite {
       List(
         Definition(
           Ident("testRecordFunction"),
-          Some(Binders(List(
-            ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), None),
-            ExplicitBinderWithType(
-              List(Name(Some(Ident("R")))),
-              ExplicitQualidApplication(Qualid(List(Ident("TestRecord"))), List(Qualid(List(Ident("A"))), Qualid(List(Ident("B"))))))))),
+          Some(
+            Binders(
+              List(
+                ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), None),
+                ExplicitBinderWithType(
+                  List(Name(Some(Ident("R")))),
+                  ExplicitQualidApplication(
+                    Qualid(List(Ident("TestRecord"))),
+                    List(Qualid(List(Ident("A"))), Qualid(List(Ident("B"))))
+                  )
+                )
+              )
+            )
+          ),
           None,
-          SimpleProjection(Qualid(List(Ident("R"))), Qualid(List(Ident("f1"))))))
+          SimpleProjection(Qualid(List(Ident("R"))), Qualid(List(Ident("f1"))))
+        )
+      )
     )
   }
 
@@ -885,8 +1098,11 @@ class CoqParserTest extends FunSuite {
       List(
         Definition(
           Ident("test1"),
-          None, None,
-          SimpleProjection(Qualid(List(Ident("testRecordInstance"))), Qualid(List(Ident("f1"))))))
+          None,
+          None,
+          SimpleProjection(Qualid(List(Ident("testRecordInstance"))), Qualid(List(Ident("f1"))))
+        )
+      )
     )
   }
 
@@ -899,10 +1115,14 @@ class CoqParserTest extends FunSuite {
       List(
         Definition(
           Ident("test2"),
-          None, None,
+          None,
+          None,
           UncurriedTermApplication(
             SimpleProjection(Qualid(List(Ident("testRecordInstance"))), Qualid(List(Ident("f2")))),
-            List(Argument(None, Qualid(List(Ident("true"))))))))
+            List(Argument(None, Qualid(List(Ident("true")))))
+          )
+        )
+      )
     )
   }
 
@@ -915,10 +1135,14 @@ class CoqParserTest extends FunSuite {
       List(
         Definition(
           Ident("test3"),
-          None, None,
+          None,
+          None,
           UncurriedTermApplication(
             Qualid(List(Ident("testRecordFunction"))),
-            List(Argument(None, Qualid(List(Ident("testRecordInstance"))))))))
+            List(Argument(None, Qualid(List(Ident("testRecordInstance")))))
+          )
+        )
+      )
     )
   }
 
@@ -938,36 +1162,48 @@ class CoqParserTest extends FunSuite {
           """) should parse(
       List(
         Fixpoint(
-          FixBody(Ident("size"),
-            Binders(List(
-              ExplicitBinderWithType(
-                List(Name(Some(Ident("t")))),
-                Qualid(List(Ident("Tree")))))),
+          FixBody(
+            Ident("size"),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("t")))), Qualid(List(Ident("Tree")))))),
             None,
             Some(Qualid(List(Ident("nat")))),
             Match(
               List(MatchItem(Qualid(List(Ident("t"))), None, None)),
               None,
               List(
-                PatternEquation(List(MultPattern(List(
-                  QualidPattern(Qualid(List(Ident("Leaf"))))))),
-                  Number(1)),
-                PatternEquation(List(MultPattern(List(
-                  ConstructorPattern(
-                    Qualid(List(Ident("Node"))),
-                    List(
-                      QualidPattern(Qualid(List(Ident("l")))),
-                      QualidPattern(Qualid(List(Ident("r"))))))))),
+                PatternEquation(List(MultPattern(List(QualidPattern(Qualid(List(Ident("Leaf"))))))), Number(1)),
+                PatternEquation(
+                  List(
+                    MultPattern(
+                      List(
+                        ConstructorPattern(
+                          Qualid(List(Ident("Node"))),
+                          List(QualidPattern(Qualid(List(Ident("l")))), QualidPattern(Qualid(List(Ident("r")))))
+                        )
+                      )
+                    )
+                  ),
                   InfixOperator(
                     BetweenParenthesis(
                       UncurriedTermApplication(
                         Qualid(List(Ident("size"))),
-                        List(Argument(None, Qualid(List(Ident("l"))))))),
+                        List(Argument(None, Qualid(List(Ident("l")))))
+                      )
+                    ),
                     "+",
                     BetweenParenthesis(
                       UncurriedTermApplication(
                         Qualid(List(Ident("size"))),
-                        List(Argument(None, Qualid(List(Ident("r"))))))))))))))
+                        List(Argument(None, Qualid(List(Ident("r")))))
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
 
   }
@@ -988,36 +1224,48 @@ class CoqParserTest extends FunSuite {
           """) should parse(
       List(
         Fixpoint(
-          FixBody(Ident("size"),
-            Binders(List(
-              ExplicitBinderWithType(
-                List(Name(Some(Ident("t")))),
-                Qualid(List(Ident("Tree")))))),
+          FixBody(
+            Ident("size"),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("t")))), Qualid(List(Ident("Tree")))))),
             Some(FixAnnotation(Ident("t"))),
             Some(Qualid(List(Ident("nat")))),
             Match(
               List(MatchItem(Qualid(List(Ident("t"))), None, None)),
               None,
               List(
-                PatternEquation(List(MultPattern(List(
-                  QualidPattern(Qualid(List(Ident("Leaf"))))))),
-                  Number(1)),
-                PatternEquation(List(MultPattern(List(
-                  ConstructorPattern(
-                    Qualid(List(Ident("Node"))),
-                    List(
-                      QualidPattern(Qualid(List(Ident("l")))),
-                      QualidPattern(Qualid(List(Ident("r"))))))))),
+                PatternEquation(List(MultPattern(List(QualidPattern(Qualid(List(Ident("Leaf"))))))), Number(1)),
+                PatternEquation(
+                  List(
+                    MultPattern(
+                      List(
+                        ConstructorPattern(
+                          Qualid(List(Ident("Node"))),
+                          List(QualidPattern(Qualid(List(Ident("l")))), QualidPattern(Qualid(List(Ident("r")))))
+                        )
+                      )
+                    )
+                  ),
                   InfixOperator(
                     BetweenParenthesis(
                       UncurriedTermApplication(
                         Qualid(List(Ident("size"))),
-                        List(Argument(None, Qualid(List(Ident("l"))))))),
+                        List(Argument(None, Qualid(List(Ident("l")))))
+                      )
+                    ),
                     "+",
                     BetweenParenthesis(
                       UncurriedTermApplication(
                         Qualid(List(Ident("size"))),
-                        List(Argument(None, Qualid(List(Ident("r"))))))))))))))
+                        List(Argument(None, Qualid(List(Ident("r")))))
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
 
   }
@@ -1036,24 +1284,49 @@ class CoqParserTest extends FunSuite {
           """) should parse(
       List(
         Fixpoint(
-          FixBody(Ident("rightMost"),
-            Binders(List(
-              ImplicitBinder(List(Name(Some(Ident("A")))), Some(Type)),
-              ExplicitBinderWithType(List(Name(Some(Ident("t")))), Qualid(List(Ident("BinTree")))))),
+          FixBody(
+            Ident("rightMost"),
+            Binders(
+              List(
+                ImplicitBinder(List(Name(Some(Ident("A")))), Some(Type)),
+                ExplicitBinderWithType(List(Name(Some(Ident("t")))), Qualid(List(Ident("BinTree"))))
+              )
+            ),
             None,
             Some(Qualid(List(Ident("A")))),
-            Match(List(
-              MatchItem(Qualid(List(Ident("t"))), None, None)),
+            Match(
+              List(MatchItem(Qualid(List(Ident("t"))), None, None)),
               None,
               List(
                 PatternEquation(
-                  List(MultPattern(List(
-                    ConstructorPattern(Qualid(List(Ident("L"))), List(QualidPattern(Qualid(List(Ident("x"))))))))),
-                  Qualid(List(Ident("x")))),
+                  List(
+                    MultPattern(
+                      List(ConstructorPattern(Qualid(List(Ident("L"))), List(QualidPattern(Qualid(List(Ident("x")))))))
+                    )
+                  ),
+                  Qualid(List(Ident("x")))
+                ),
                 PatternEquation(
-                  List(MultPattern(List(
-                    ConstructorPattern(Qualid(List(Ident("N"))), List(QualidPattern(Qualid(List(Ident("l")))), QualidPattern(Qualid(List(Ident("r"))))))))),
-                  UncurriedTermApplication(Qualid(List(Ident("rightMost"))), List(Argument(None, Qualid(List(Ident("r"))))))))))))
+                  List(
+                    MultPattern(
+                      List(
+                        ConstructorPattern(
+                          Qualid(List(Ident("N"))),
+                          List(QualidPattern(Qualid(List(Ident("l")))), QualidPattern(Qualid(List(Ident("r")))))
+                        )
+                      )
+                    )
+                  ),
+                  UncurriedTermApplication(
+                    Qualid(List(Ident("rightMost"))),
+                    List(Argument(None, Qualid(List(Ident("r")))))
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1071,24 +1344,49 @@ class CoqParserTest extends FunSuite {
           """) should parse(
       List(
         Fixpoint(
-          FixBody(Ident("rightMost"),
-            Binders(List(
-              ImplicitBinder(List(Name(Some(Ident("A")))), Some(Type)),
-              ExplicitBinderWithType(List(Name(Some(Ident("t")))), Qualid(List(Ident("BinTree")))))),
+          FixBody(
+            Ident("rightMost"),
+            Binders(
+              List(
+                ImplicitBinder(List(Name(Some(Ident("A")))), Some(Type)),
+                ExplicitBinderWithType(List(Name(Some(Ident("t")))), Qualid(List(Ident("BinTree"))))
+              )
+            ),
             None,
             None,
-            Match(List(
-              MatchItem(Qualid(List(Ident("t"))), None, None)),
+            Match(
+              List(MatchItem(Qualid(List(Ident("t"))), None, None)),
               None,
               List(
                 PatternEquation(
-                  List(MultPattern(List(
-                    ConstructorPattern(Qualid(List(Ident("L"))), List(QualidPattern(Qualid(List(Ident("x"))))))))),
-                  Qualid(List(Ident("x")))),
+                  List(
+                    MultPattern(
+                      List(ConstructorPattern(Qualid(List(Ident("L"))), List(QualidPattern(Qualid(List(Ident("x")))))))
+                    )
+                  ),
+                  Qualid(List(Ident("x")))
+                ),
                 PatternEquation(
-                  List(MultPattern(List(
-                    ConstructorPattern(Qualid(List(Ident("N"))), List(QualidPattern(Qualid(List(Ident("l")))), QualidPattern(Qualid(List(Ident("r"))))))))),
-                  UncurriedTermApplication(Qualid(List(Ident("rightMost"))), List(Argument(None, Qualid(List(Ident("r"))))))))))))
+                  List(
+                    MultPattern(
+                      List(
+                        ConstructorPattern(
+                          Qualid(List(Ident("N"))),
+                          List(QualidPattern(Qualid(List(Ident("l")))), QualidPattern(Qualid(List(Ident("r")))))
+                        )
+                      )
+                    )
+                  ),
+                  UncurriedTermApplication(
+                    Qualid(List(Ident("rightMost"))),
+                    List(Argument(None, Qualid(List(Ident("r")))))
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1115,10 +1413,11 @@ class CoqParserTest extends FunSuite {
                 ImplicitBinder(List(Name(Some(Ident("A")))), None),
                 ExplicitBinderWithType(
                   List(Name(Some(Ident("xs")))),
-                  UncurriedTermApplication(Qualid(List(Ident("list"))), List(Argument(None, Qualid(List(Ident("A"))))))),
-                ExplicitBinderWithType(
-                  List(Name(Some(Ident("n")))),
-                  Qualid(List(Ident("nat")))))),
+                  UncurriedTermApplication(Qualid(List(Ident("list"))), List(Argument(None, Qualid(List(Ident("A"))))))
+                ),
+                ExplicitBinderWithType(List(Name(Some(Ident("n")))), Qualid(List(Ident("nat"))))
+              )
+            ),
             None,
             Some(Qualid(List(Ident("nat")))),
             Match(
@@ -1127,14 +1426,25 @@ class CoqParserTest extends FunSuite {
               List(
                 PatternEquation(
                   List(MultPattern(List(QualidPattern(Qualid(List(Ident("nil"))))))),
-                  Qualid(List(Ident("n")))),
+                  Qualid(List(Ident("n")))
+                ),
                 PatternEquation(
-                  List(MultPattern(List(InfixPattern(UnderscorePattern, "::", QualidPattern(Qualid(List(Ident("ys")))))))),
+                  List(
+                    MultPattern(List(InfixPattern(UnderscorePattern, "::", QualidPattern(Qualid(List(Ident("ys")))))))
+                  ),
                   UncurriedTermApplication(
                     Qualid(List(Ident("lenTailrec"))),
                     List(
                       Argument(None, Qualid(List(Ident("ys")))),
-                      Argument(None, BetweenParenthesis(InfixOperator(Number(1), "+", Qualid(List(Ident("n"))))))))))))))
+                      Argument(None, BetweenParenthesis(InfixOperator(Number(1), "+", Qualid(List(Ident("n"))))))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1171,17 +1481,21 @@ class CoqParserTest extends FunSuite {
                 ImplicitBinder(List(Name(Some(Ident("A")))), None),
                 ExplicitBinderWithType(
                   List(Name(Some(Ident("xs")))),
-                  UncurriedTermApplication(Qualid(List(Ident("list"))), List(Argument(None, Qualid(List(Ident("A"))))))),
-                ExplicitBinderWithType(
-                  List(Name(Some(Ident("n")))),
-                  Qualid(List(Ident("nat")))))),
+                  UncurriedTermApplication(Qualid(List(Ident("list"))), List(Argument(None, Qualid(List(Ident("A"))))))
+                ),
+                ExplicitBinderWithType(List(Name(Some(Ident("n")))), Qualid(List(Ident("nat"))))
+              )
+            ),
             FunAnnotation(
               Fun(
                 Binders(List(ExplicitSimpleBinder(Name(Some(Ident("xs")))))),
                 UncurriedTermApplication(
                   Qualid(List(Ident("length"))),
-                  List(Argument(None, BetweenParenthesis(Qualid(List(Ident("xs")))))))),
-              Ident("xs")),
+                  List(Argument(None, BetweenParenthesis(Qualid(List(Ident("xs"))))))
+                )
+              ),
+              Ident("xs")
+            ),
             Some(Qualid(List(Ident("nat")))),
             Match(
               List(MatchItem(Qualid(List(Ident("xs"))), None, None)),
@@ -1189,14 +1503,25 @@ class CoqParserTest extends FunSuite {
               List(
                 PatternEquation(
                   List(MultPattern(List(QualidPattern(Qualid(List(Ident("nil"))))))),
-                  Qualid(List(Ident("n")))),
+                  Qualid(List(Ident("n")))
+                ),
                 PatternEquation(
-                  List(MultPattern(List(InfixPattern(UnderscorePattern, "::", QualidPattern(Qualid(List(Ident("ys")))))))),
+                  List(
+                    MultPattern(List(InfixPattern(UnderscorePattern, "::", QualidPattern(Qualid(List(Ident("ys")))))))
+                  ),
                   UncurriedTermApplication(
                     Qualid(List(Ident("lenTailrec"))),
                     List(
                       Argument(None, Qualid(List(Ident("ys")))),
-                      Argument(None, BetweenParenthesis(InfixOperator(Number(1), "+", Qualid(List(Ident("n"))))))))))))))
+                      Argument(None, BetweenParenthesis(InfixOperator(Number(1), "+", Qualid(List(Ident("n"))))))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1224,40 +1549,51 @@ class CoqParserTest extends FunSuite {
               """) should parse(
       List(
         Inductive(
-          InductiveBody(Ident("Tree"), None, Some(Type),
+          InductiveBody(
+            Ident("Tree"),
+            None,
+            Some(Type),
             List(
-              InductiveBodyItem(Ident("Leaf"),
-                None,
-                Some(Qualid(List(Ident("Tree"))))),
-              InductiveBodyItem(Ident("Node"),
-                Some(Binders(List(
-                  ExplicitBinderWithType(
+              InductiveBodyItem(Ident("Leaf"), None, Some(Qualid(List(Ident("Tree"))))),
+              InductiveBodyItem(
+                Ident("Node"),
+                Some(
+                  Binders(
                     List(
-                      Name(Some(Ident("l"))),
-                      Name(Some(Ident("r")))),
-                    Qualid(List(Ident("Tree"))))))),
-                Some(Qualid(List(Ident("Tree")))))))),
+                      ExplicitBinderWithType(
+                        List(Name(Some(Ident("l"))), Name(Some(Ident("r")))),
+                        Qualid(List(Ident("Tree")))
+                      )
+                    )
+                  )
+                ),
+                Some(Qualid(List(Ident("Tree"))))
+              )
+            )
+          )
+        ),
         Fixpoint(
-          FixBody(Ident("size"),
-            Binders(List(
-              ExplicitBinderWithType(
-                List(Name(Some(Ident("t")))),
-                Qualid(List(Ident("Tree")))))),
+          FixBody(
+            Ident("size"),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("t")))), Qualid(List(Ident("Tree")))))),
             None,
             Some(Qualid(List(Ident("nat")))),
             Match(
               List(MatchItem(Qualid(List(Ident("t"))), None, None)),
               None,
               List(
-                PatternEquation(List(MultPattern(List(
-                  QualidPattern(Qualid(List(Ident("Leaf"))))))),
-                  Number(1)),
-                PatternEquation(List(MultPattern(List(
-                  ConstructorPattern(
-                    Qualid(List(Ident("Node"))),
-                    List(
-                      QualidPattern(Qualid(List(Ident("l")))),
-                      QualidPattern(Qualid(List(Ident("r"))))))))),
+                PatternEquation(List(MultPattern(List(QualidPattern(Qualid(List(Ident("Leaf"))))))), Number(1)),
+                PatternEquation(
+                  List(
+                    MultPattern(
+                      List(
+                        ConstructorPattern(
+                          Qualid(List(Ident("Node"))),
+                          List(QualidPattern(Qualid(List(Ident("l")))), QualidPattern(Qualid(List(Ident("r")))))
+                        )
+                      )
+                    )
+                  ),
                   InfixOperator(
                     Number(1),
                     "+",
@@ -1265,12 +1601,24 @@ class CoqParserTest extends FunSuite {
                       BetweenParenthesis(
                         UncurriedTermApplication(
                           Qualid(List(Ident("size"))),
-                          List(Argument(None, Qualid(List(Ident("l"))))))),
+                          List(Argument(None, Qualid(List(Ident("l")))))
+                        )
+                      ),
                       "+",
                       BetweenParenthesis(
                         UncurriedTermApplication(
                           Qualid(List(Ident("size"))),
-                          List(Argument(None, Qualid(List(Ident("r")))))))))))))))
+                          List(Argument(None, Qualid(List(Ident("r")))))
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1289,27 +1637,47 @@ class CoqParserTest extends FunSuite {
       List(
         Definition(
           Ident("matchOnTuple"),
-          Some(Binders(List(
-            ExplicitBinderWithType(
-              List(Name(Some(Ident("tuple")))),
-              InfixOperator(Qualid(List(Ident("nat"))), "*", Qualid(List(Ident("nat")))))))),
+          Some(
+            Binders(
+              List(
+                ExplicitBinderWithType(
+                  List(Name(Some(Ident("tuple")))),
+                  InfixOperator(Qualid(List(Ident("nat"))), "*", Qualid(List(Ident("nat"))))
+                )
+              )
+            )
+          ),
           None,
           Match(
             List(MatchItem(Qualid(List(Ident("tuple"))), None, None)),
             None,
             List(
               PatternEquation(
-                List(MultPattern(List(
-                  ParenthesisOrPattern(List(
-                    OrPattern(List(NumberPattern(Number(0)))),
-                    OrPattern(List(NumberPattern(Number(0))))))))),
-                Number(5)),
+                List(
+                  MultPattern(
+                    List(
+                      ParenthesisOrPattern(
+                        List(OrPattern(List(NumberPattern(Number(0)))), OrPattern(List(NumberPattern(Number(0)))))
+                      )
+                    )
+                  )
+                ),
+                Number(5)
+              ),
               PatternEquation(
-                List(MultPattern(List(
-                  ParenthesisOrPattern(List(
-                    OrPattern(List(UnderscorePattern)),
-                    OrPattern(List(UnderscorePattern))))))),
-                Number(7))))))
+                List(
+                  MultPattern(
+                    List(
+                      ParenthesisOrPattern(List(OrPattern(List(UnderscorePattern)), OrPattern(List(UnderscorePattern))))
+                    )
+                  )
+                ),
+                Number(7)
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1328,27 +1696,24 @@ class CoqParserTest extends FunSuite {
       List(
         Definition(
           Ident("matchOnTuple"),
-          Some(Binders(List(
-            ExplicitBinderWithType(
-              List(Name(Some(Ident("x"))), Name(Some(Ident("y")))),
-              Qualid(List(Ident("nat"))))))),
+          Some(
+            Binders(
+              List(
+                ExplicitBinderWithType(List(Name(Some(Ident("x"))), Name(Some(Ident("y")))), Qualid(List(Ident("nat"))))
+              )
+            )
+          ),
           None,
           Match(
-            List(
-              MatchItem(Qualid(List(Ident("x"))), None, None),
-              MatchItem(Qualid(List(Ident("y"))), None, None)),
+            List(MatchItem(Qualid(List(Ident("x"))), None, None), MatchItem(Qualid(List(Ident("y"))), None, None)),
             None,
             List(
-              PatternEquation(
-                List(MultPattern(List(
-                  NumberPattern(Number(0)),
-                  NumberPattern(Number(0))))),
-                Number(5)),
-              PatternEquation(
-                List(MultPattern(List(
-                  UnderscorePattern,
-                  UnderscorePattern))),
-                Number(7))))))
+              PatternEquation(List(MultPattern(List(NumberPattern(Number(0)), NumberPattern(Number(0))))), Number(5)),
+              PatternEquation(List(MultPattern(List(UnderscorePattern, UnderscorePattern))), Number(7))
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1371,9 +1736,11 @@ class CoqParserTest extends FunSuite {
           Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
           UncurriedTermApplication(
             Qualid(List(Ident("eq"))),
-            List(
-              Argument(None, Qualid(List(Ident("x")))),
-              Argument(None, Qualid(List(Ident("x")))))))))
+            List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+          )
+        )
+      )
+    )
   }
 
   test("""Testing
@@ -1395,9 +1762,11 @@ class CoqParserTest extends FunSuite {
           Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
           UncurriedTermApplication(
             Qualid(List(Ident("eq"))),
-            List(
-              Argument(None, Qualid(List(Ident("x")))),
-              Argument(None, Qualid(List(Ident("x")))))))))
+            List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+          )
+        )
+      )
+    )
   }
 
   test("""Testing
@@ -1417,9 +1786,11 @@ class CoqParserTest extends FunSuite {
           Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
           UncurriedTermApplication(
             Qualid(List(Ident("eq"))),
-            List(
-              Argument(None, Qualid(List(Ident("x")))),
-              Argument(None, Qualid(List(Ident("x")))))))))
+            List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+          )
+        )
+      )
+    )
   }
 
   test("""Testing
@@ -1443,9 +1814,11 @@ class CoqParserTest extends FunSuite {
           Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat"))))))),
           UncurriedTermApplication(
             Qualid(List(Ident("eq"))),
-            List(
-              Argument(None, Qualid(List(Ident("x")))),
-              Argument(None, Qualid(List(Ident("x")))))))))
+            List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+          )
+        )
+      )
+    )
   }
 
   test("""Testing
@@ -1468,14 +1841,14 @@ class CoqParserTest extends FunSuite {
           Ident("testing"),
           None,
           ForAll(
-            Binders(
-              List(
-                ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
             UncurriedTermApplication(
               Qualid(List(Ident("eq"))),
-              List(
-                Argument(None, Qualid(List(Ident("x")))),
-                Argument(None, Qualid(List(Ident("x")))))))))
+              List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1499,14 +1872,14 @@ class CoqParserTest extends FunSuite {
           Ident("testing"),
           None,
           ForAll(
-            Binders(
-              List(
-                ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
             UncurriedTermApplication(
               Qualid(List(Ident("eq"))),
-              List(
-                Argument(None, Qualid(List(Ident("x")))),
-                Argument(None, Qualid(List(Ident("x")))))))))
+              List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1530,14 +1903,14 @@ class CoqParserTest extends FunSuite {
           Ident("testing"),
           None,
           ForAll(
-            Binders(
-              List(
-                ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
             UncurriedTermApplication(
               Qualid(List(Ident("eq"))),
-              List(
-                Argument(None, Qualid(List(Ident("x")))),
-                Argument(None, Qualid(List(Ident("x")))))))))
+              List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1561,14 +1934,14 @@ class CoqParserTest extends FunSuite {
           Ident("testing"),
           None,
           ForAll(
-            Binders(
-              List(
-                ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
             UncurriedTermApplication(
               Qualid(List(Ident("eq"))),
-              List(
-                Argument(None, Qualid(List(Ident("x")))),
-                Argument(None, Qualid(List(Ident("x")))))))))
+              List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1592,14 +1965,14 @@ class CoqParserTest extends FunSuite {
           Ident("testing"),
           None,
           ForAll(
-            Binders(
-              List(
-                ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
             UncurriedTermApplication(
               Qualid(List(Ident("eq"))),
-              List(
-                Argument(None, Qualid(List(Ident("x")))),
-                Argument(None, Qualid(List(Ident("x")))))))))
+              List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1623,14 +1996,14 @@ class CoqParserTest extends FunSuite {
           Ident("testing"),
           None,
           ForAll(
-            Binders(
-              List(
-                ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
             UncurriedTermApplication(
               Qualid(List(Ident("eq"))),
-              List(
-                Argument(None, Qualid(List(Ident("x")))),
-                Argument(None, Qualid(List(Ident("x")))))))))
+              List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1654,14 +2027,14 @@ class CoqParserTest extends FunSuite {
           Ident("testing"),
           None,
           ForAll(
-            Binders(
-              List(
-                ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
             UncurriedTermApplication(
               Qualid(List(Ident("eq"))),
-              List(
-                Argument(None, Qualid(List(Ident("x")))),
-                Argument(None, Qualid(List(Ident("x")))))))))
+              List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1685,14 +2058,14 @@ class CoqParserTest extends FunSuite {
           Ident("testing"),
           None,
           ForAll(
-            Binders(
-              List(
-                ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
             UncurriedTermApplication(
               Qualid(List(Ident("eq"))),
-              List(
-                Argument(None, Qualid(List(Ident("x")))),
-                Argument(None, Qualid(List(Ident("x")))))))))
+              List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+            )
+          )
+        )
+      )
     )
   }
 
@@ -1717,14 +2090,14 @@ class CoqParserTest extends FunSuite {
           Ident("testing"),
           None,
           ForAll(
-            Binders(
-              List(
-                ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
+            Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("x")))), Qualid(List(Ident("nat")))))),
             UncurriedTermApplication(
               Qualid(List(Ident("eq"))),
-              List(
-                Argument(None, Qualid(List(Ident("x")))),
-                Argument(None, Qualid(List(Ident("x")))))))))
+              List(Argument(None, Qualid(List(Ident("x")))), Argument(None, Qualid(List(Ident("x")))))
+            )
+          )
+        )
+      )
     )
   }
 

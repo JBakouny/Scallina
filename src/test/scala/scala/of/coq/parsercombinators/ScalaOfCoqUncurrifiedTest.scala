@@ -21,24 +21,20 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
    * Currently, a significant verification is made by Scallina's back-end which throws exceptions when
    * it encounters Gallina constructions that cannot be translated to Scala.
    */
-  test(
-    """Testing that explicit Type parameters are not supported if the return type is not Type
+  test("""Testing that explicit Type parameters are not supported if the return type is not Type
       Definition illegalFunction (x: Type) := x -> x.
        """) {
-    coqParserShouldFailToGenerateScalaCodeFor(
-      """
+    coqParserShouldFailToGenerateScalaCodeFor("""
         Definition illegalFunction (x: Type) := x -> x.
         """)
   }
 
-  test(
-    """Testing Scala conversion of "Definition legalFunction (x: Type) : Type := x -> x." """) {
+  test("""Testing Scala conversion of "Definition legalFunction (x: Type) : Type := x -> x." """) {
     CoqParser("Definition legalFunction (x: Type) : Type := x -> x.") should
       generateScalaCode("type legalFunction[x] = x => x")
   }
 
-  test(
-    """Testing Scala conversion of "Definition newTypeAlias : Type := nat -> nat." """) {
+  test("""Testing Scala conversion of "Definition newTypeAlias : Type := nat -> nat." """) {
     CoqParser("Definition newTypeAlias : Type := nat -> nat.") should
       generateScalaCode("type newTypeAlias = Nat => Nat")
   }
@@ -46,8 +42,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
   test("""Testing that explicit Prop parameters are not supported
       Definition illegalFunction (x: Prop) := 3.
        """) {
-    coqParserShouldFailToGenerateScalaCodeFor(
-      """
+    coqParserShouldFailToGenerateScalaCodeFor("""
         Definition illegalFunction (x: Prop) := 3.
         """)
   }
@@ -55,8 +50,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
   test("""Testing that explicit Set parameters are not supported
       Definition illegalFunction (x: Set) := 3.
        """) {
-    coqParserShouldFailToGenerateScalaCodeFor(
-      """
+    coqParserShouldFailToGenerateScalaCodeFor("""
         Definition illegalFunction (x: Set) := 3.
         """)
   }
@@ -64,8 +58,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
   test("""Testing that implicit value binders are not supported
       Definition illegalFunction {x: nat} (y : nat) := x + y.
        """) {
-    coqParserShouldFailToGenerateScalaCodeFor(
-      """
+    coqParserShouldFailToGenerateScalaCodeFor("""
         Definition illegalFunction {x: nat} (y : nat) := x + y.
         """)
   }
@@ -120,8 +113,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       generateScalaCode("def f(l: List[Boolean]) = 3")
   }
 
-  test(
-    """Testing Scala conversion of "Definition right {A : Type} (l r : A) := r." """) {
+  test("""Testing Scala conversion of "Definition right {A : Type} (l r : A) := r." """) {
     CoqParser("Definition right {A : Type} (l r : A) := r.") should
       generateScalaCode("def right[A](l: A, r: A) = r")
   }
@@ -208,29 +200,24 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       """)
   }
 
-  test(
-    """Testing Scala conversion of "Definition add(x y : nat) : nat := x + y." """) {
+  test("""Testing Scala conversion of "Definition add(x y : nat) : nat := x + y." """) {
     CoqParser("""
           Definition add(x y : nat) : nat := x + y.
       """) should generateScalaCode("def add(x: Nat, y: Nat): Nat = x + y")
   }
 
-  test(
-    """Testing Scala conversion of "Definition add(x y z : nat) : nat := x + y." """) {
+  test("""Testing Scala conversion of "Definition add(x y z : nat) : nat := x + y." """) {
     CoqParser("""
           Definition add(x y z : nat) : nat := x + y + z.
-      """) should generateScalaCode(
-      "def add(x: Nat, y: Nat, z: Nat): Nat = x + (y + z)")
+      """) should generateScalaCode("def add(x: Nat, y: Nat, z: Nat): Nat = x + (y + z)")
   }
 
-  test(
-    """Testing Scala conversion of "Definition addTen(n : nat) : nat := add n 10." """) {
+  test("""Testing Scala conversion of "Definition addTen(n : nat) : nat := add n 10." """) {
     CoqParser("Definition addTen(n : nat) : nat := add n 10.") should
       generateScalaCode("def addTen(n: Nat): Nat = add(n, 10)")
   }
 
-  test(
-    """Testing Scala conversion of "Definition addTen(n : nat) : nat := (add n 10)." """) {
+  test("""Testing Scala conversion of "Definition addTen(n : nat) : nat := (add n 10)." """) {
     CoqParser("""
           Definition addTen(n : nat) : nat := (add n 10).
       """) should generateScalaCode("def addTen(n: Nat): Nat = add(n, 10)")
@@ -249,8 +236,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
             Queue front rear
           else
             Queue (concat front (reverse rear)) Nil.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def amortizedQueue(front: List, rear: List): AbsQueue =
       "  if (size(rear) <= size(front)) Queue(front, rear)
       "  else Queue(concat(front, reverse(rear)), Nil)
@@ -306,8 +292,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
          Inductive Tree:=
           Leaf
         | Node(l r : Tree).
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree
         "case object Leaf extends Tree
         "case class Node(l: Tree, r: Tree) extends Tree
@@ -327,8 +312,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       | nil => n
       | cons _ ys => lenTailrec ys (1 + n)
       end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def lenTailrec[A](xs: List[A], n: BigInt): BigInt =
       "  xs match {
       "   case Nil => n
@@ -350,8 +334,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       | nil => n
       | cons _ ys => lenTailrec ys (1 + n)
       end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def lenTailrec[A](xs: List[A], n: Nat): Nat =
       "  xs match {
       "   case Nil => n
@@ -373,8 +356,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       | nil => n
       | _ :: ys => lenTailrec ys (1 + n)
       end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def lenTailrec[A](xs: List[A], n: Nat): Nat =
       "  xs match {
       "   case Nil => n
@@ -405,8 +387,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
     CoqParser("""
       Definition testSimpleLetWithBinders (x: nat) : nat :=
         let f (a : nat) := 3 * a in 7 * (f x).
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def testSimpleLetWithBinders(x: Nat): Nat = {
       " val f = (a: Nat) => 3 * a
       " 7 * f(x)
@@ -431,8 +412,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
                        then let (j, l2) := select x t in (j, h::l2)
                        else let (j, l2) := select h t in (j, x::l2)
         end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def select(x: Nat, l: List[Nat]): (Nat, List[Nat]) =
       "  l match {
       "    case Nil => (x, Nil)
@@ -465,8 +445,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
                        then let ' pair j l2 := select x t in (j, h::l2)
                        else let ' pair j l2 := select h t in (j, x::l2)
         end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def select(x: Nat, l: List[Nat]): (Nat, List[Nat]) =
       "  l match {
       "    case Nil => (x, Nil)
@@ -587,8 +566,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
           Leaf => 1
         | Node l r => 1 + (size l) + (size r)
         end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree
         "case object Leaf extends Tree
         "case class Node(l: Tree, r: Tree) extends Tree
@@ -621,8 +599,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         | Leaf v => Leaf (v + n)
         | Node l r => Node (addToLeaves l n) (addToLeaves r n)
       end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree
         "case class Leaf(value: Nat) extends Tree
         "case class Node(l: Tree, r: Tree) extends Tree
@@ -634,29 +611,25 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         """)
   }
 
-  test(
-    """Testing Scala conversion of "Fixpoint right {A : Type} (l r : A) := r." """) {
+  test("""Testing Scala conversion of "Fixpoint right {A : Type} (l r : A) := r." """) {
     CoqParser("Fixpoint right {A : Type} (l r : A) := r.") should
       generateScalaCode("def right[A](l: A, r: A) = r")
   }
 
-  test(
-    """Testing Scala conversion of
+  test("""Testing Scala conversion of
         Fixpoint elements_aux {V} (s: tree V) (base: list (nat * V)) : list (nat * V) :=
          match s with
          | E => base
          | T a k v b => elements_aux a ((k,v) :: elements_aux b base)
          end.
        """) {
-    CoqParser(
-      """
+    CoqParser("""
         Fixpoint elements_aux {V} (s: tree V) (base: list (nat * V)) : list (nat * V) :=
          match s with
          | E => base
          | T a k v b => elements_aux a ((k,v) :: elements_aux b base)
          end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "def elements_aux[V](s: tree[V], base: List[(Nat, V)]): List[(Nat, V)] =
         "  s match {
         "    case E => base
@@ -672,24 +645,20 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
     CoqParser("""
         Definition idTuple(tuple : nat * nat * bool) := tuple.
         Definition example := idTuple(1, 3, true).
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "def idTuple(tuple: (Nat, Nat, Boolean)) = tuple
         "def example = idTuple((1, 3, true))
         """)
   }
 
-  test(
-    """Testing Scala conversion of
+  test("""Testing Scala conversion of
         Definition idTuple(tuple : nat * nat * bool * list nat) (dummyParam: nat) := tuple.
         Definition example := idTuple (1, 3, true, 3 :: nil) 7.
        """) {
-    CoqParser(
-      """
+    CoqParser("""
         Definition idTuple(tuple : nat * nat * bool * list nat) (dummyParam: nat) := tuple.
         Definition example := idTuple (1, 3, true, 3 :: nil) 7.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "def idTuple(tuple: (Nat, Nat, Boolean, List[Nat]), dummyParam: Nat) = tuple
         "def example = idTuple((1, 3, true, 3 :: Nil), 7)
         """)
@@ -766,8 +735,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
           Inductive Tree {A : Type} :=
             Leaf
           | Node (info: A) (left: @Tree A) (right: @ Tree A).
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree[+A]
         "case object Leaf extends Tree[Nothing]
         "case class Node[A](info: A, left: Tree[A], right: Tree[A]) extends Tree[A]
@@ -795,8 +763,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         | Leaf (1 | 2 | 3) => Leaf 5
         | _ => Leaf 7
       end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree
         "case class Leaf(value: Nat) extends Tree
         "case class Node(l: Tree, r: Tree) extends Tree
@@ -829,8 +796,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         | Leaf 1 | Leaf 2 | Leaf 3 => Leaf 5
         | _ => Leaf 7
       end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree
         "case class Leaf(value: Nat) extends Tree
         "case class Node(l: Tree, r: Tree) extends Tree
@@ -856,11 +822,11 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         "sealed abstract class Tree[+A, +B]
         "case class Leaf[A, B](value: A) extends Tree[A, B]
         "case class Node[A, B](info: B, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B]
-        """)
+        """
+    )
   }
 
-  test(
-    """Testing Scala conversion of
+  test("""Testing Scala conversion of
           Inductive Tree {A B : Type} : Type :=
           | Leaf {C : Type} (firstValue: A) (secondValue: C)
           | Node {D} (firstValue: B) (secondValue: D) (left: @Tree A B) (right: @Tree A B).
@@ -874,7 +840,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         "sealed abstract class Tree[+A, +B]
         "case class Leaf[A, B, C](v1: A, v2: C) extends Tree[A, B]
         "case class Node[A, B, D](v1: B, v2: D, l: Tree[A, B], r: Tree[A, B]) extends Tree[A, B]
-        """)
+        """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -949,8 +916,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         - simpl; omega.
         - simpl; omega.
       Qed.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree
         "case object Leaf extends Tree
         "case class Node(l: Tree, r: Tree) extends Tree
@@ -1015,8 +981,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
             Leaf a => Leaf (f a)
           | Node l r => Node (map l f) (map r f)
           end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree[+A]
         "case class Leaf[A](value: A) extends Tree[A]
         "case class Node[A](l: Tree[A], r: Tree[A]) extends Tree[A]
@@ -1033,8 +998,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         """)
   }
 
-  test(
-    """Testing Scala conversion of
+  test("""Testing Scala conversion of
         (*
         Inspired from:
         https://www.cs.princeton.edu/~appel/vfa/Redblack.html
@@ -1096,8 +1060,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         Definition insert {V} (x : Z) (vx : V) (s : tree V) : tree V := makeBlack (ins x vx s).
 
        """) {
-    CoqParser(
-      """
+    CoqParser("""
         (*
         Inspired from:
         https://www.cs.princeton.edu/~appel/vfa/Redblack.html
@@ -1199,6 +1162,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         "    else T(c, a, x, vx, b)
         "  }
         "def insert[V](x: BigInt, vx: V, s: tree[V]): tree[V] = makeBlack(ins(x, vx, s))
-        """)
+        """
+    )
   }
 }

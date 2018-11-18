@@ -12,8 +12,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
   implicit val curryingStrategy: Currify.type = Currify
 
-  test(
-    """Testing that a different signature between record definition and instanciation is not supported
+  test("""Testing that a different signature between record definition and instanciation is not supported
         Require Import Coq.Lists.List.
 
         Record Queue := {
@@ -57,8 +56,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
-  test(
-    """Testing that a different signature between record definition and instanciation is not supported
+  test("""Testing that a different signature between record definition and instanciation is not supported
           Require Import Coq.Lists.List.
 
           Record TestRecord := {
@@ -69,8 +67,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
             test a := fun _ _ => a
           |}.
        """) {
-    coqParserShouldFailToGenerateScalaCodeFor(
-      """
+    coqParserShouldFailToGenerateScalaCodeFor("""
           Require Import Coq.Lists.List.
 
           Record TestRecord := {
@@ -83,8 +80,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
-  test(
-    """Testing that Gallina path-depdendent types are restricted to the ones starting with an identifier
+  test("""Testing that Gallina path-depdendent types are restricted to the ones starting with an identifier
         Definition f (Q: Queue) : Queue := Q.
 
         Definition createQueue (Q: Queue) (n: nat) : (f Q).(T) := insertElems Q Q.(empty) n.
@@ -94,7 +90,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         Definition f (Q: Queue) : Queue := Q.
 
         Definition createQueue (Q: Queue) (n: nat) : (f Q).(T) := insertElems Q Q.(empty) n.
-        """)
+        """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -104,8 +101,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
     CoqParser("""
       Definition t1 {A B C} (f: A -> B) (g: B -> C) : A -> C :=
         fun (x : A) => g (f x).
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def t1[A, B, C](f: A => B)(g: B => C): A => C =
       "  (x: A) => g(f(x))
       """)
@@ -138,7 +134,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "def plus(a: BigInt)(b: BigInt): BigInt = a + b
       "def higherOrder(f: BigInt => BigInt => BigInt)(a: BigInt)(b: BigInt): BigInt = f(a)(b)
       "def plusAgain: BigInt => BigInt => BigInt = higherOrder(plus)
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -146,13 +143,11 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         Definition higherOrder (f: nat -> nat -> nat) (a b : nat) : nat := f a b.
         Definition plusAgain : nat -> nat -> nat := higherOrder plus.
     """) {
-    CoqParser(
-      """
+    CoqParser("""
         Definition plus (a b : nat) : nat := a + b.
         Definition higherOrder (f: nat -> nat -> nat) (a b : nat) : nat := f a b.
         Definition plusAgain : nat -> nat -> nat := higherOrder plus.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def plus(a: Nat)(b: Nat): Nat = a + b
       "def higherOrder(f: Nat => Nat => Nat)(a: Nat)(b: Nat): Nat = f(a)(b)
       "def plusAgain: Nat => Nat => Nat = higherOrder(plus)
@@ -166,8 +161,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
     CoqParser("""
       Definition testSimpleLetWithBinders (x: nat) : nat :=
         let f (a b : nat) := a * b in f 7 3.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def testSimpleLetWithBinders(x: Nat): Nat = {
       "  val f = (a: Nat) => (b: Nat) => a * b
       "  f(7)(3)
@@ -235,8 +229,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
          auto.
       Qed.
        """) {
-    CoqParser(
-      """
+    CoqParser("""
       Function merge {A} (less: A -> A -> bool) (z: (list A) * (list A))
       { measure (fun z => length (fst z) + length (snd z)) z } : list A :=
        let (l1, l2) := z in
@@ -260,8 +253,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
          apply Plus.plus_lt_compat_l.
          auto.
       Qed.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def merge[A](less: A => A => Boolean)(z: (List[A], List[A])): List[A] = {
       "  val (l1, l2) = z
       "  l1 match {
@@ -276,8 +268,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  test(
-    """Testing Scala conversion of
+  test("""Testing Scala conversion of
       Function lenTailrec {A} (xs : list A) (n : nat) { measure (fun xs => length(xs)) xs } : nat :=
       match xs with
       | nil => n
@@ -289,8 +280,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         omega.
       Qed.
        """) {
-    CoqParser(
-      """
+    CoqParser("""
       Function lenTailrec {A} (xs : list A) (n : nat) { measure (fun xs => length(xs)) xs } : nat :=
       match xs with
       | nil => n
@@ -301,8 +291,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         simpl.
         omega.
       Qed.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def lenTailrec[A](xs: List[A])(n: Nat): Nat =
       "  xs match {
       "    case Nil     => n
@@ -320,8 +309,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Inductive Tree :=
             Leaf
           | Node (value: nat) (l r: Tree).
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree
         "case object Leaf extends Tree
         "case class Node(value: Nat, l: Tree, r: Tree) extends Tree
@@ -347,8 +335,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
             Arguments Leaf {A}.
             Arguments Node {A} _ _ _.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree[+A]
         "case object Leaf extends Tree[Nothing]
         "case class Node[A](value: A, l: Tree[A], r: Tree[A]) extends Tree[A]
@@ -359,8 +346,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
-  test(
-    """Testing Scala conversion of
+  test("""Testing Scala conversion of
           Inductive Tree {A B : Type} : Type :=
           | Leaf {C : Type} (firstValue: A) (secondValue: C)
           | Node {D} (firstValue: B) (secondValue: D) (left: @Tree A B) (right: @Tree A B).
@@ -382,7 +368,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         "  def apply[A, B, D] =
         "    (v1: B) => (v2: D) => (l: Tree[A, B]) => (r: Tree[A, B]) => new Node(v1, v2, l, r)
         "}
-        """)
+        """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -438,8 +425,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
             Leaf a => Leaf (f a)
           | Node l r => Node (map l f) (map r f)
           end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
         "sealed abstract class Tree[+A]
         "case class Leaf[A](value: A) extends Tree[A]
         "case class Node[A](l: Tree[A], r: Tree[A]) extends Tree[A]
@@ -479,8 +465,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Leaf => Leaf
         | Node v l r => Node (f v) (map l f) (map r f)
         end.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "sealed abstract class Tree[+A]
       "case object Leaf extends Tree[Nothing]
       "case class Node[A](v: A, l: Tree[A], r: Tree[A]) extends Tree[A]
@@ -496,8 +481,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  test(
-    """Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
         Record aMonoid : Type := {
           dom : Type;
           zero : dom;
@@ -519,8 +503,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  test(
-    """Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
         Record aMonoid : Type := {
           dom : Type;
           zero : dom;
@@ -545,8 +528,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         zero := 0;
         op := fun (a: nat) (b: nat) => a + b
       |}.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait aMonoid {
       "  type dom
       "  def zero: dom
@@ -560,8 +542,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  test(
-    """Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
       Record aMonoid : Type := newMonoid {
         dom : Type;
         zero : dom;
@@ -570,8 +551,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
       Definition natMonoid := newMonoid nat 0 (fun (a: nat) (b: nat) => a + b).
        """) {
-    CoqParser(
-      """
+    CoqParser("""
       Record aMonoid : Type := newMonoid {
         dom : Type;
         zero : dom;
@@ -579,8 +559,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       }.
 
       Definition natMonoid := newMonoid nat 0 (fun (a: nat) (b: nat) => a + b).
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait aMonoid {
       "  type dom
       "  def zero: dom
@@ -600,8 +579,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  test(
-    """Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
       Require Import ZArith.
 
       Open Scope Z_scope.
@@ -634,8 +612,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         zero := 0;
         op := fun (a: Z) (b: Z) => a + b
       |}.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait aMonoid {
       "  type dom
       "  def zero: dom
@@ -649,8 +626,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  test(
-    """Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
       Record aMonoid : Type := {
         dom : Type;
         zero : dom;
@@ -673,8 +649,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         zero := z;
         op a b := f a b
       |}.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait aMonoid {
       "  type dom
       "  def zero: dom
@@ -688,8 +663,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  test(
-    """Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
       Record aMonoid : Type := {
         dom : Type;
         zero : dom;
@@ -712,8 +686,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         zero := z;
         op := fun a b => f a b
       |}.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait aMonoid {
       "  type dom
       "  def zero: dom
@@ -727,8 +700,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  test(
-    """Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
       Record aMonoid : Type := {
         dom : Type;
         zero : dom;
@@ -736,16 +708,14 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       }.
       Definition execute_op(m: aMonoid) (a b: m.(dom)) : m.(dom) := m.(op) a b.
        """) {
-    CoqParser(
-      """
+    CoqParser("""
       Record aMonoid : Type := {
         dom : Type;
         zero : dom;
         op: dom -> dom -> dom
       }.
       Definition execute_op(m: aMonoid) (a b: m.(dom)) : m.(dom) := m.(op) a b.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait aMonoid {
       "  type dom
       "  def zero: dom
@@ -815,11 +785,11 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    def pop: T => Option[(Nat, T)] = Queue_pop
       "  }
       "}
-      """)
+      """
+    )
   }
 
-  test(
-    """Testing Scala conversion of
+  test("""Testing Scala conversion of
           Fixpoint insertElems (Q: Queue) (q: Q.(T)) (n: nat) : Q.(T) :=
           match n with
             0 => q
@@ -832,8 +802,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
           Definition createDListQueue(n: nat) := createQueue DListQueue n.
        """) {
-    CoqParser(
-      """
+    CoqParser("""
           Fixpoint insertElems (Q: Queue) (q: Q.(T)) (n: nat) : Q.(T) :=
           match n with
             0 => q
@@ -845,8 +814,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Definition createListQueue(n: nat) := createQueue ListQueue n.
 
           Definition createDListQueue(n: nat) := createQueue DListQueue n.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def insertElems(Q: Queue)(q: Q.T)(n: Nat): Q.T =
       "  n match {
       "    case Zero => q
@@ -875,8 +843,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         testFunction (x : nat) : nat := x + 7;
         testAnonFun : nat -> nat := fun (x : nat) => x + 3
       }.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait TestRecord {
       "  def testAbstractField: Nat
       "  def testConcreteField: Nat = testAbstractField + 3
@@ -909,8 +876,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         testFunction (x : A) : A := x;
         testAnonFun : A -> A := fun (x : A) => x
       }.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait TestRecord[A] {
       "  def testAbstractField: A
       "  def testConcreteField: A = testAbstractField
@@ -939,8 +905,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         f1 : A;
         f2 : B -> A
       }.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait TestRecord[A, B] {
       "  def f1: A
       "  def f2: B => A
@@ -962,14 +927,12 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       Definition test2 := testRecordInstance.(f2) true.
       Definition test3 := testRecordFunction testRecordInstance.
        """) {
-    CoqParser(
-      """
+    CoqParser("""
       Definition testRecordFunction {A B} (R: @ TestRecord A B) := R.(f1).
       Definition test1 := testRecordInstance.(f1).
       Definition test2 := testRecordInstance.(f2) true.
       Definition test3 := testRecordFunction testRecordInstance.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "def testRecordFunction[A, B](R: TestRecord[A, B]) = R.f1
       "def test1 = testRecordInstance.f1
       "def test2 = testRecordInstance.f2(true)
@@ -993,8 +956,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         T (A : Type) : Type := list A;
         f (x: T B) : T B
       }.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait ComplicatedRecord {
       "  type B = Nat
       "  type T[A] = List[A]
@@ -1099,8 +1061,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
                 | hd :: tl => Some (hd, (back, tl))
               end
           |}.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait Queue {
       "  type t
       "  def empty: t
@@ -1179,8 +1140,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
               end
           |}.
 
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait Queue {
       "  type t
       "  def empty: t
@@ -1235,7 +1195,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "object RecordInstance extends TestRecord {
       "  def test: Nat => Nat => List[Nat] => Nat = (a: Nat) => (b: Nat) => (l: List[Nat]) => a
       "}
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -1352,7 +1313,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case hd :: tl => Some((hd, (back, tl)))
       "  }
       "})((Nil, Nil))
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -1469,7 +1431,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case hd :: tl => Some((hd, (back, tl)))
       "  }
       "})
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -1586,7 +1549,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case hd :: tl => Some((hd, (back, tl)))
       "  }
       "})
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -1664,8 +1628,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
                 | hd :: tl => Some (hd, (back, tl))
               end
           |}.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait Queue {
       "  type T
       "  def empty: T
@@ -1713,8 +1676,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
       Definition cons {A: Set} (hd: A) (tl: (@ List A)) := newList true hd tl.
        """) {
-    CoqParser(
-      """
+    CoqParser("""
       Inductive List {A : Set} := newList {
         isEmpty: bool;
         head: A;
@@ -1724,8 +1686,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       Arguments newList {A} _ _ _.
 
       Definition cons {A: Set} (hd: A) (tl: (@ List A)) := newList true hd tl.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait List[A] {
       "  def isEmpty: Boolean
       "  def head: A
@@ -1774,8 +1735,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         head := hd;
         tail := tl
       |}.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait List {
       "  type A
       "  def isEmpty: Boolean
@@ -1834,8 +1794,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         head := None;
         tail := None
       |}.
-      """) should generateScalaCode(
-      """
+      """) should generateScalaCode("""
       "trait MyList {
       "  type A
       "  def isEmpty: Boolean
@@ -2127,7 +2086,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  val q0: Option[Q.t] = nat_rect(_ => (q0: Option[Q.t]) => sumElems(Q)(q0))(n)(Some(q))
       "  bind_option(q0)((q1: Q.t) => option_map(Q.pop(q1))(fst))
       "}
-      """)
+      """
+    )
 
   }
 }

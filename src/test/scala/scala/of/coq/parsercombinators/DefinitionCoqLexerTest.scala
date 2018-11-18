@@ -4,12 +4,7 @@ import org.scalatest.FunSuite
 import org.scalatest.Matchers.{contain, convertToAnyShouldWrapper}
 
 import scala.of.coq.parsercombinators.lexer.CoqLexer
-import scala.of.coq.parsercombinators.lexer.CoqLexer.{
-  Identifier,
-  Keyword,
-  NumericLit,
-  errorToken
-}
+import scala.of.coq.parsercombinators.lexer.CoqLexer.{Identifier, Keyword, NumericLit, errorToken}
 
 class DefinitionCoqLexerTest extends FunSuite {
 
@@ -39,8 +34,7 @@ class DefinitionCoqLexerTest extends FunSuite {
   }
 
   test("Coq Lexer fails if Coq code contains an invalid symbol") {
-    CoqLexer.parseAllTokens(invalidCoqCode) should contain(
-      errorToken("illegal character"))
+    CoqLexer.parseAllTokens(invalidCoqCode) should contain(errorToken("illegal character"))
   }
 
 }

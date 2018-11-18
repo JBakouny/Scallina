@@ -11,10 +11,8 @@ import scala.of.coq.parsercombinators.parser.CoqParser
 
 class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
 
-  def fileToString(directory: String, extension: String)(
-      fileName: String): String = {
-    val fileBufferedSource = io.Source.fromURL(
-      getClass.getResource(directory + "/" + fileName + "." + extension))
+  def fileToString(directory: String, extension: String)(fileName: String): String = {
+    val fileBufferedSource = io.Source.fromURL(getClass.getResource(directory + "/" + fileName + "." + extension))
     try fileBufferedSource.mkString
     finally fileBufferedSource.close()
   }
@@ -24,7 +22,7 @@ class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
 
     val optionalCoqAst = Option(coqAST.getOrElse(null))
 
-    val outputString = optionalCoqAst.fold(coqAST.toString) { coqTrees =>
+    val outputString = optionalCoqAst.fold(coqAST.toString) { coqTrees ⇒
       new ScalaOfCoq(coqTrees, Currify).createObjectFileCode(fileName)
     }
 
@@ -35,8 +33,7 @@ class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
     val fileStringContents =
       fileToString("/scala/of/coq/generated/code", "scala")(fileName)
 
-    normalizeWhitespace(
-      "package .+".r.replaceAllIn(fileStringContents, _ => ""))
+    normalizeWhitespace("package .+".r.replaceAllIn(fileStringContents, _ ⇒ ""))
   }
 
   def getListOfFiles(dir: URL): List[String] = {
@@ -52,10 +49,10 @@ class ScalaOfCoqCurrifiedFileBasedTest extends FunSuite {
 
     val allCoqFileNames =
       getListOfFiles(getClass.getResource("/")).filter(_.endsWith(".v"))
-    val allBaseNamesWithoutExtension = allCoqFileNames.map(fileName =>
-      """(.*/)?([^/]+)\.v$""".r.replaceFirstIn(fileName, "$2"))
+    val allBaseNamesWithoutExtension =
+      allCoqFileNames.map(fileName ⇒ """(.*/)?([^/]+)\.v$""".r.replaceFirstIn(fileName, "$2"))
 
-    for (name <- allBaseNamesWithoutExtension) {
+    for (name ← allBaseNamesWithoutExtension) {
       info("Testing " + name)
       assert(actualScalaCode(name) === expectedScalaCode(name))
     }

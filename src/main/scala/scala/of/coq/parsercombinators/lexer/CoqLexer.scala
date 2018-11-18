@@ -21,8 +21,7 @@ object CoqLexer extends StdLexical {
   def parseAllTokens(s: String): List[CoqLexer.Token] = {
     val scanner = new Scanner(s)
 
-    def parseAllTokensHelper(
-        scanner: CoqLexer.Scanner): List[CoqLexer.Token] = {
+    def parseAllTokensHelper(scanner: CoqLexer.Scanner): List[CoqLexer.Token] = {
       if (scanner.atEnd) Nil
       else scanner.first :: parseAllTokensHelper(scanner.rest)
     }
@@ -37,8 +36,8 @@ object CoqLexer extends StdLexical {
   )
 
   override protected def comment: Parser[Any] = (
-    rep(chrExcept(EofCh, '*')) ~ '*' ~ ')' ^^ (_ => ' ')
-      | rep(chrExcept(EofCh, '*')) ~ '*' ~ comment ^^ (_ => ' ')
+    rep(chrExcept(EofCh, '*')) ~ '*' ~ ')' ^^ (_ ⇒ ' ')
+      | rep(chrExcept(EofCh, '*')) ~ '*' ~ comment ^^ (_ ⇒ ' ')
   )
 
   /*
@@ -60,7 +59,7 @@ object CoqLexer extends StdLexical {
 
   private def identifier: Parser[Token] = {
     identChar ~ ((identChar | digit) *) ^^ {
-      case first ~ rest => processIdent(first :: rest mkString "")
+      case first ~ rest ⇒ processIdent(first :: rest mkString "")
     }
   }
 
@@ -70,7 +69,7 @@ object CoqLexer extends StdLexical {
    */
   private def number: Parser[NumericLit] = {
     digit ~ (digit *) ^^ {
-      case first ~ rest => NumericLit(first :: rest mkString "")
+      case first ~ rest ⇒ NumericLit(first :: rest mkString "")
     }
   }
 
@@ -88,10 +87,9 @@ object CoqLexer extends StdLexical {
    */
   private def literal: Parser[StringLit] = {
     '\"' ~ (chrExcept('\"', '\n', EofCh) *) ~ '\"' ^^ {
-      case '\"' ~ chars ~ '\"' => StringLit(chars mkString "")
-      case _ =>
-        throw new IllegalStateException(
-          "String literal parser: should not get here!")
+      case '\"' ~ chars ~ '\"' ⇒ StringLit(chars mkString "")
+      case _ ⇒
+        throw new IllegalStateException("String literal parser: should not get here!")
     }
   }
 

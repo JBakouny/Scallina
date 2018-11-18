@@ -8,8 +8,7 @@ sealed trait CoqAST {
 sealed trait Sentence extends CoqAST
 
 //TODO (Joseph Bakouny): This AST is not in the grammar, consider a more in-depth support for modules.
-case class RequireImport(moduleName: Qualid, shouldExport: Boolean = false)
-    extends Sentence {
+case class RequireImport(moduleName: Qualid, shouldExport: Boolean = false) extends Sentence {
   def toCoqCode: String =
     "Require " + (if (shouldExport) "Export" else "Import") + " " + moduleName.toCoqCode + "."
 }
@@ -42,11 +41,7 @@ case class ScopeCommand(scopeName: Qualid, isLocal: Boolean) extends Sentence {
 /*
  * TODO (Joseph Bakouny): Add [Local] keyword and "Let" production to Definition in subsequent versions
  */
-case class Definition(ident: Ident,
-                      binders: Option[Binders],
-                      typeTerm: Option[Term],
-                      bodyTerm: Term)
-    extends Sentence {
+case class Definition(ident: Ident, binders: Option[Binders], typeTerm: Option[Term], bodyTerm: Term) extends Sentence {
   def toCoqCode: String =
     "Definition " + ident.toCoqCode +
       binders.fold("")(" " + _.toCoqCode) +
@@ -63,13 +58,14 @@ case class FunctionDef(functionBody: FunctionBody) extends Sentence {
   def toCoqCode: String = "Function " + functionBody.toCoqCode + "."
 }
 
-case class Record(keyword: RecordKeyword,
-                  id: Ident,
-                  params: Option[Binders],
-                  sort: Option[Sort],
-                  constructor: Option[Ident],
-                  fields: List[RecordField])
-    extends Sentence {
+case class Record(
+    keyword: RecordKeyword,
+    id: Ident,
+    params: Option[Binders],
+    sort: Option[Sort],
+    constructor: Option[Ident],
+    fields: List[RecordField]
+) extends Sentence {
 
   def toCoqCode: String =
     keyword.toCoqCode + " " + id.toCoqCode +
@@ -109,33 +105,23 @@ case object CoInductiveRecordKeyword extends RecordKeyword {
 // End of RecordKeyword
 
 // Start of RecordField
-sealed abstract class RecordField(name: Name, binders: Option[Binders])
-    extends CoqAST {
+sealed abstract class RecordField(name: Name, binders: Option[Binders]) extends CoqAST {
   def toCoqCode: String = name.toCoqCode + binders.fold("")(" " + _.toCoqCode)
 }
 
-case class AbstractRecordField(name: Name,
-                               binders: Option[Binders],
-                               typeTerm: Term)
+case class AbstractRecordField(name: Name, binders: Option[Binders], typeTerm: Term)
     extends RecordField(name, binders) {
   override def toCoqCode: String = super.toCoqCode + " : " + typeTerm.toCoqCode
 }
 
-case class ConcreteRecordField(name: Name,
-                               binders: Option[Binders],
-                               typeTerm: Option[Term],
-                               bodyTerm: Term)
+case class ConcreteRecordField(name: Name, binders: Option[Binders], typeTerm: Option[Term], bodyTerm: Term)
     extends RecordField(name, binders) {
   override def toCoqCode: String =
     super.toCoqCode + typeTerm.fold("")(" : " + _.toCoqCode) + " := " + bodyTerm.toCoqCode
 }
 // End of RecordField
 
-case class Assertion(keyword: AssertionKeyword,
-                     id: Ident,
-                     binders: Option[Binders],
-                     term: Term)
-    extends Sentence {
+case class Assertion(keyword: AssertionKeyword, id: Ident, binders: Option[Binders], term: Term) extends Sentence {
   def toCoqCode: String =
     keyword.toCoqCode + " " + id.toCoqCode +
       " " + binders.fold("")(_.toCoqCode) +
@@ -206,27 +192,23 @@ case class Inductive(indBody: InductiveBody) extends Sentence {
 // End of sentence
 
 // TODO (Joseph Bakouny): Check why the InductiveBody typeTerm seems optional in Coq but marked as required in the grammar
-case class InductiveBody(id: Ident,
-                         binders: Option[Binders],
-                         typeTerm: Option[Term],
-                         indBodyItems: List[InductiveBodyItem])
-    extends CoqAST {
+case class InductiveBody(
+    id: Ident,
+    binders: Option[Binders],
+    typeTerm: Option[Term],
+    indBodyItems: List[InductiveBodyItem]
+) extends CoqAST {
   def toCoqCode: String =
-    id.toCoqCode + binders.fold("")(" " + _.toCoqCode) + typeTerm.fold("")(
-      " : " + _.toCoqCode) + " :=\n" +
+    id.toCoqCode + binders.fold("")(" " + _.toCoqCode) + typeTerm.fold("")(" : " + _.toCoqCode) + " :=\n" +
       indBodyItems.map(_.toCoqCode).mkString("\n| ")
 }
 
 /**
   * This is just a helper case class used in the case class InductiveBody, it is not present in the original grammar.
   */
-case class InductiveBodyItem(id: Ident,
-                             binders: Option[Binders],
-                             typeTerm: Option[Term])
-    extends CoqAST {
+case class InductiveBodyItem(id: Ident, binders: Option[Binders], typeTerm: Option[Term]) extends CoqAST {
   def toCoqCode: String =
-    id.toCoqCode + binders.fold("")(" " + _.toCoqCode) + typeTerm.fold("")(
-      " : " + _.toCoqCode)
+    id.toCoqCode + binders.fold("")(" " + _.toCoqCode) + typeTerm.fold("")(" : " + _.toCoqCode)
 }
 
 // Start of term
@@ -248,12 +230,13 @@ case class Fix(fixBodies: FixBodies) extends Term {
 // Start of LetIn
 sealed trait LetIn extends Term
 
-case class SimpleLetIn(indentifier: Ident,
-                       binders: Option[Binders],
-                       typeTerm: Option[Term],
-                       inputTerm: Term,
-                       mainTerm: Term)
-    extends LetIn {
+case class SimpleLetIn(
+    indentifier: Ident,
+    binders: Option[Binders],
+    typeTerm: Option[Term],
+    inputTerm: Term,
+    mainTerm: Term
+) extends LetIn {
   def toCoqCode: String =
     "let " + indentifier.toCoqCode +
       binders.fold("")(" " + _.toCoqCode) +
@@ -268,10 +251,7 @@ case class LetFixIn(fixBody: FixBody, mainTerm: Term) extends LetIn {
       " in " + mainTerm.toCoqCode
 }
 
-case class LetConstructorArgsIn(names: List[Name],
-                                depType: Option[DepRetType],
-                                inTerm: Term,
-                                mainTerm: Term)
+case class LetConstructorArgsIn(names: List[Name], depType: Option[DepRetType], inTerm: Term, mainTerm: Term)
     extends LetIn {
   def toCoqCode: String =
     "let (" + names.map(_.toCoqCode).mkString(", ") + ")" +
@@ -279,10 +259,7 @@ case class LetConstructorArgsIn(names: List[Name],
       " := " + inTerm.toCoqCode + " in " + mainTerm.toCoqCode
 }
 
-case class LetPatternIn(pattern: Pattern,
-                        inputTerm: Term,
-                        returnType: Option[ReturnType],
-                        mainTerm: Term)
+case class LetPatternIn(pattern: Pattern, inputTerm: Term, returnType: Option[ReturnType], mainTerm: Term)
     extends LetIn {
   def toCoqCode: String =
     "let ' " + pattern.toCoqCode +
@@ -293,11 +270,7 @@ case class LetPatternIn(pattern: Pattern,
 
 // End of LetIn
 
-case class TermIf(cond: Term,
-                  depRetType: Option[DepRetType],
-                  thenPart: Term,
-                  elsePart: Term)
-    extends Term {
+case class TermIf(cond: Term, depRetType: Option[DepRetType], thenPart: Term, elsePart: Term) extends Term {
   def toCoqCode: String =
     "if " + cond.toCoqCode +
       depRetType.fold("")(" " + _.toCoqCode) +
@@ -328,27 +301,23 @@ sealed trait TermApplication extends Term {
    * applied recursively on all subterms, this will require a case clause for most case classes.
    */
   def currify: TermApplication = this match {
-    case UncurriedTermApplication(term, arg :: args) =>
-      (args foldLeft CurriedTermApplication(term, arg))((termApp, arg) =>
-        CurriedTermApplication(termApp, arg))
-    case otherAst => otherAst
+    case UncurriedTermApplication(term, arg :: args) ⇒
+      (args foldLeft CurriedTermApplication(term, arg))((termApp, arg) ⇒ CurriedTermApplication(termApp, arg))
+    case otherAst ⇒ otherAst
   }
 }
 
-case class UncurriedTermApplication(term: Term, arguments: List[Argument])
-    extends TermApplication {
+case class UncurriedTermApplication(term: Term, arguments: List[Argument]) extends TermApplication {
   def toCoqCode: String =
     term.toCoqCode + " " + arguments.map(_.toCoqCode).mkString(" ")
 }
 
-case class CurriedTermApplication(term: Term, argument: Argument)
-    extends TermApplication {
+case class CurriedTermApplication(term: Term, argument: Argument) extends TermApplication {
   def toCoqCode: String = term.toCoqCode + " " + argument.toCoqCode
 }
 // End of TermApplication
 
-case class ExplicitQualidApplication(id: Qualid, arguments: List[Term])
-    extends Term {
+case class ExplicitQualidApplication(id: Qualid, arguments: List[Term]) extends Term {
   def toCoqCode: String =
     "@ " + id.toCoqCode + (if (arguments.isEmpty) "" else " ") + arguments
       .map(_.toCoqCode)
@@ -362,21 +331,15 @@ case class Term_%(term: Term, ident: Ident) extends Term {
 /*
  * TODO (Joseph Bakouny): infix operators are not represented in the Coq grammar, this class should perhaps be re-thinked.
  */
-case class InfixOperator(leftOperand: Term,
-                         operator: String,
-                         rightOperand: Term)
-    extends Term {
+case class InfixOperator(leftOperand: Term, operator: String, rightOperand: Term) extends Term {
   def toCoqCode: String =
     leftOperand.toCoqCode + " " + operator + " " + rightOperand.toCoqCode
 }
 
-case class Match(matchItems: List[MatchItem],
-                 returnType: Option[ReturnType],
-                 equations: List[PatternEquation])
+case class Match(matchItems: List[MatchItem], returnType: Option[ReturnType], equations: List[PatternEquation])
     extends Term {
   def toCoqCode: String =
-    "match " + matchItems.map(_.toCoqCode).mkString(" , ") + returnType.fold(
-      "")(" " + _.toCoqCode) + " with\n" +
+    "match " + matchItems.map(_.toCoqCode).mkString(" , ") + returnType.fold("")(" " + _.toCoqCode) + " with\n" +
       equations.map(_.toCoqCode).mkString("\n| ") +
       "\nend"
 }
@@ -411,8 +374,8 @@ case class Number(n: Int) extends Term {
  */
 case class TupleValue(tupleTerms: List[Term]) extends Term {
   def toCoqCode: String = tupleTerms match {
-    case Nil     => "()"
-    case t :: ts => "(" + ts.foldLeft(t.toCoqCode)(_ + ", " + _.toCoqCode) + ")"
+    case Nil     ⇒ "()"
+    case t :: ts ⇒ "(" + ts.foldLeft(t.toCoqCode)(_ + ", " + _.toCoqCode) + ")"
   }
 }
 
@@ -425,21 +388,17 @@ sealed abstract class RecordProjection(recordInstance: Term) extends Term {
   def toCoqCode: String = recordInstance.toCoqCode + ".("
 }
 
-case class SimpleProjection(recordInstance: Term, fieldName: Qualid)
-    extends RecordProjection(recordInstance) {
+case class SimpleProjection(recordInstance: Term, fieldName: Qualid) extends RecordProjection(recordInstance) {
   override def toCoqCode: String = super.toCoqCode + fieldName.toCoqCode + ")"
 }
 
-case class ApplicationProjection(recordInstance: Term,
-                                 termApplication: TermApplication)
+case class ApplicationProjection(recordInstance: Term, termApplication: TermApplication)
     extends RecordProjection(recordInstance) {
   override def toCoqCode: String =
     super.toCoqCode + termApplication.toCoqCode + ")"
 }
 
-case class ExplicitApplicationProjection(
-    recordInstance: Term,
-    explicitQualidApplication: ExplicitQualidApplication)
+case class ExplicitApplicationProjection(recordInstance: Term, explicitQualidApplication: ExplicitQualidApplication)
     extends RecordProjection(recordInstance) {
   override def toCoqCode: String =
     super.toCoqCode + " " + explicitQualidApplication.toCoqCode + ")"
@@ -467,7 +426,7 @@ sealed trait Binder extends CoqAST {
 }
 
 case class ExplicitSimpleBinder(name: Name) extends Binder {
-  def doOpenDelimiter(): String = ""
+  def doOpenDelimiter(): String  = ""
   def doCloseDelimiter(): String = ""
 
   def toCoqCode: String = doOpenDelimiter + name.toCoqCode + doCloseDelimiter
@@ -476,16 +435,13 @@ case class ExplicitSimpleBinder(name: Name) extends Binder {
 // Start of BinderListGroup
 
 // This abstract class is just used to refactor the toCoqCode method
-sealed abstract class NameGroupBinder(names: List[Name], typeTerm: Option[Term])
-    extends Binder {
+sealed abstract class NameGroupBinder(names: List[Name], typeTerm: Option[Term]) extends Binder {
   def toCoqCode: String =
-    doOpenDelimiter + names.map(_.toCoqCode).mkString(" ") + typeTerm.fold("")(
-      " : " + _.toCoqCode) + doCloseDelimiter
+    doOpenDelimiter + names.map(_.toCoqCode).mkString(" ") + typeTerm.fold("")(" : " + _.toCoqCode) + doCloseDelimiter
 }
 
-case class ExplicitBinderWithType(names: List[Name], typeTerm: Term)
-    extends NameGroupBinder(names, Some(typeTerm)) {
-  def doOpenDelimiter(): String = "("
+case class ExplicitBinderWithType(names: List[Name], typeTerm: Term) extends NameGroupBinder(names, Some(typeTerm)) {
+  def doOpenDelimiter(): String  = "("
   def doCloseDelimiter(): String = ")"
 }
 
@@ -501,9 +457,8 @@ case class ExplicitBinderWithType(names: List[Name], typeTerm: Term)
  *
  * The above notation supports the use of curly brackets {...}
  */
-case class ImplicitBinder(names: List[Name], typeTerm: Option[Term])
-    extends NameGroupBinder(names, typeTerm) {
-  def doOpenDelimiter(): String = "{"
+case class ImplicitBinder(names: List[Name], typeTerm: Option[Term]) extends NameGroupBinder(names, typeTerm) {
+  def doOpenDelimiter(): String  = "{"
   def doCloseDelimiter(): String = "}"
 }
 
@@ -527,12 +482,13 @@ case class FixBodies(fixBody: FixBody) extends Term {
   def toCoqCode: String = fixBody.toCoqCode
 }
 
-abstract sealed class RecursiveFunBody(ident: Ident,
-                                       binders: Binders,
-                                       annot: Option[Annotation],
-                                       typeTerm: Option[Term],
-                                       bodyTerm: Term)
-    extends CoqAST {
+abstract sealed class RecursiveFunBody(
+    ident: Ident,
+    binders: Binders,
+    annot: Option[Annotation],
+    typeTerm: Option[Term],
+    bodyTerm: Term
+) extends CoqAST {
   def toCoqCode: String =
     ident.toCoqCode + " " + binders.toCoqCode +
       annot.fold("")(" " + _.toCoqCode) +
@@ -540,23 +496,16 @@ abstract sealed class RecursiveFunBody(ident: Ident,
       " := " + bodyTerm.toCoqCode
 }
 
-case class FixBody(ident: Ident,
-                   binders: Binders,
-                   annotation: Option[FixAnnotation],
-                   typeTerm: Option[Term],
-                   bodyTerm: Term)
-    extends RecursiveFunBody(ident, binders, annotation, typeTerm, bodyTerm)
+case class FixBody(
+    ident: Ident,
+    binders: Binders,
+    annotation: Option[FixAnnotation],
+    typeTerm: Option[Term],
+    bodyTerm: Term
+) extends RecursiveFunBody(ident, binders, annotation, typeTerm, bodyTerm)
 
-case class FunctionBody(ident: Ident,
-                        binders: Binders,
-                        annotation: Annotation,
-                        typeTerm: Option[Term],
-                        bodyTerm: Term)
-    extends RecursiveFunBody(ident,
-                             binders,
-                             Some(annotation),
-                             typeTerm,
-                             bodyTerm)
+case class FunctionBody(ident: Ident, binders: Binders, annotation: Annotation, typeTerm: Option[Term], bodyTerm: Term)
+    extends RecursiveFunBody(ident, binders, Some(annotation), typeTerm, bodyTerm)
 
 sealed trait Annotation extends CoqAST
 
@@ -572,25 +521,20 @@ case class FunAnnotation(anonFun: Fun, ident: Ident) extends Annotation {
 /**
   * This is just a helper case class used in the case class MatchItem, it is not present in the original grammar.
   */
-case class MatchItemPattern(id: Qualid, patterns: List[Pattern])
-    extends Pattern {
+case class MatchItemPattern(id: Qualid, patterns: List[Pattern]) extends Pattern {
   def toCoqCode: String =
     id.toCoqCode + (if (patterns.isEmpty) "" else " ") + patterns
       .map(_.toCoqCode)
       .mkString(" ")
 }
 
-case class MatchItem(term: Term,
-                     name: Option[Name],
-                     matchItemPattern: Option[MatchItemPattern])
-    extends CoqAST {
+case class MatchItem(term: Term, name: Option[Name], matchItemPattern: Option[MatchItemPattern]) extends CoqAST {
   def toCoqCode: String =
     term.toCoqCode + name.fold("")(" as " + _.toCoqCode) + matchItemPattern
       .fold("")(" in " + _.toCoqCode)
 }
 
-case class DepRetType(name: Option[Name], returnType: ReturnType)
-    extends CoqAST {
+case class DepRetType(name: Option[Name], returnType: ReturnType) extends CoqAST {
   def toCoqCode: String =
     name.fold("")("as " + _.toCoqCode + " ") + returnType.toCoqCode
 }
@@ -599,8 +543,7 @@ case class ReturnType(term: Term) extends CoqAST {
   def toCoqCode: String = "return " + term.toCoqCode
 }
 
-case class PatternEquation(orMultPatterns: List[MultPattern], outputTerm: Term)
-    extends CoqAST {
+case class PatternEquation(orMultPatterns: List[MultPattern], outputTerm: Term) extends CoqAST {
   def toCoqCode: String =
     orMultPatterns
       .map(_.toCoqCode)
@@ -618,13 +561,11 @@ sealed trait Pattern extends CoqAST
 /*
  * Warning: infix patterns are not represented in the official Coq grammar!
  */
-case class InfixPattern(left: Pattern, op: String, right: Pattern)
-    extends Pattern {
+case class InfixPattern(left: Pattern, op: String, right: Pattern) extends Pattern {
   def toCoqCode: String = left.toCoqCode + " " + op + " " + right.toCoqCode
 }
 
-case class ConstructorPattern(id: Qualid, patterns: List[Pattern])
-    extends Pattern {
+case class ConstructorPattern(id: Qualid, patterns: List[Pattern]) extends Pattern {
   def toCoqCode: String =
     id.toCoqCode + " " + patterns.map(_.toCoqCode).mkString(" ")
 }

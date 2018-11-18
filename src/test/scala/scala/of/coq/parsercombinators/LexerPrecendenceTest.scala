@@ -5,12 +5,7 @@ import org.scalatest.Matchers.convertToAnyShouldWrapper
 
 import scala.of.coq.parsercombinators.CustomMatchers.identify
 import scala.of.coq.parsercombinators.lexer.CoqLexer
-import scala.of.coq.parsercombinators.lexer.CoqLexer.{
-  Identifier,
-  Keyword,
-  NumericLit,
-  StringLit
-}
+import scala.of.coq.parsercombinators.lexer.CoqLexer.{Identifier, Keyword, NumericLit, StringLit}
 
 /**
   * While implementing the lexer, care should be

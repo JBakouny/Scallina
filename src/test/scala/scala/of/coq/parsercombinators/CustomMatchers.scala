@@ -9,8 +9,7 @@ import scala.of.coq.parsercombinators.parser.{CoqAST, CoqParser, Sentence}
 
 trait CustomMatchers {
 
-  class TokenParserMatcher[T](expected: T)
-      extends Matcher[CoqParser.ParseResult[T]] {
+  class TokenParserMatcher[T](expected: T) extends Matcher[CoqParser.ParseResult[T]] {
 
     def apply(left: CoqParser.ParseResult[T]): MatchResult = {
       val actual = Option(left.getOrElse(null))
@@ -31,7 +30,8 @@ trait CustomMatchers {
       val actualCode = normalizeWhitespace(
         left
           .map(new ScalaOfCoq(_, curryingStrategy).generateScalaCode)
-          .getOrElse(left.toString))
+          .getOrElse(left.toString)
+      )
 
       MatchResult(
         actualCode == expectedCode,
@@ -58,8 +58,7 @@ trait CustomMatchers {
 
   def parse(coqAst: List[CoqAST]) = new TokenParserMatcher(coqAst)
 
-  def generateScalaCode(scalaCode: String)(
-      implicit curryingStrategy: CurryingStrategy) =
+  def generateScalaCode(scalaCode: String)(implicit curryingStrategy: CurryingStrategy) =
     new ScalaCodeMatcher(scalaCode, curryingStrategy)
 
   def identify(lex: CoqLexer.Token) = new LexemMatcher(lex)

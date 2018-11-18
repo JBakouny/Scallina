@@ -1,11 +1,7 @@
 package scala.of.coq.parsercombinators.parser
 
 import scala.of.coq.parsercombinators.lexer.CoqLexer
-import scala.of.coq.parsercombinators.lexer.CoqLexer.{
-  Identifier,
-  NumericLit,
-  StringLit
-}
+import scala.of.coq.parsercombinators.lexer.CoqLexer.{Identifier, NumericLit, StringLit}
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
@@ -62,7 +58,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
    */
   private lazy val argumentsCommand: P[ArgumentsCommand] =
     "Arguments" ~> qualid ~ binders <~ "." ^^ {
-      case id ~ binders => ArgumentsCommand(id, binders)
+      case id ~ binders ⇒ ArgumentsCommand(id, binders)
     }
 
   /*
@@ -73,7 +69,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
    */
   private lazy val scopeCommand: P[ScopeCommand] =
     ("Local" ?) ~ "Open" ~ "Scope" ~ qualid <~ "." ^^ {
-      case localOptional ~ _ ~ _ ~ scopeName =>
+      case localOptional ~ _ ~ _ ~ scopeName ⇒
         ScopeCommand(scopeName, localOptional.isDefined)
     }
 
@@ -82,7 +78,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
    */
   private lazy val definition: P[Definition] =
     "Definition" ~> identifier ~ (binders ?) ~ opt(":" ~> term) ~ ":=" ~ term <~ "." ^^ {
-      case id ~ binders ~ typeTerm ~ _ ~ bodyTerm =>
+      case id ~ binders ~ typeTerm ~ _ ~ bodyTerm ⇒
         Definition(id, binders, typeTerm, bodyTerm)
     }
 
@@ -92,14 +88,9 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   // TODO (Joseph Bakouny): Check why the InductiveBody typeTerm seems optional in Coq but marked as required in the grammar
   private lazy val inductiveBody: P[InductiveBody] =
-    identifier ~ (binders ?) ~ opt(":" ~> term) ~ ":=" ~ opt(
-      ("|" ?) ~> rep1sep(inductiveBodyItem, "|")) ^^ {
-      case id ~ binders ~ typeTerm ~ _ ~ inductiveBodyItems =>
-        InductiveBody(
-          id,
-          binders,
-          typeTerm,
-          inductiveBodyItems.fold(List[InductiveBodyItem]())(xs => xs))
+    identifier ~ (binders ?) ~ opt(":" ~> term) ~ ":=" ~ opt(("|" ?) ~> rep1sep(inductiveBodyItem, "|")) ^^ {
+      case id ~ binders ~ typeTerm ~ _ ~ inductiveBodyItems ⇒
+        InductiveBody(id, binders, typeTerm, inductiveBodyItems.fold(List[InductiveBodyItem]())(xs ⇒ xs))
     }
 
   /**
@@ -107,37 +98,38 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     */
   private lazy val inductiveBodyItem: P[InductiveBodyItem] =
     identifier ~ (binders ?) ~ opt(":" ~> term) ^^ {
-      case id ~ binders ~ typeTerm => InductiveBodyItem(id, binders, typeTerm)
+      case id ~ binders ~ typeTerm ⇒ InductiveBodyItem(id, binders, typeTerm)
     }
 
   private lazy val record: P[Record] =
     recordKeyword ~ identifier ~ (binders ?) ~ opt(":" ~> sort) ~ ":=" ~ (identifier ?) ~ ("{" ~> repsep(
       recordField,
-      ";")) <~ "}" ~ "." ^^ {
-      case keyword ~ id ~ binders ~ sort ~ _ ~ constructor ~ fields =>
+      ";"
+    )) <~ "}" ~ "." ^^ {
+      case keyword ~ id ~ binders ~ sort ~ _ ~ constructor ~ fields ⇒
         Record(keyword, id, binders, sort, constructor, fields)
     }
 
   private lazy val recordKeyword: P[RecordKeyword] =
     accept(
       "recordKeyword", {
-        case CoqLexer.Keyword("Record")    => RecordKeyword
-        case CoqLexer.Keyword("Structure") => StructureKeyword
+        case CoqLexer.Keyword("Record")    ⇒ RecordKeyword
+        case CoqLexer.Keyword("Structure") ⇒ StructureKeyword
         // TODO(Joseph Bakouny): These two record keywords are currently not supported.
-        case CoqLexer.Keyword("Inductive")   => InductiveRecordKeyword
-        case CoqLexer.Keyword("CoInductive") => CoInductiveRecordKeyword
+        case CoqLexer.Keyword("Inductive")   ⇒ InductiveRecordKeyword
+        case CoqLexer.Keyword("CoInductive") ⇒ CoInductiveRecordKeyword
       }
     )
 
   private lazy val concreteRecordField: P[ConcreteRecordField] =
     name ~ (binders ?) ~ opt(":" ~> term) ~ ":=" ~ term ^^ {
-      case name ~ binders ~ typeTerm ~ _ ~ bodyTerm =>
+      case name ~ binders ~ typeTerm ~ _ ~ bodyTerm ⇒
         ConcreteRecordField(name, binders, typeTerm, bodyTerm)
     }
 
   private lazy val abstractRecordField: P[AbstractRecordField] =
     name ~ (binders ?) ~ ":" ~ term ^^ {
-      case name ~ binders ~ _ ~ typeTerm =>
+      case name ~ binders ~ _ ~ typeTerm ⇒
         AbstractRecordField(name, binders, typeTerm)
     }
 
@@ -155,21 +147,21 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   private lazy val assertion: P[Assertion] =
     assertionKeyword ~ identifier ~ (binders ?) ~ ":" ~ term <~ "." ^^ {
-      case keyword ~ id ~ binders ~ _ ~ term =>
+      case keyword ~ id ~ binders ~ _ ~ term ⇒
         Assertion(keyword, id, binders, term)
     }
 
   private lazy val assertionKeyword: P[AssertionKeyword] =
     accept(
       "assertionKeyword", {
-        case CoqLexer.Keyword("Theorem")     => Theorem
-        case CoqLexer.Keyword("Lemma")       => Lemma
-        case CoqLexer.Keyword("Remark")      => Remark
-        case CoqLexer.Keyword("Fact")        => Fact
-        case CoqLexer.Keyword("Corollary")   => Corollary
-        case CoqLexer.Keyword("Proposition") => Proposition
-        case CoqLexer.Keyword("Definition")  => DefinitionAssertionKeyword
-        case CoqLexer.Keyword("Example")     => Example
+        case CoqLexer.Keyword("Theorem")     ⇒ Theorem
+        case CoqLexer.Keyword("Lemma")       ⇒ Lemma
+        case CoqLexer.Keyword("Remark")      ⇒ Remark
+        case CoqLexer.Keyword("Fact")        ⇒ Fact
+        case CoqLexer.Keyword("Corollary")   ⇒ Corollary
+        case CoqLexer.Keyword("Proposition") ⇒ Proposition
+        case CoqLexer.Keyword("Definition")  ⇒ DefinitionAssertionKeyword
+        case CoqLexer.Keyword("Example")     ⇒ Example
       }
     )
 
@@ -180,17 +172,14 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   private lazy val proof: P[Proof] = {
     val failureMsg = "A Coq proof is expected"
     lazy val proofEnd: P[Proof] = (
-      rep(acceptIf(_ != CoqLexer.Keyword("Qed"))(_ => failureMsg)) ~ "Qed" ^^ {
-        _ =>
-          ProofQed
+      rep(acceptIf(_ != CoqLexer.Keyword("Qed"))(_ ⇒ failureMsg)) ~ "Qed" ^^ { _ ⇒
+        ProofQed
       }
-        | rep(acceptIf(_ != CoqLexer.Keyword("Defined"))(_ => failureMsg)) ~ "Defined" ^^ {
-          _ =>
-            ProofDefined
+        | rep(acceptIf(_ != CoqLexer.Keyword("Defined"))(_ ⇒ failureMsg)) ~ "Defined" ^^ { _ ⇒
+          ProofDefined
         }
-        | rep(acceptIf(_ != CoqLexer.Keyword("Admitted"))(_ => failureMsg)) ~ "Admitted" ^^ {
-          _ =>
-            ProofAdmitted
+        | rep(acceptIf(_ != CoqLexer.Keyword("Admitted"))(_ ⇒ failureMsg)) ~ "Admitted" ^^ { _ ⇒
+          ProofAdmitted
         }
     )
 
@@ -200,23 +189,23 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   private lazy val term: P[Term] = Term.term
 
   private lazy val binders: P[Binders] = {
-    (binder +) ^^ (bs => Binders(bs))
+    (binder +) ^^ (bs ⇒ Binders(bs))
   }
 
   private lazy val binder: P[Binder] = (
     name ^^ { ExplicitSimpleBinder }
       | "(" ~> (name +) ~ ":" ~ term <~ ")" ^^ {
-        case names ~ _ ~ typeTerm => ExplicitBinderWithType(names, typeTerm)
+        case names ~ _ ~ typeTerm ⇒ ExplicitBinderWithType(names, typeTerm)
       }
       | "{" ~> (name +) ~ opt(":" ~> term) <~ "}" ^^ {
-        case names ~ typeTerm => ImplicitBinder(names, typeTerm)
+        case names ~ typeTerm ⇒ ImplicitBinder(names, typeTerm)
       }
   )
 
   private lazy val name: P[Name] = {
     accept("name", {
-      case Identifier(name)      => Name(Some(Ident(name)))
-      case CoqLexer.Keyword("_") => Name(None)
+      case Identifier(name)      ⇒ Name(Some(Ident(name)))
+      case CoqLexer.Keyword("_") ⇒ Name(None)
     })
   }
 
@@ -225,13 +214,13 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   private lazy val sort: P[Sort] =
     accept("sort", {
-      case CoqLexer.Keyword("Prop") => Prop
-      case CoqLexer.Keyword("Set")  => Set
-      case CoqLexer.Keyword("Type") => Type
+      case CoqLexer.Keyword("Prop") ⇒ Prop
+      case CoqLexer.Keyword("Set")  ⇒ Set
+      case CoqLexer.Keyword("Type") ⇒ Type
     })
 
   // TODO (Joseph Bakouny): consider adding the original definition of fixBody outside AbstractTerm
-  private lazy val fixBody: P[FixBody] = Term.fixBody
+  private lazy val fixBody: P[FixBody]           = Term.fixBody
   private lazy val functionBody: P[FunctionBody] = Term.functionBody
 
   /**
@@ -239,7 +228,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     */
   private lazy val matchItemPattern: P[MatchItemPattern] =
     qualid ~ (pattern *) ^^ {
-      case id ~ patterns => MatchItemPattern(id, patterns)
+      case id ~ patterns ⇒ MatchItemPattern(id, patterns)
     }
 
   private lazy val multPattern: P[MultPattern] =
@@ -251,16 +240,16 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     rep1sep(pattern, "|") ^^ { OrPattern }
 
   private lazy val identifier: P[Ident] = {
-    accept("identifier", { case Identifier(name) => Ident(name) })
+    accept("identifier", { case Identifier(name) ⇒ Ident(name) })
   }
 
   private lazy val numberLiteral: P[Number] = {
-    accept("number literal", { case NumericLit(n) => Number(n.toInt) })
+    accept("number literal", { case NumericLit(n) ⇒ Number(n.toInt) })
   }
 
   // TODO (Joseph Bakouny): The stringLiteral production is not used yet. It should either be used or removed.
   private lazy val stringLiteral: P[StringLit] = {
-    accept("string literal", { case lit @ StringLit(_) => lit })
+    accept("string literal", { case lit @ StringLit(_) ⇒ lit })
   }
 
   private lazy val parenthesis: P[BetweenParenthesis] =
@@ -309,12 +298,12 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     private lazy val forall: P[ForAll] =
       "forall" ~> binders ~ "," ~ term ^^ {
-        case bs ~ _ ~ t => ForAll(bs, t)
+        case bs ~ _ ~ t ⇒ ForAll(bs, t)
       }
 
     private lazy val fun: P[Fun] =
       "fun" ~> binders ~ "=>" ~ term ^^ {
-        case bs ~ _ ~ t => Fun(bs, t)
+        case bs ~ _ ~ t ⇒ Fun(bs, t)
       }
 
     private lazy val fix: P[Fix] =
@@ -322,39 +311,39 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     private lazy val simpleLetIn: P[SimpleLetIn] =
       "let" ~> identifier ~ (binders ?) ~ (":" ~> term ?) ~ ":=" ~ term ~ "in" ~ term ^^ {
-        case id ~ binders ~ typeTerm ~ _ ~ inputTerm ~ _ ~ mainTerm =>
+        case id ~ binders ~ typeTerm ~ _ ~ inputTerm ~ _ ~ mainTerm ⇒
           SimpleLetIn(id, binders, typeTerm, inputTerm, mainTerm)
       }
 
     private lazy val letFixIn: P[LetFixIn] =
       "let" ~ "fix" ~> fixBody ~ "in" ~ term ^^ {
-        case fixBody ~ _ ~ mainTerm => LetFixIn(fixBody, mainTerm)
+        case fixBody ~ _ ~ mainTerm ⇒ LetFixIn(fixBody, mainTerm)
       }
 
     private lazy val letConstructorArgsIn: P[LetConstructorArgsIn] =
       "let" ~> ("(" ~> repsep(name, ",") <~ ")") ~ (depRetType ?) ~ ":=" ~ term ~ "in" ~ term ^^ {
-        case names ~ depRetType ~ _ ~ inputTerm ~ _ ~ mainTerm =>
+        case names ~ depRetType ~ _ ~ inputTerm ~ _ ~ mainTerm ⇒
           LetConstructorArgsIn(names, depRetType, inputTerm, mainTerm)
       }
 
     private lazy val letPatternIn: P[LetPatternIn] =
       "let" ~ "'" ~> pattern ~ ":=" ~ term ~ (returnType ?) ~ "in" ~ term ^^ {
-        case pattern ~ _ ~ inputTerm ~ returnType ~ _ ~ mainTerm =>
+        case pattern ~ _ ~ inputTerm ~ returnType ~ _ ~ mainTerm ⇒
           LetPatternIn(pattern, inputTerm, returnType, mainTerm)
       }
 
     private lazy val termIf: P[TermIf] =
       "if" ~> term ~ (depRetType ?) ~ "then" ~ term ~ "else" ~ term ^^ {
-        case cond ~ depRetType ~ _ ~ thenPart ~ _ ~ elsePart =>
+        case cond ~ depRetType ~ _ ~ thenPart ~ _ ~ elsePart ⇒
           TermIf(cond, depRetType, thenPart, elsePart)
       }
 
     private lazy val term_: : P[Term_:] =
-      term ~ ":" ~ term ^^ { case termA ~ _ ~ termB => Term_:(termA, termB) }
+      term ~ ":" ~ term ^^ { case termA ~ _ ~ termB ⇒ Term_:(termA, termB) }
 
     private lazy val term_<: : P[Term_<:] =
       term ~ "<:" ~ term ^^ {
-        case termA ~ _ ~ termB => Term_<:(termA, termB)
+        case termA ~ _ ~ termB ⇒ Term_<:(termA, termB)
       }
 
     private lazy val term_:> : P[Term_:>] =
@@ -362,18 +351,18 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     private lazy val term_-> : P[Term_->] =
       term ~ "->" ~ term ^^ {
-        case termA ~ _ ~ termB => Term_->(termA, termB)
+        case termA ~ _ ~ termB ⇒ Term_->(termA, termB)
       }
 
     // TODO (Joseph Bakouny): Review the use of "TermWithoutApplication.term" instead of "term" in the below "explicitQualidApplication" production
     private lazy val explicitQualidApplication: P[ExplicitQualidApplication] =
       "@" ~> qualid ~ (TermWithoutApplication.term *) ^^ {
-        case id ~ arguments => ExplicitQualidApplication(id, arguments)
+        case id ~ arguments ⇒ ExplicitQualidApplication(id, arguments)
       }
 
     private lazy val term_% : P[Term_%] =
       term ~ "%" ~ identifier ^^ {
-        case term ~ _ ~ identifier => Term_%(term, identifier)
+        case term ~ _ ~ identifier ⇒ Term_%(term, identifier)
       }
 
     //TODO (Joseph Bakouny): Consider a more elegant representation of infix operators
@@ -383,7 +372,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     private lazy val infixOperator: P[InfixOperator] = {
       def infixOp(op: String) =
         term ~ op ~ term ^^ {
-          case leftOp ~ op ~ rightOp => InfixOperator(leftOp, op, rightOp)
+          case leftOp ~ op ~ rightOp ⇒ InfixOperator(leftOp, op, rightOp)
         }
 
       (
@@ -404,12 +393,9 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     }
 
     private lazy val patternMatch: P[Match] =
-      "match" ~> rep1sep(matchItem, ",") ~ (returnType ?) ~ "with" ~ opt(
-        ("|" ?) ~> rep1sep(patternEquation, "|")) <~ "end" ^^ {
-        case matchItems ~ returnType ~ _ ~ equations =>
-          Match(matchItems,
-                returnType,
-                equations.fold(List[PatternEquation]())(xs => xs))
+      "match" ~> rep1sep(matchItem, ",") ~ (returnType ?) ~ "with" ~ opt(("|" ?) ~> rep1sep(patternEquation, "|")) <~ "end" ^^ {
+        case matchItems ~ returnType ~ _ ~ equations ⇒
+          Match(matchItems, returnType, equations.fold(List[PatternEquation]())(xs ⇒ xs))
       }
 
     /*
@@ -421,25 +407,25 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     lazy val fixBody: P[FixBody] =
       identifier ~ binders ~ (fixAnnotation ?) ~ opt(":" ~> term) ~ ":=" ~ term ^^ {
-        case id ~ binders ~ annotation ~ typeTerm ~ _ ~ bodyTerm =>
+        case id ~ binders ~ annotation ~ typeTerm ~ _ ~ bodyTerm ⇒
           FixBody(id, binders, annotation, typeTerm, bodyTerm)
       }
 
     lazy val functionBody: P[FunctionBody] =
       identifier ~ binders ~ annotation ~ opt(":" ~> term) ~ ":=" ~ term ^^ {
-        case id ~ binders ~ annotation ~ typeTerm ~ _ ~ bodyTerm =>
+        case id ~ binders ~ annotation ~ typeTerm ~ _ ~ bodyTerm ⇒
           FunctionBody(id, binders, annotation, typeTerm, bodyTerm)
       }
 
     private lazy val matchItem: P[MatchItem] =
       term ~ opt("as" ~> name) ~ opt("in" ~> matchItemPattern) ^^ {
-        case term ~ name ~ matchItemPattern =>
+        case term ~ name ~ matchItemPattern ⇒
           MatchItem(term, name, matchItemPattern)
       }
 
     private lazy val depRetType: P[DepRetType] =
       ("as" ~> name ?) ~ returnType ^^ {
-        case optName ~ returnType => DepRetType(optName, returnType)
+        case optName ~ returnType ⇒ DepRetType(optName, returnType)
       }
 
     private lazy val returnType: P[ReturnType] =
@@ -447,7 +433,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     private lazy val patternEquation: P[PatternEquation] =
       rep1sep(multPattern, "|") ~ "=>" ~ term ^^ {
-        case orMultPatterns ~ _ ~ outputTerm =>
+        case orMultPatterns ~ _ ~ outputTerm ⇒
           PatternEquation(orMultPatterns, outputTerm)
       }
 
@@ -459,17 +445,17 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     private lazy val recordProjection: P[RecordProjection] = {
       lazy val explicitApplicationProjection: P[ExplicitApplicationProjection] =
         term ~ (".(" ~> explicitQualidApplication <~ ")") ^^ {
-          case recordInstance ~ explicitQualidApp =>
+          case recordInstance ~ explicitQualidApp ⇒
             ExplicitApplicationProjection(recordInstance, explicitQualidApp)
         }
       lazy val applicationProjection: P[ApplicationProjection] =
         term ~ (".(" ~> termApplication <~ ")") ^^ {
-          case recordInstance ~ termApp =>
+          case recordInstance ~ termApp ⇒
             ApplicationProjection(recordInstance, termApp)
         }
       lazy val simpleProjection: P[SimpleProjection] =
         term ~ (".(" ~> qualid <~ ")") ^^ {
-          case recordInstance ~ fieldName =>
+          case recordInstance ~ fieldName ⇒
             SimpleProjection(recordInstance, fieldName)
         }
       (
@@ -488,13 +474,13 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     private lazy val fixAnnotation: P[FixAnnotation] = {
       "{" ~ "struct" ~> identifier <~ "}" ^^ {
-        case id @ Ident(_) => FixAnnotation(id)
+        case id @ Ident(_) ⇒ FixAnnotation(id)
       }
     }
 
     private lazy val funAnnotation: P[FunAnnotation] = {
       "{" ~ "measure" ~> ("(" ~> fun <~ ")") ~ identifier <~ "}" ^^ {
-        case anonFun ~ id => FunAnnotation(anonFun, id)
+        case anonFun ~ id ⇒ FunAnnotation(anonFun, id)
       }
     }
   }
@@ -503,21 +489,20 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     override protected lazy val termApplication: P[UncurriedTermApplication] =
       term ~ (argument +) ^^ {
-        case term ~ arguments => UncurriedTermApplication(term, arguments)
+        case term ~ arguments ⇒ UncurriedTermApplication(term, arguments)
       }
 
     private lazy val argument: P[Argument] = (
-      TermWithoutApplication.term ^^ (term => Argument(None, term))
+      TermWithoutApplication.term ^^ (term ⇒ Argument(None, term))
         | "(" ~> identifier ~ ":=" ~ TermWithoutApplication.term <~ ")" ^^ {
-          case ident ~ _ ~ term => Argument(Some(ident), term)
+          case ident ~ _ ~ term ⇒ Argument(Some(ident), term)
         }
     )
   }
 
   private object TermWithoutApplication extends AbstractTerm {
     override protected lazy val termApplication: P[UncurriedTermApplication] =
-      failure(
-        "termApplication is not a valid production for the object CoqParser.TermWithoutApplication")
+      failure("termApplication is not a valid production for the object CoqParser.TermWithoutApplication")
   }
 
   private abstract class AbstractPattern {
@@ -539,7 +524,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
      */
     private lazy val infixPattern: P[InfixPattern] =
       pattern ~ "::" ~ pattern ^^ {
-        case left ~ op ~ right => InfixPattern(left, op, right)
+        case left ~ op ~ right ⇒ InfixPattern(left, op, right)
       }
 
     protected def constructorPattern: P[ConstructorPattern]
@@ -561,7 +546,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     protected lazy val constructorPattern: P[ConstructorPattern] =
       qualid ~ (PatternWithoutConstructor.pattern +) ^^ {
-        case id ~ patterns => ConstructorPattern(id, patterns)
+        case id ~ patterns ⇒ ConstructorPattern(id, patterns)
       }
 
   }
@@ -569,8 +554,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   private object PatternWithoutConstructor extends AbstractPattern {
 
     protected lazy val constructorPattern: P[ConstructorPattern] =
-      failure(
-        "constructorPattern is not a valid production for the object CoqParser.PatternWithoutConstructor")
+      failure("constructorPattern is not a valid production for the object CoqParser.PatternWithoutConstructor")
 
   }
 }
