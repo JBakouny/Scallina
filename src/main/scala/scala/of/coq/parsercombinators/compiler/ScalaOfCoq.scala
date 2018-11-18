@@ -234,7 +234,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
   private def convertFunctionTermToTreeHuggerAst(
       functionTerm: Term,
-      typeArguments: List[Argument] = List[Argument]()
+      typeArguments: List[Argument]
   ) = {
     val basicFunctionTerm = termToTreeHuggerAst(functionTerm)
     if (typeArguments.isEmpty)
@@ -338,7 +338,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
                 }
               case Name(None) ⇒ PARAM(WILDCARD)
             }
-          )
+        )
       )
 
     val Binders(bindersList) = binders

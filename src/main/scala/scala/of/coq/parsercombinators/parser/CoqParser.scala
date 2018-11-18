@@ -1,7 +1,7 @@
 package scala.of.coq.parsercombinators.parser
 
 import scala.of.coq.parsercombinators.lexer.CoqLexer
-import scala.of.coq.parsercombinators.lexer.CoqLexer.{Identifier, NumericLit, StringLit}
+import scala.of.coq.parsercombinators.lexer.CoqLexer.{Identifier, NumericLit}
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
@@ -247,10 +247,12 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     accept("number literal", { case NumericLit(n) ⇒ Number(n.toInt) })
   }
 
+  /*
   // TODO (Joseph Bakouny): The stringLiteral production is not used yet. It should either be used or removed.
   private lazy val stringLiteral: P[StringLit] = {
     accept("string literal", { case lit @ StringLit(_) ⇒ lit })
   }
+   */
 
   private lazy val parenthesis: P[BetweenParenthesis] =
     "(" ~> Term.term <~ ")" ^^ { BetweenParenthesis }

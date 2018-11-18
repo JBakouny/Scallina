@@ -46,7 +46,7 @@ object Main {
     nextArgument(Map() withDefaultValue false, Nil, commandLineArgs)
   }
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]) = {
     if (args.length <= 0) {
       printUsageAndExit(1)
     }
