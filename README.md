@@ -1,6 +1,7 @@
 
 ### Papers:
 *[A Coq-based synthesis of Scala programs which are correct-by-construction](http://dl.acm.org/citation.cfm?doid=3103111.3104041)*
+
 *[The Scallina Grammar](https://link.springer.com/chapter/10.1007%2F978-3-030-03044-5_7)*
 
 ### Quick start guide:
