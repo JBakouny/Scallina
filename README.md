@@ -1,5 +1,5 @@
 
-### Publications:
+### Publications
 
 - **Introduction:** *[A Coq-based synthesis of Scala programs which are correct-by-construction](http://dl.acm.org/citation.cfm?doid=3103111.3104041)*
 
@@ -7,7 +7,7 @@
 
 - **Foundations:** *[The Scallina Grammar](https://link.springer.com/chapter/10.1007/978-3-030-03044-5_7)*
 
-### Quick start guide:
+### Quick start guide
 
 First, download the Scala Build Tool (SBT) from http://www.scala-sbt.org/download.html
 
