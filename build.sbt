@@ -3,7 +3,7 @@ lazy val root = (project in file("."))
     inThisBuild(
       List(
         organization := "scala.of.coq",
-        scalaVersion := "2.12.7",
+        scalaVersion := "2.12.8",
         version := "0.6-SNAPSHOT"
       )
     ),
