@@ -1,11 +1,11 @@
 
 ### Publications
 
-- **Introduction:** *[A Coq-based synthesis of Scala programs which are correct-by-construction](http://dl.acm.org/citation.cfm?doid=3103111.3104041)*
+- **Introduction:** *[A Coq-based synthesis of Scala programs which are correct-by-construction](http://dl.acm.org/citation.cfm?doid=3103111.3104041)* ([Direct link to the PDF](https://cedric.cnam.fr/fichiers/art_4027.pdf))
 
-- **Demonstration:** *[Scallina: Translating Verified Programs from Coq to Scala](https://link.springer.com/chapter/10.1007/978-3-030-02768-1_7)*
+- **Demonstration:** *[Scallina: Translating Verified Programs from Coq to Scala](https://link.springer.com/chapter/10.1007/978-3-030-02768-1_7)* ([Direct link to google book extract](https://books.google.fr/books?id=kmF7DwAAQBAJ&pg=PA130&lpg=PA130&dq=Scallina:+Translating+Verified+Programs+from+Coq+to+Scala&source=bl&ots=dKQBbdfTiW&sig=s_dnheoFyUzUJxaoE0oy1espoS0&hl=fr&sa=X&ved=2ahUKEwjvjqT_1ZXfAhUQy4UKHaQ3C8IQ6AEwA3oECAIQAQ#v=onepage&q=Scallina%3A%20Translating%20Verified%20Programs%20from%20Coq%20to%20Scala&f=false))
 
-- **Foundations:** *[The Scallina Grammar](https://link.springer.com/chapter/10.1007/978-3-030-03044-5_7)*
+- **Foundations:** *[The Scallina Grammar](https://link.springer.com/chapter/10.1007/978-3-030-03044-5_7)* ([Direct link to google book extract](https://books.google.fr/books?id=QM96DwAAQBAJ&pg=PA90&lpg=PA90&dq=Scallina:+Translating+Verified+Programs+from+Coq+to+Scala&source=bl&ots=FLPxALkuLp&sig=3w6oi1XP_7ZDmzEsY3j1eW-S_tw&hl=fr&sa=X&ved=2ahUKEwib0Jbf1ZXfAhUwyoUKHRfFBbAQ6AEwBXoECAYQAQ#v=onepage&q=Scallina%3A%20Translating%20Verified%20Programs%20from%20Coq%20to%20Scala&f=false))
 
 A video demo is also [available on YouTube](https://youtu.be/-UM-kcYf7jQ).
 
