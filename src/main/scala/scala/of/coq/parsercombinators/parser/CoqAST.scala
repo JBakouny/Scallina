@@ -301,9 +301,9 @@ sealed trait TermApplication extends Term {
    * applied recursively on all subterms, this will require a case clause for most case classes.
    */
   def currify: TermApplication = this match {
-    case UncurriedTermApplication(term, arg :: args) ⇒
-      (args foldLeft CurriedTermApplication(term, arg))((termApp, arg) ⇒ CurriedTermApplication(termApp, arg))
-    case otherAst ⇒ otherAst
+    case UncurriedTermApplication(term, arg :: args) =>
+      (args foldLeft CurriedTermApplication(term, arg))((termApp, arg) => CurriedTermApplication(termApp, arg))
+    case otherAst => otherAst
   }
 }
 
@@ -374,8 +374,8 @@ case class Number(n: Int) extends Term {
  */
 case class TupleValue(tupleTerms: List[Term]) extends Term {
   def toCoqCode: String = tupleTerms match {
-    case Nil     ⇒ "()"
-    case t :: ts ⇒ "(" + ts.foldLeft(t.toCoqCode)(_ + ", " + _.toCoqCode) + ")"
+    case Nil     => "()"
+    case t :: ts => "(" + ts.foldLeft(t.toCoqCode)(_ + ", " + _.toCoqCode) + ")"
   }
 }
 

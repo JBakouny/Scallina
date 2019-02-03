@@ -13,17 +13,17 @@ trait CurryingStrategy {
 object Currify extends CurryingStrategy {
   def createApplication(functionTerm: Tree, arguments: List[Tree]): Tree = {
     arguments.foldLeft(functionTerm)(
-      (f, param) ⇒ f.APPLY(param)
+      (f, param) => f.APPLY(param)
     )
   }
   def createDefinition(functionDef: DefTreeStart, paramDefs: List[ValDef]): DefTreeStart = {
     paramDefs.foldLeft(functionDef)(
-      (funDef, param) ⇒ funDef.withParams(param)
+      (funDef, param) => funDef.withParams(param)
     )
   }
   def createAnonymousFunction(paramDefs: List[ValDef], bodyTerm: Tree): Tree = {
     paramDefs.foldRight(bodyTerm)(
-      (param, bodyTerm) ⇒ LAMBDA(param) ==> bodyTerm
+      (param, bodyTerm) => LAMBDA(param) ==> bodyTerm
     )
   }
 
@@ -35,7 +35,7 @@ object Currify extends CurryingStrategy {
     def callClassConstructor(name: String, paramDefs: List[ValDef]) = {
       NEW(
         name,
-        paramDefs.map { param ⇒
+        paramDefs.map { param =>
           REF(param.name)
         }: _*
       )

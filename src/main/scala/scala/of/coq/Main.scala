@@ -7,7 +7,7 @@ import scala.of.coq.parsercombinators.parser.CoqParser
 object Main {
   val usage =
     """
-    Usage: scala target/scala-2.11/scallina-assembly-<scallina-version>.jar [--uncurrify] [--source] [--trim] [--ast] [--lexer] [--coq] <coq-source-file-1.v> ... <coq-source-file-n.v>
+    Usage: scala target/scala-2.12/scallina-assembly-<scallina-version>.jar [--uncurrify] [--source] [--trim] [--ast] [--lexer] [--coq] <coq-source-file-1.v> ... <coq-source-file-n.v>
   """
 
   def printUsageAndExit(exitCode: Int): Unit = {
@@ -25,21 +25,21 @@ object Main {
         commandLineArgs: List[String]
     ): (OptionMap, FileNames) = {
       commandLineArgs match {
-        case "--source" :: tail ⇒
-          nextArgument(optionMap ++ Map('source → true), fileNamesAcc, tail)
-        case "--trim" :: tail ⇒
-          nextArgument(optionMap ++ Map('trim → true), fileNamesAcc, tail)
-        case "--ast" :: tail ⇒
-          nextArgument(optionMap ++ Map('ast → true), fileNamesAcc, tail)
-        case "--lexer" :: tail ⇒
-          nextArgument(optionMap ++ Map('lexer → true), fileNamesAcc, tail)
-        case "--coq" :: tail ⇒
-          nextArgument(optionMap ++ Map('coq → true), fileNamesAcc, tail)
-        case "--uncurrify" :: tail ⇒
-          nextArgument(optionMap ++ Map('uncurrify → true), fileNamesAcc, tail)
-        case fileName :: tail ⇒
+        case "--source" :: tail =>
+          nextArgument(optionMap ++ Map('source -> true), fileNamesAcc, tail)
+        case "--trim" :: tail =>
+          nextArgument(optionMap ++ Map('trim -> true), fileNamesAcc, tail)
+        case "--ast" :: tail =>
+          nextArgument(optionMap ++ Map('ast -> true), fileNamesAcc, tail)
+        case "--lexer" :: tail =>
+          nextArgument(optionMap ++ Map('lexer -> true), fileNamesAcc, tail)
+        case "--coq" :: tail =>
+          nextArgument(optionMap ++ Map('coq -> true), fileNamesAcc, tail)
+        case "--uncurrify" :: tail =>
+          nextArgument(optionMap ++ Map('uncurrify -> true), fileNamesAcc, tail)
+        case fileName :: tail =>
           nextArgument(optionMap, fileName :: fileNamesAcc, tail)
-        case Nil ⇒ (optionMap, fileNamesAcc)
+        case Nil => (optionMap, fileNamesAcc)
       }
     }
 
@@ -55,7 +55,7 @@ object Main {
     try {
       val (map, fileNames) = parseCommandLineArgs(arglist)
 
-      for (fileName ← fileNames) {
+      for (fileName <- fileNames) {
         val fileBufferedSource = io.Source.fromFile(fileName)
         val inputString = try fileBufferedSource.mkString
         finally fileBufferedSource.close()
@@ -71,7 +71,7 @@ object Main {
         val coqAST         = CoqParser(inputString)
         val optionalCoqAst = Option(coqAST.getOrElse(null))
 
-        val outputString = optionalCoqAst.fold(coqAST.toString) { coqTrees ⇒
+        val outputString = optionalCoqAst.fold(coqAST.toString) { coqTrees =>
           val shouldPrintCoqOutput = map('coq)
           if (shouldPrintCoqOutput) {
             coqTrees.map(_.toCoqCode).mkString("\n")
@@ -104,7 +104,7 @@ object Main {
 
       }
     } catch {
-      case e: Exception ⇒ e.printStackTrace(); printUsageAndExit(2);
+      case e: Exception => e.printStackTrace(); printUsageAndExit(2);
     }
   }
 }
