@@ -480,6 +480,41 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
+  test("""Testing Scala conversion of
+        Inductive Tree A := Leaf (v: A) | Node (l r: Tree A).
+        Arguments Leaf {A} _.
+        Arguments Node {A} _ _.
+        Fixpoint map {A B} (t: Tree A) (f: A -> B) : Tree B :=
+        match t with
+          Leaf v => Leaf (f v)
+        | Node l r => Node (map l f) (map r f)
+        end.
+       """) {
+    CoqParser("""
+        Inductive Tree A := Leaf (v: A) | Node (l r: Tree A).
+        Arguments Leaf {A} _.
+        Arguments Node {A} _ _.
+        Fixpoint map {A B} (t: Tree A) (f: A -> B) : Tree B :=
+        match t with
+          Leaf v => Leaf (f v)
+        | Node l r => Node (map l f) (map r f)
+        end.
+      """) should generateScalaCode("""
+      "sealed abstract class Tree[+A]
+      "case class Leaf[A](v: A) extends Tree[A]
+      "case class Node[A](l: Tree[A], r: Tree[A]) extends Tree[A]
+      "object Node {
+      "  def apply[A] =
+      "    (l: Tree[A]) => (r: Tree[A]) => new Node(l, r)
+      "}
+      "def map[A, B](t: Tree[A])(f: A => B): Tree[B] =
+      "  t match {
+      "    case Leaf(v)    => Leaf(f(v))
+      "    case Node(l, r) => Node(map(l)(f))(map(r)(f))
+      "  }
+      """)
+  }
+
   test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
         Record aMonoid : Type := {
           dom : Type;
