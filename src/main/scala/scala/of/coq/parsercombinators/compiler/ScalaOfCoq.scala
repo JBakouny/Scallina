@@ -154,19 +154,16 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     case SimpleLetIn(Ident(id), binders, typeTerm, inputTerm, mainTerm) =>
       (
         typeTerm.fold(VAL(id))(t => VAL(id, coqTypeToTreeHuggerType(t))) :=
-        binders.fold(termToTreeHuggerAst(inputTerm))(createAnonymousFunction(_, inputTerm))
-      ) :: blockTermToTreeHuggerAstList(mainTerm)
+        binders.fold(termToTreeHuggerAst(inputTerm))(createAnonymousFunction(_, inputTerm))) :: blockTermToTreeHuggerAstList(mainTerm)
     case LetConstructorArgsIn(names, _, inputTerm, mainTerm) =>
       // TODO(Joseph Bakouny): consider supporting inductives with one constructor that are not tuples
       (
         VAL(convertTuple(names, PatternUtils.convertNameToPatternVar)) :=
-        termToTreeHuggerAst(inputTerm)
-      ) :: blockTermToTreeHuggerAstList(mainTerm)
+        termToTreeHuggerAst(inputTerm)) :: blockTermToTreeHuggerAstList(mainTerm)
     case LetPatternIn(pattern, inputTerm, _, mainTerm) =>
       (
         VAL(PatternUtils.convertPattern(pattern)) :=
-        termToTreeHuggerAst(inputTerm)
-      ) :: blockTermToTreeHuggerAstList(mainTerm)
+        termToTreeHuggerAst(inputTerm)) :: blockTermToTreeHuggerAstList(mainTerm)
     case nonBlockGeneratingTerm =>
       List(termToTreeHuggerAst(nonBlockGeneratingTerm))
   }
@@ -203,20 +200,17 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     val (typeArguments, valueArguments) = functionTerm match {
       case Qualid(List(Ident(constructorName))) if (
         constructorToRecordTypeFields.get(constructorName).isDefined
-        && constructorToRecordTypeFields(constructorName).size == arguments.size
-      ) =>
+        && constructorToRecordTypeFields(constructorName).size == arguments.size) =>
         val (typeArgumentsWithBool, valueArgumentsWithBool) = (arguments zip constructorToRecordTypeFields(constructorName)).partition { case (arg, isTypeArgument) => isTypeArgument }
         (
           typeArgumentsWithBool.map { case (arg, b) => arg },
-          valueArgumentsWithBool.map { case (arg, b) => arg }
-        )
+          valueArgumentsWithBool.map { case (arg, b) => arg })
       case _ =>
         (List[Argument](), arguments)
     }
     curryingStrategy.createApplication(
       convertFunctionTermToTreeHuggerAst(functionTerm, typeArguments),
-      valueArguments.map(convertValueArgumentToTreeHuggerAst)
-    )
+      valueArguments.map(convertValueArgumentToTreeHuggerAst))
   }
 
   private def convertFunctionTermToTreeHuggerAst(functionTerm: Term, typeArguments: List[Argument] = List[Argument]()) = {
@@ -310,9 +304,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
                   PARAM(nameString, coqTypeToTreeHuggerType(typeTerm))
               }
             case Name(None) => PARAM(WILDCARD)
-          }
-        )
-      )
+          }))
 
     val Binders(bindersList) = binders;
     val params = bindersList.flatMap {
@@ -343,17 +335,14 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
         curryingStrategy.createDefinition(
           declaration.withTypeParams(typeDefs),
-          paramDefs
-        )
+          paramDefs)
     }
   }
 
   private def createParameterlessDefinition(definitionName: String, typeTerm: Option[Term]): DefTreeStart =
     typeTerm.fold(
-      DEFINFER(definitionName)
-    )(
-        typeTerm => DEF(definitionName, coqTypeToTreeHuggerType(typeTerm))
-      )
+      DEFINFER(definitionName))(
+        typeTerm => DEF(definitionName, coqTypeToTreeHuggerType(typeTerm)))
 
   private def createCaseClassHierarchy(parentBinders: Option[Binders], parentName: String, indBodyItems: List[InductiveBodyItem]) = {
     val covariantParentTypeDefs = convertTypeBindersToTypeVars(parentBinders, true)
@@ -374,12 +363,6 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
         case InductiveBodyItem(Ident(name), binders, indBodyItemType) =>
           require(!indBodyItemType.isDefined, "Return types of inductive body items should be ommitted")
           binders.fold {
-            /*
-             *   TODO(Joseph Bakouny): Fix the empty case class issue:
-             *   An empty case class is not generated with the correct parenthesis "()".
-             *
-             *   This is probably an issue with treehugger.scala.
-             */
             val caseObjectDeclaration: Tree =
               CASEOBJECTDEF(name)
                 .withParents(createTypeWithGenericParams(parentName, covariantParentTypeDefs.map(_ => TYPE_REF("Nothing"))))
@@ -454,8 +437,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
             if (covariant)
               TYPEVAR(COVARIANT(nameString))
             else
-              TYPEVAR(nameString)
-          )
+              TYPEVAR(nameString))
         }
         binders.flatMap {
           case ExplicitSimpleBinder(name)                => convertNamesToTypeVars(List(name))
@@ -537,8 +519,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       {
         val PatternEquation(multPatterns, outputTerm) = patternEquation
         CASE(
-          multPatterns.map(convertMultPattern).reduce(_ OR_PATTERN _)
-        ) ==> termToTreeHuggerAst(outputTerm)
+          multPatterns.map(convertMultPattern).reduce(_ OR_PATTERN _)) ==> termToTreeHuggerAst(outputTerm)
       }
 
     private def convertMultPattern(multPattern: MultPattern): Tree = {
@@ -581,22 +562,20 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
                 "Differ from:\n" +
                 definedBinders.fold("()")(_.toCoqCode))
 
-            ConcreteRecordField(name,
+            ConcreteRecordField(
+              name,
               annotateParamsWithType(definedBinders, implementedBinders, potentialException),
               Some(typeTerm),
               bodyTerm)
-        }.map(convertConcreteRecordField)
-      )
+        }.map(convertConcreteRecordField))
 
       args.fold[Tree](
-        OBJECTDEF(instanceName).withParents(List(TYPE_REF(recordType))) := recordBlock
-      ) {
+        OBJECTDEF(instanceName).withParents(List(TYPE_REF(recordType))) := recordBlock) {
           binders =>
             createDefinition(Ident(instanceName), Some(binders), Some(Qualid(List(Ident(recordType))))) :=
               NEW(
                 ANONDEF(recordType) :=
-                  recordBlock
-              )
+                  recordBlock)
         }
 
     }
@@ -624,8 +603,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
             case (defBinder, implBinder) =>
               throw new IllegalStateException(
                 "Unexpected record definition parameter: " + defBinder.toCoqCode + "\n" +
-                  "And corresponding record instance parameter: " + implBinder.toCoqCode
-              )
+                  "And corresponding record instance parameter: " + implBinder.toCoqCode)
           }))
 
         }
@@ -636,16 +614,14 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       for {
         Record(_, Ident(recordName), None, (None | Some(Type)), _, fields) <- coqTrees if (recordName == recordType)
         abstractField @ AbstractRecordField(fieldName, _, _) <- fields
-      } yield (convertNameToString(fieldName) -> abstractField)
-    ).toMap
+      } yield (convertNameToString(fieldName) -> abstractField)).toMap
 
     private def convertRecord(record: Record): Tree = {
       val Record(_, Ident(recordName), binders, (None | Some(Type)), _, fields) = record
 
       TRAITDEF(recordName).withTypeParams(convertTypeBindersToTypeVars(binders)) :=
         BLOCK(
-          fields.map(convertRecordField)
-        )
+          fields.map(convertRecordField))
     }
 
     private def createRecordConstructionFunction(record: Record): Option[Tree] = {
@@ -668,14 +644,11 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
         val namePrefix = recordName + "_"
         curryingStrategy.createDefinition(
           declaration.withTypeParams(typeBinderParams ::: typeFieldParams),
-          valueFieldParams
-        ) := BLOCK(
+          valueFieldParams) := BLOCK(
             createFieldAliases(abstractFields, namePrefix) :+
               NEW(
                 ANONDEF(recordType) :=
-                  BLOCK(assignFieldAliasesToNewRecordAbstractField(abstractFields, namePrefix))
-              )
-          )
+                  BLOCK(assignFieldAliasesToNewRecordAbstractField(abstractFields, namePrefix))))
       }
     }
 
@@ -739,10 +712,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
         case (ConcreteRecordField(name, binders, Some(typeTerm), bodyTerm), false) =>
           createRecordFieldDefinition(name, binders, typeTerm) :=
             binders.fold(
-              termToTreeHuggerAst(bodyTerm)
-            )(
-                createAnonymousFunction(_, bodyTerm)
-              )
+              termToTreeHuggerAst(bodyTerm))(
+                createAnonymousFunction(_, bodyTerm))
         case (anythingElse, _) =>
           throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
       }

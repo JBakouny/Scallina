@@ -11,7 +11,7 @@ object MoreLists {
 
   def app[A](l1: List[A], l2: List[A]): List[A] = l1 ++ l2
   def app[A] = (l1: List[A]) => (l2: List[A]) => l1 ++ l2
-  
+
   def rev[A](l: List[A]): List[A] = l.reverse
   def rev[A] = (l: List[A]) => l.reverse
 

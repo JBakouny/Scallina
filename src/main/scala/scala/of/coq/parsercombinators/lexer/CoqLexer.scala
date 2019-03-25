@@ -33,8 +33,7 @@ object CoqLexer extends StdLexical {
   override def whitespace: Parser[Any] = rep[Any](
     whitespaceChar
       | '(' ~ '*' ~ comment
-      | '(' ~ '*' ~ failure("unclosed comment")
-  )
+      | '(' ~ '*' ~ failure("unclosed comment"))
 
   override protected def comment: Parser[Any] = (
     rep(chrExcept(EofCh, '*')) ~ '*' ~ ')' ^^ {
@@ -42,8 +41,7 @@ object CoqLexer extends StdLexical {
     }
     | rep(chrExcept(EofCh, '*')) ~ '*' ~ comment ^^ {
       case _ => ' '
-    }
-  )
+    })
 
   /*
    * Since strings in Coq cannot be inclosed in single quotes, the corresponding productions were removed from the below overridden token method.
@@ -59,8 +57,7 @@ object CoqLexer extends StdLexical {
       | literal
       | EofCh ^^^ EOF
       | '\"' ~> failure("unclosed string literal")
-      | failure("illegal character")
-    )
+      | failure("illegal character"))
 
   private def identifier: Parser[Token] = {
     identChar ~ ((identChar | digit) *) ^^ { case first ~ rest => processIdent(first :: rest mkString "") }

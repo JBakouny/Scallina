@@ -58,12 +58,12 @@ case class FunctionDef(functionBody: FunctionBody) extends Sentence {
 }
 
 case class Record(
-    keyword: RecordKeyword,
-    id: Ident,
-    params: Option[Binders],
-    sort: Option[Sort],
-    constructor: Option[Ident],
-    fields: List[RecordField]) extends Sentence {
+  keyword:     RecordKeyword,
+  id:          Ident,
+  params:      Option[Binders],
+  sort:        Option[Sort],
+  constructor: Option[Ident],
+  fields:      List[RecordField]) extends Sentence {
 
   def toCoqCode: String =
     keyword.toCoqCode + " " + id.toCoqCode +
@@ -159,10 +159,6 @@ case object Example extends AssertionKeyword {
 // End of AssertionKeyword
 
 // Start of Proof
-/*
- * TODO (Joseph Bakouny): Check how to parse and store proofs correctly if needed
- * (note: the grammar is not specified in the Coq Manual Vernacular productions).
- */
 sealed trait Proof extends CoqAST
 
 case object ProofQed extends Proof {
@@ -451,7 +447,7 @@ case class FixBodies(fixBody: FixBody) extends Term {
 }
 
 abstract sealed class RecursiveFunBody(ident: Ident, binders: Binders, annot: Option[Annotation], typeTerm: Option[Term], bodyTerm: Term)
-    extends CoqAST {
+  extends CoqAST {
   def toCoqCode: String =
     ident.toCoqCode + " " + binders.toCoqCode +
       annot.fold("")(" " + _.toCoqCode) +
