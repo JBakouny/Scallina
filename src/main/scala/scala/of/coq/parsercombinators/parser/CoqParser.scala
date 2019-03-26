@@ -39,14 +39,12 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     | record
     | fixPoint
     | functionDef
-    | assertion <~ proof
-  )
+    | assertion <~ proof)
 
   //TODO (Joseph Bakouny): This production is not in the official grammar... consider a more in-depth support for modules.
   private lazy val importCommand: P[RequireImport] = (
-    "Require" ~ "Import" ~> qualid <~ "." ^^ { RequireImport(_, false) }
-    | "Require" ~ "Export" ~> qualid <~ "." ^^ { RequireImport(_, true) }
-  )
+    opt("From" ~ qualid) ~ "Require" ~ "Import" ~> qualid <~ "." ^^ { RequireImport(_, false) }
+    | "Require" ~ "Export" ~> qualid <~ "." ^^ { RequireImport(_, true) })
 
   private lazy val loadCommand: P[LoadCommand] =
     "Load" ~> qualid <~ "." ^^ { LoadCommand(_) }
@@ -106,8 +104,8 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   private lazy val recordKeyword: P[RecordKeyword] =
     accept("recordKeyword", {
-      case CoqLexer.Keyword("Record")    => RecordKeyword
-      case CoqLexer.Keyword("Structure") => StructureKeyword
+      case CoqLexer.Keyword("Record")      => RecordKeyword
+      case CoqLexer.Keyword("Structure")   => StructureKeyword
       // TODO(Joseph Bakouny): These two record keywords are currently not supported.
       case CoqLexer.Keyword("Inductive")   => InductiveRecordKeyword
       case CoqLexer.Keyword("CoInductive") => CoInductiveRecordKeyword
@@ -125,8 +123,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   private lazy val recordField: P[RecordField] = (
     concreteRecordField
-    | abstractRecordField
-  )
+    | abstractRecordField)
 
   // TODO (Joseph Bakouny): Consider supporting list of fixBodies for a Fixpoint and also CoFixpoint
   private lazy val fixPoint: P[Fixpoint] =
@@ -161,8 +158,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     lazy val proofEnd: P[Proof] = (
       rep(acceptIf(_ != CoqLexer.Keyword("Qed"))(_ => failureMsg)) ~ "Qed" ^^ { _ => ProofQed }
       | rep(acceptIf(_ != CoqLexer.Keyword("Defined"))(_ => failureMsg)) ~ "Defined" ^^ { _ => ProofDefined }
-      | rep(acceptIf(_ != CoqLexer.Keyword("Admitted"))(_ => failureMsg)) ~ "Admitted" ^^ { _ => ProofAdmitted }
-    )
+      | rep(acceptIf(_ != CoqLexer.Keyword("Admitted"))(_ => failureMsg)) ~ "Admitted" ^^ { _ => ProofAdmitted })
 
     "Proof" ~ "." ~> proofEnd <~ "."
   }
@@ -180,8 +176,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     }
     | "{" ~> (name +) ~ opt(":" ~> term) <~ "}" ^^ {
       case names ~ typeTerm => ImplicitBinder(names, typeTerm)
-    }
-  )
+    })
 
   private lazy val name: P[Name] = {
     accept("name", {
@@ -267,8 +262,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       | numberLiteral
       | parenthesis
       | tupleValue
-      | recordInstantiation
-    )
+      | recordInstantiation)
 
     /**
      * This method is abstract and therefore allows every subclass of AbstractTermProductions to define a custom termApplication.
@@ -352,8 +346,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
         | infixOp(">=")
         | infixOp("<?")
         | infixOp("=?")
-        | infixOp("::")
-      )
+        | infixOp("::"))
     }
 
     private lazy val patternMatch: P[Match] =
@@ -415,8 +408,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       (
         explicitApplicationProjection
         | applicationProjection
-        | simpleProjection
-      )
+        | simpleProjection)
     }
     private lazy val recordInstantiation: P[RecordInstantiation] = {
       "{|" ~> repsep(concreteRecordField, ";") <~ "|}" ^^ {
@@ -444,8 +436,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     private lazy val argument: P[Argument] = (
       TermWithoutApplication.term ^^ { case term => Argument(None, term) }
-      | "(" ~> identifier ~ ":=" ~ TermWithoutApplication.term <~ ")" ^^ { case ident ~ lex_:= ~ term => Argument(Some(ident), term) }
-    )
+      | "(" ~> identifier ~ ":=" ~ TermWithoutApplication.term <~ ")" ^^ { case ident ~ lex_:= ~ term => Argument(Some(ident), term) })
   }
 
   private object TermWithoutApplication extends AbstractTerm {
@@ -460,8 +451,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       | qualidPattern
       | underscorePattern
       | numberPattern
-      | parenthesisOrPattern
-    )
+      | parenthesisOrPattern)
 
     //TODO (Joseph Bakouny): Consider a more elegant representation of infix patterns
     /*

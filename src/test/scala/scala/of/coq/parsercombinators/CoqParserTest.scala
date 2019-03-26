@@ -23,6 +23,11 @@ class CoqParserTest extends FunSuite {
       List(RequireImport(Qualid(List(Ident("Coq"), Ident("Arith"), Ident("PeanoNat"))))))
   }
 
+  test("""Testing "From Coq Require Import Coq.Arith.PeanoNat." """) {
+    CoqParser("From Coq Require Import Coq.Arith.PeanoNat.") should parse(
+      List(RequireImport(Qualid(List(Ident("Coq"), Ident("Arith"), Ident("PeanoNat"))))))
+  }
+
   test("""Testing "Arguments Leaf {A} _." """) {
     CoqParser("Arguments Leaf {A} _.") should parse(
       List(ArgumentsCommand(Qualid(List(Ident("Leaf"))), Binders(List(ImplicitBinder(List(Name(Some(Ident("A")))), None), ExplicitSimpleBinder(Name(None)))))))

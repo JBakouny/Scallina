@@ -614,7 +614,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
-      Require Import ZArith.
+      From Coq Require Import ZArith.
 
       Open Scope Z_scope.
 
@@ -631,7 +631,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       |}.
        """) {
     CoqParser("""
-      Require Import ZArith.
+      From Coq Require Import ZArith.
 
       Open Scope Z_scope.
 
