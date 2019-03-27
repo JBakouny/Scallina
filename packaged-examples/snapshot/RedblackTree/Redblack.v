@@ -53,7 +53,15 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import ZArith.
 Open Scope Z_scope.
 
-Definition key : Type := int.
+(*
+Scallina modifications to the code:
+- Remove Variable V
+- Replace int by Z since it can be extracted to BigInt in Scala,
+see frist alternative in Extract file for more info.
+- Remove int2Z from proofs.
+*)
+
+Definition key : Type := Z.
 
 Inductive color := Red | Black.
 
@@ -71,8 +79,8 @@ Arguments T {V} _ _ _ _ _.
 Fixpoint lookup {V} (default: V) (x: key) (t : tree V) : V :=
   match t with
   | E => default
-  | T _ tl k v tr => if (ltb x k) then lookup default x tl 
-                         else if (ltb k x) then lookup default x tr
+  | T _ tl k v tr => if (x <? k) then lookup default x tl 
+                         else if (k <? x) then lookup default x tr
                          else v
   end.
 
@@ -117,8 +125,8 @@ Definition makeBlack {V} (t : tree V) : tree V :=
 Fixpoint ins {V} (x : key) (vx: V) (s: tree V) : tree V :=
  match s with 
  | E => T Red E x vx E
- | T c a y vy b => if (ltb x y) then balance c (ins x vx a) y vy b
-                        else if (ltb y x) then balance c a y vy (ins x vx b)
+ | T c a y vy b => if (x <? y) then balance c (ins x vx a) y vy b
+                        else if (y <? x) then balance c a y vy (ins x vx b)
                         else T c a x vx b
  end.
 
@@ -159,7 +167,7 @@ unfold balance.
    Right, here it's [ltb x k].  We can use [destruct] instead of [bdestruct]
    because we don't need to remember whether [x<k] or [x>=k]. *)
 
-destruct (ltb x k).
+destruct (x <? k).
 (* The topmost test is [match c with...], so just [destruct c] *)
 destruct c.
 (* This one is easy. *)
@@ -266,8 +274,8 @@ Qed.
 Inductive SearchTree' V : Z -> tree V -> Z -> Prop :=
 | ST_E : forall lo hi, lo <= hi -> SearchTree' V lo E hi
 | ST_T: forall lo c l k v r hi,
-    SearchTree' V lo l (int2Z k) ->
-    SearchTree' V (int2Z k + 1) r hi ->
+    SearchTree' V lo l k ->
+    SearchTree' V (k + 1) r hi ->
     SearchTree' V lo (T c l k v r) hi.
 
 Inductive SearchTree V: tree V -> Prop :=
@@ -277,8 +285,8 @@ Inductive SearchTree V: tree V -> Prop :=
      version of [t] is also a SearchTree. *) 
 Lemma balance_SearchTree:
  forall (V : Type) c  s1 k kv s2 lo hi, 
-   SearchTree' V lo s1 (int2Z k) ->
-   SearchTree' V(int2Z k + 1) s2 hi ->
+   SearchTree' V lo s1 k ->
+   SearchTree' V(k + 1) s2 hi ->
    SearchTree' V lo (balance c s1 k kv s2) hi.
 Proof.
 intros.
@@ -317,8 +325,8 @@ Abort.
 
 Lemma balance_SearchTree:
  forall (V : Type) c  s1 k kv s2 lo hi, 
-   SearchTree' V lo s1 (int2Z k) ->
-   SearchTree' V (int2Z k + 1) s2 hi ->
+   SearchTree' V lo s1 k ->
+   SearchTree' V (k + 1) s2 hi ->
    SearchTree' V lo (balance c s1 k kv s2) hi.
 Proof.
 intros.
@@ -348,8 +356,8 @@ Abort.
 
 Lemma balance_SearchTree:
  forall (V : Type) c  s1 k kv s2 lo hi, 
-   SearchTree' V lo s1 (int2Z k) ->
-   SearchTree' V (int2Z k + 1) s2 hi ->
+   SearchTree' V lo s1 k ->
+   SearchTree' V (k + 1) s2 hi ->
    SearchTree' V lo (balance c s1 k kv s2) hi.
 Proof.
 intros.
@@ -375,8 +383,8 @@ Qed.
  *)
 Lemma ins_SearchTree: 
    forall (V : Type) x vx s lo hi, 
-                    lo <= int2Z x ->
-                    int2Z x < hi ->
+                    lo <= x ->
+                    x < hi ->
                     SearchTree' V lo s hi ->
                     SearchTree' V lo (ins x vx s) hi.
 Proof.
@@ -424,7 +432,7 @@ Inductive Abs V (default : V):  tree V -> total_map V -> Prop :=
 | Abs_T: forall a b c l k vk r,
       Abs V default l a ->
       Abs V default r b ->
-      Abs V default (T c l k vk r)  (t_update (combine (int2Z k) a b) (int2Z k) vk).
+      Abs V default (T c l k vk r)  (t_update (combine k a b) k vk).
 
 Theorem empty_tree_relate V (default : V): Abs V default E (t_empty default).
 Proof.
@@ -433,7 +441,7 @@ Qed.
 
 (** **** Exercise: 3 stars (lookup_relate)  *)
 Theorem lookup_relate:
-  forall (V : Type) (default : V) k t cts ,   Abs V default t cts -> lookup default k t =  cts (int2Z k).
+  forall (V : Type) (default : V) k t cts ,   Abs V default t cts -> lookup default k t =  cts k.
 Proof.  (* Copy your proof from Extract.v, and adapt it. *)
 (* FILL IN HERE *) Admitted.
 (** [] *)
@@ -538,7 +546,7 @@ Theorem ins_relate:
  forall V (default : V) k v t cts,
     SearchTree V t ->
     Abs V default t cts ->
-    Abs V default (ins k v t) (t_update cts (int2Z k) v).
+    Abs V default (ins k v t) (t_update cts k v).
 Proof.  (* Copy your proof from SearchTree.v, and adapt it. 
      No need for fancy proof automation. *)
 (* FILL IN HERE *) Admitted.
@@ -558,7 +566,7 @@ Theorem insert_relate:
  forall V (default : V) k v t cts,
     SearchTree V t ->
     Abs V default t cts ->
-    Abs V default (insert k v t) (t_update cts (int2Z k) v).
+    Abs V default (insert k v t) (t_update cts k v).
 Proof.
 intros.
 unfold insert.
@@ -594,9 +602,9 @@ Definition elements {V} (s: tree V) : list (key * V) := elements' s nil.
 
 Definition elements_property {V} (default: V) (t: tree V) (cts: total_map V) : Prop :=
    forall k v,
-     (In (k,v) (elements t) -> cts (int2Z k) = v) /\
-     (cts (int2Z k) <> default ->
-      exists k', int2Z k = int2Z k' /\ In (k', cts (int2Z k)) (elements t)).
+     (In (k,v) (elements t) -> cts k = v) /\
+     (cts k <> default ->
+      exists k', k = k' /\ In (k', cts k) (elements t)).
 
 Theorem elements_relate:
   forall V (default : V) t cts,  
