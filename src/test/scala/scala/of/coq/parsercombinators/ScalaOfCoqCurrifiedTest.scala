@@ -2112,4 +2112,140 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
 
   }
+
+  test("Testing Scala conversion of modified VFA Redblack Tree example") {
+    CoqParser("""
+      From VFA Require Import Perm.
+      From VFA Require Import Extract.
+      Require Import Coq.Lists.List.
+      Export ListNotations.
+      Require Import Coq.Logic.FunctionalExtensionality.
+      Require Import ZArith.
+      Open Scope Z_scope.
+
+      (*
+      Scallina modifications to the code:
+      - Remove Variable V
+      - Replace int by Z since it can be extracted to BigInt in Scala,
+      see frist alternative in Extract file for more info.
+      - Remove int2Z from proofs.
+      *)
+
+      Definition key : Type := Z.
+
+      Inductive color := Red | Black.
+
+      Inductive tree V : Type :=
+      | E
+      | T(c: color) (l: tree V) (k: key) (value: V) (r: tree V).
+
+      Arguments E {V}.
+      Arguments T {V} _ _ _ _ _.
+
+      (** lookup is exactly as in our (unbalanced) search-tree algorithm in
+        Extract.v, except that the [T] constructor carries a [color] component,
+        which we can ignore here. *)
+
+      Fixpoint lookup {V} (default: V) (x: key) (t : tree V) : V :=
+        match t with
+        | E => default
+        | T _ tl k v tr => if (x <? k) then lookup default x tl
+                               else if (k <? x) then lookup default x tr
+                               else v
+        end.
+
+      (** The [balance] function is copied directly from Okasaki's paper.
+        Now, the nice thing about machine-checked proof in Coq is that you
+        can prove this correct without actually understanding it!
+        So, do read Okasaki's paper, but don't worry too much about the details
+        of this [balance] function.
+
+        In contrast, Sedgewick has proposed _left-leaning red-black trees_,
+        which have a simpler balance function (but a more complicated invariant).
+        He does this in order to make the proof of correctness easier: there
+        are fewer cases in the [balance] function, and therefore fewer cases
+        in the case-analysis of the proof of correctness of [balance].  But as you
+        will see, our proofs about [balance] will have automated case analyses,
+        so we don't care how many cases there are! *)
+
+      Definition balance {V} (rb : color) (t1: tree V) (k : key) (vk: V) (t2: tree V) : tree V:=
+       match rb with Red => T Red t1 k vk t2
+       | _ =>
+       match t1 with
+       | T Red (T Red a x vx b) y vy c =>
+            T Red (T Black a x vx b) y vy (T Black c k vk t2)
+       | T Red a x vx (T Red b y vy c) =>
+            T Red (T Black a x vx b) y vy (T Black c k vk t2)
+       | a => match t2 with
+                  | T Red (T Red b y vy c) z vz d =>
+                      T Red (T Black t1 k vk b) y vy (T Black c z vz d)
+                  | T Red b y vy (T Red c z vz d)  =>
+                      T Red (T Black t1 k vk b) y vy (T Black c z vz d)
+                  | _ => T Black t1 k vk t2
+                  end
+        end
+       end.
+
+      Definition makeBlack {V} (t : tree V) : tree V :=
+        match t with
+        | E => E
+        | T _ a x vx b => T Black a x vx b
+        end.
+
+      Fixpoint ins {V} (x : key) (vx: V) (s: tree V) : tree V :=
+       match s with
+       | E => T Red E x vx E
+       | T c a y vy b => if (x <? y) then balance c (ins x vx a) y vy b
+                              else if (y <? x) then balance c a y vy (ins x vx b)
+                              else T c a x vx b
+       end.
+
+      Definition insert {V} (x : key) (vx : V) (s : tree V) : tree V := makeBlack (ins x vx s).
+      """) should generateScalaCode("""
+      "type key = BigInt
+      "sealed abstract class color
+      "case object Red extends color
+      "case object Black extends color
+      "sealed abstract class tree[+V]
+      "case object E extends tree[Nothing]
+      "case class T[V](c: color, l: tree[V], k: key, value: V, r: tree[V]) extends tree[V]
+      "object T {
+      "  def apply[V] =
+      "    (c: color) => (l: tree[V]) => (k: key) => (value: V) => (r: tree[V]) => new T(c, l, k, value, r)
+      "}
+      "def lookup[V](default: V)(x: key)(t: tree[V]): V =
+      "  t match {
+      "    case E => default
+      "    case T(_, tl, k, v, tr) => if ((x < k)) lookup(default)(x)(tl)
+      "    else if ((k < x)) lookup(default)(x)(tr)
+      "    else v
+      "  }
+      "def balance[V](rb: color)(t1: tree[V])(k: key)(vk: V)(t2: tree[V]): tree[V] =
+      "  rb match {
+      "    case Red => T(Red)(t1)(k)(vk)(t2)
+      "    case _ => t1 match {
+      "      case T(Red, T(Red, a, x, vx, b), y, vy, c) => T(Red)(T(Black)(a)(x)(vx)(b))(y)(vy)(T(Black)(c)(k)(vk)(t2))
+      "      case T(Red, a, x, vx, T(Red, b, y, vy, c)) => T(Red)(T(Black)(a)(x)(vx)(b))(y)(vy)(T(Black)(c)(k)(vk)(t2))
+      "      case a => t2 match {
+      "        case T(Red, T(Red, b, y, vy, c), z, vz, d) => T(Red)(T(Black)(t1)(k)(vk)(b))(y)(vy)(T(Black)(c)(z)(vz)(d))
+      "        case T(Red, b, y, vy, T(Red, c, z, vz, d)) => T(Red)(T(Black)(t1)(k)(vk)(b))(y)(vy)(T(Black)(c)(z)(vz)(d))
+      "        case _                                     => T(Black)(t1)(k)(vk)(t2)
+      "      }
+      "    }
+      "  }
+      "def makeBlack[V](t: tree[V]): tree[V] =
+      "  t match {
+      "    case E                 => E
+      "    case T(_, a, x, vx, b) => T(Black)(a)(x)(vx)(b)
+      "  }
+      "def ins[V](x: key)(vx: V)(s: tree[V]): tree[V] =
+      "  s match {
+      "    case E => T(Red)(E)(x)(vx)(E)
+      "    case T(c, a, y, vy, b) => if ((x < y)) balance(c)(ins(x)(vx)(a))(y)(vy)(b)
+      "    else if ((y < x)) balance(c)(a)(y)(vy)(ins(x)(vx)(b))
+      "    else T(c)(a)(x)(vx)(b)
+      "  }
+      "def insert[V](x: key)(vx: V)(s: tree[V]): tree[V] = makeBlack(ins(x)(vx)(s))
+      """)
+  }
 }
