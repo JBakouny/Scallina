@@ -7,12 +7,16 @@ package scala.of.coq.lang
 sealed abstract class Nat {
   def predecessor: Nat = Nat.pred(this)
   def successor: Nat = new S(this)
-  def +(that: Nat): Nat = Nat.add(this, that)
-  def *(that: Nat): Nat = Nat.mul(this, that)
-  def -(that: Nat): Nat = Nat.sub(this, that)
+  def +(that: Nat): Nat = Nat.add(this)(that)
+  def *(that: Nat): Nat = Nat.mul(this)(that)
+  def -(that: Nat): Nat = Nat.sub(this)(that)
 }
 case object Zero extends Nat
 case class S(n: Nat) extends Nat
+
+object CurriedNat {
+
+}
 
 object Nat {
 
@@ -28,26 +32,32 @@ object Nat {
     case S(m) => 1 + natToBigInt(n)
   }
 
-  // Generated from to Coq.Init.Nat (with manual additions of explicit typing)
+  // Generated from Coq.Init.Nat (with manual additions of explicit typing)
   def pred(n: Nat): Nat =
     n match {
       case Zero => n
       case S(u) => u
     }
-  def add(n: Nat, m: Nat): Nat =
+  def add(n: Nat)(m: Nat): Nat =
     n match {
       case Zero => m
-      case S(p) => S(add(p, m))
+      case S(p) => S(add(p)(m))
     }
-  def mul(n: Nat, m: Nat): Nat =
+  def mul(n: Nat)(m: Nat): Nat =
     n match {
       case Zero => Zero
-      case S(p) => add(m, mul(p, m))
+      case S(p) => add(m)(mul(p)(m))
     }
-  def sub(n: Nat, m: Nat): Nat =
+  def sub(n: Nat)(m: Nat): Nat =
     (n, m) match {
-      case (S(k), S(l)) => sub(k, l)
+      case (S(k), S(l)) => sub(k)(l)
       case (_, _)       => n
     }
   //==========================================
+
+  // Tupled Equivalents
+  def add: (Nat, Nat) => Nat = (n: Nat, m: Nat) => add(n)(m)
+  def mul: (Nat, Nat) => Nat = (n: Nat, m: Nat) => add(n)(m)
+  def sub: (Nat, Nat) => Nat = (n: Nat, m: Nat) => add(n)(m)
+
 }

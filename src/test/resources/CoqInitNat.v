@@ -1,21 +1,26 @@
+Inductive Nat := Zero | S (n : Nat).
 
-
-Definition pred (n : nat) : nat :=
+Definition pred (n : Nat) : Nat :=
   match n with
-    | 0 => n
+    | Zero => n
     | S u => u
   end.
 
-Fixpoint add (n m : nat) : nat :=
+Fixpoint add (n m : Nat) : Nat :=
   match n with
-  | 0 => m
-  | S p => S (p + m)
+  | Zero => m
+  | S p => S (add p m)
   end.
 
-Fixpoint mul (n m : nat) : nat :=
+Fixpoint mul (n m : Nat) : Nat :=
   match n with
-  | 0 => 0
-  | S p => m + p * m
+  | Zero => Zero
+  | S p => add m (mul p m)
   end.
 
+Fixpoint sub (n m : Nat) : Nat :=
+  match n, m with
+  | S k, S l => sub k l
+  | _, _ => n
+  end.
 
