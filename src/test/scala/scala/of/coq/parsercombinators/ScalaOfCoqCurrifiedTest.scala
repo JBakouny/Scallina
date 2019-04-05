@@ -301,6 +301,17 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
+  test("Testing Scala conversion of the Coq comparison inductive") {
+    CoqParser("""
+      Inductive comparison : Set :=  Eq | Lt | Gt .
+      """) should generateScalaCode("""
+      "sealed abstract class comparison
+      "case object Eq extends comparison
+      "case object Lt extends comparison
+      "case object Gt extends comparison
+      """)
+  }
+
   test("""Testing Scala conversion of
           Inductive Tree :=
             Leaf
