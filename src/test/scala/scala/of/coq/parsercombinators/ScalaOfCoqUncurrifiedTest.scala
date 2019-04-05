@@ -219,6 +219,30 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       """) should generateScalaCode("def addTen(n: Nat): Nat = add(n, 10)")
   }
 
+  test("Testing Scala conversion of the Coq xorb function") {
+    CoqParser("""
+      Definition xorb (b1 b2 : bool) : bool :=
+        if b1 then (if b2 then false else true) else (if b2 then true else false).
+      """) should generateScalaCode("""
+      "def xorb(b1: Boolean, b2: Boolean): Boolean =
+      "  if (b1) (if (b2) false
+      "  else true)
+      "  else (if (b2) true
+      "  else false)
+      """)
+  }
+
+  test("Testing Scala conversion of the Coq implb function") {
+    CoqParser("""
+      Definition implb (b1 b2 : bool) : bool :=
+      if b1 then b2 else true.
+      """) should generateScalaCode("""
+      "def implb(b1: Boolean, b2: Boolean): Boolean =
+      "  if (b1) b2
+      "  else true
+      """)
+  }
+
   test("""Testing Scala conversion of
         Definition amortizedQueue (front rear: List) : AbsQueue :=
           if (size rear) <=? (size front) then
