@@ -73,6 +73,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     "import scala.of.coq.lang._\n" +
       "import Nat._\n" +
       "import Pairs._\n" +
+      "import Bools._\n" +
       "import MoreLists._\n" +
       "import scala.concurrent.Future\n" +
       "import MoreFutures._\n" +
