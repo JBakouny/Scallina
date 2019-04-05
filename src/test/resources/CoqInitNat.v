@@ -191,6 +191,7 @@ Fixpoint shiftl (a n: Nat) : Nat :=
    | S n0 => double (shiftl a n0)
  end.
 
+(* Replace shiftr by a version that does not use the dependently typed nat_rect function, see the result of "Extraction iter" for OCaml *)
 Fixpoint shiftr (a n: Nat) : Nat :=
  match n with
    | Zero => a
