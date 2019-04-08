@@ -8,6 +8,14 @@ Add types to method signatures.
 
 Inductive Nat := Zero | S (n : Nat).
 
+Definition t : Set := Nat.
+
+Definition zero : Nat := Zero.
+Definition one : Nat := S Zero.
+Definition two : Nat := S (S Zero).
+
+Definition succ : Nat -> Nat := S.
+
 Definition pred (n : Nat) : Nat :=
   match n with
     | Zero => n
@@ -100,6 +108,8 @@ Fixpoint tail_addmul (r n m : Nat) : Nat :=
     | Zero => r
     | S n => tail_addmul (tail_add m r) n m
   end.
+
+Definition tail_mul (n m : Nat) : Nat := tail_addmul Zero n m.
 
 (* Disregard the following functions since they use
 Decimals which are not currently supported by Scallina:

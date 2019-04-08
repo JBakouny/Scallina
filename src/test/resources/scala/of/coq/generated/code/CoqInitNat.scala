@@ -9,6 +9,11 @@ object CoqInitNat {
   sealed abstract class Nat
   case object Zero extends Nat
   case class S(n: Nat) extends Nat
+  type t = Nat
+  def zero: Nat = Zero
+  def one: Nat = S(Zero)
+  def two: Nat = S(S(Zero))
+  def succ: Nat => Nat = S
   def pred(n: Nat): Nat =
     n match {
       case Zero => n
@@ -85,6 +90,7 @@ object CoqInitNat {
       case Zero => r
       case S(n) => tail_addmul(tail_add(m)(r))(n)(m)
     }
+  def tail_mul(n: Nat)(m: Nat): Nat = tail_addmul(Zero)(n)(m)
   def divmod(x: Nat)(y: Nat)(q: Nat)(u: Nat): (Nat, Nat) =
     x match {
       case Zero => (q, u)
