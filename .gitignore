@@ -9,9 +9,41 @@
 .cache-main
 .cache-tests
 
-# Coq tmp file
+# Coq
 \#*
+.*.aux
+*.a
+*.cma
+*.cmi
+*.cmo
+*.cmx
+*.cmxa
+*.cmxs
+*.glob
+*.ml.d
+*.ml4.d
+*.mli.d
+*.mllib.d
+*.mlpack.d
+*.native
+*.o
+*.v.d
+*.vio
+*.vo
+.coq-native/
+.csdp.cache
+.lia.cache
+.nia.cache
+.nlia.cache
+.nra.cache
+.coqdeps.d
+csdp.cache
+lia.cache
+nia.cache
+nlia.cache
+nra.cache
 
+# Eclipse
 .metadata
 bin/
 tmp/
