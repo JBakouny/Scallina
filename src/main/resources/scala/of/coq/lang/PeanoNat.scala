@@ -40,6 +40,10 @@ object Nat {
   import Pairs._
 
   // Translated from Coq.Init.Nat using the Scallina prototype
+  def zero: Nat = Zero
+  def one: Nat = S(Zero)
+  def two: Nat = S(S(Zero))
+  def succ: Nat => Nat = S
   def pred(n: Nat): Nat =
     n match {
       case Zero => n
@@ -116,6 +120,7 @@ object Nat {
       case Zero => r
       case S(n) => tail_addmul(tail_add(m)(r))(n)(m)
     }
+  def tail_mul(n: Nat)(m: Nat): Nat = tail_addmul(Zero)(n)(m)
   def divmod(x: Nat)(y: Nat)(q: Nat)(u: Nat): (Nat, Nat) =
     x match {
       case Zero => (q, u)
@@ -209,6 +214,7 @@ object Nat {
   def pow: (Nat, Nat) => Nat = (n: Nat, m: Nat) => pow(n)(m)
   def tail_add: (Nat, Nat) => Nat = (n: Nat, m: Nat) => tail_add(n)(m)
   def tail_addmul: (Nat, Nat, Nat) => Nat = (r: Nat, n: Nat, m: Nat) => tail_addmul(r)(n)(m)
+  def tail_mul: (Nat, Nat) => Nat = (n: Nat, m: Nat) => tail_mul(n)(m)
   def divmod: (Nat, Nat, Nat, Nat) => (Nat, Nat) = (x: Nat, y: Nat, q: Nat, u: Nat) => divmod(x)(y)(q)(u)
   def div: (Nat, Nat) => Nat = (x: Nat, y: Nat) => div(x)(y)
   def modulo: (Nat, Nat) => Nat = (x: Nat, y: Nat) => modulo(x)(y)
