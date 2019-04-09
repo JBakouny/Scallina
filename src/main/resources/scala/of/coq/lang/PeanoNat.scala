@@ -18,10 +18,6 @@ sealed abstract class Nat {
 case object Zero extends Nat
 case class S(n: Nat) extends Nat
 
-object CurriedNat {
-
-}
-
 object Nat {
 
   implicit def apply(n: BigInt): Nat =
