@@ -1,9 +1,13 @@
 (*
+From Coq's standard library - Natural Numbers:
+https://github.com/coq/coq/blob/v8.9/theories/Init/Nat.v
 
-Replace 0 by Zero.
-Replace ' by 1 in qualids.
-Inline notations.
-Add types to method signatures.
+Changes to the original code:
+- Replace 0 by Zero.
+- Replace ' by 1 in qualids.
+- Inline notations.
+- Add type information to all function parameters.
+- Add function return types.
 *)
 
 Inductive Nat := Zero | S (n : Nat).

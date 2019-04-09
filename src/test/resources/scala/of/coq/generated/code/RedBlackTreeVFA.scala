@@ -5,25 +5,26 @@ import Bools._
 import MoreLists._
 import scala.concurrent.Future
 import MoreFutures._
-object RedBlackTree {
+object RedBlackTreeVFA {
+  type key = BigInt
   sealed abstract class color
   case object Red extends color
   case object Black extends color
   sealed abstract class tree[+V]
   case object E extends tree[Nothing]
-  case class T[V](c: color, l: tree[V], key: BigInt, value: V, r: tree[V]) extends tree[V]
+  case class T[V](c: color, l: tree[V], k: key, value: V, r: tree[V]) extends tree[V]
   object T {
     def apply[V] =
-      (c: color) => (l: tree[V]) => (key: BigInt) => (value: V) => (r: tree[V]) => new T(c, l, key, value, r)
+      (c: color) => (l: tree[V]) => (k: key) => (value: V) => (r: tree[V]) => new T(c, l, k, value, r)
   }
-  def lookup[V](default: V)(x: BigInt)(t: tree[V]): V =
+  def lookup[V](default: V)(x: key)(t: tree[V]): V =
     t match {
       case E => default
       case T(_, tl, k, v, tr) => if ((x < k)) lookup(default)(x)(tl)
       else if ((k < x)) lookup(default)(x)(tr)
       else v
     }
-  def balance[V](rb: color)(t1: tree[V])(k: BigInt)(vk: V)(t2: tree[V]): tree[V] =
+  def balance[V](rb: color)(t1: tree[V])(k: key)(vk: V)(t2: tree[V]): tree[V] =
     rb match {
       case Red => T(Red)(t1)(k)(vk)(t2)
       case _ => t1 match {
@@ -41,13 +42,13 @@ object RedBlackTree {
       case E => E
       case T(_, a, x, vx, b) => T(Black)(a)(x)(vx)(b)
     }
-  def ins[V](x: BigInt)(vx: V)(s: tree[V]): tree[V] =
+  def ins[V](x: key)(vx: V)(s: tree[V]): tree[V] =
     s match {
       case E => T(Red)(E)(x)(vx)(E)
       case T(c, a, y, vy, b) => if ((x < y)) balance(c)(ins(x)(vx)(a))(y)(vy)(b)
       else if ((y < x)) balance(c)(a)(y)(vy)(ins(x)(vx)(b))
       else T(c)(a)(x)(vx)(b)
     }
-  def insert[V](x: BigInt)(vx: V)(s: tree[V]): tree[V] = makeBlack(ins(x)(vx)(s))
+  def insert[V](x: key)(vx: V)(s: tree[V]): tree[V] = makeBlack(ins(x)(vx)(s))
 }
 

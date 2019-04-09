@@ -1,4 +1,19 @@
 
+(*
+From Software Foundations, volume 3:
+Verified Functional Algorithms by Andrew W. Appel.
+
+Selection Sort:
+https://softwarefoundations.cis.upenn.edu/vfa-current/Selection.html
+
+
+Changes to the original code:
+- Add type information to all function parameters.
+- Add function return types.
+- Replace names containing non-ASCII characters by equivalent names with ASCII-only characters.
+- Add parenthesis to enforce the needed precedence where needed.
+- Split the implementation and its proof into two distinct files.
+*)
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Lists.List.
@@ -17,7 +32,7 @@ match l, n with
 | x::r, S n1 => let (y,r1) := select x r
                in y :: selsort r1 n1
 | nil, _ => nil
-| _::_, 0 => nil  (* Oops!  Ran out of fuel! *)
+| _::_, 0 => nil
 end.
 
 
