@@ -32,8 +32,8 @@ Packaged examples are available under [```packaged-examples```](./packaged-examp
 Additional examples of Coq ```.v``` files that can be translated to Scala are available under [```src/test/resources/```](./src/test/resources/)
 
 ### Compiling the Generated Scala Files
-The generated files can be compiled with the ```scalac``` Scala compiler provided that the [Scallina Standard Library](./packaged-examples/v0.5.0/scallina-standard-library-assembly-0.5.jar) is included in the classpath.
+The generated files can be compiled with the ```scalac``` Scala compiler provided that the [Scallina Standard Library](https://github.com/JBakouny/Scallina/releases/download/v0.6.0/scallina-standard-library-assembly-0.6.jar) is included in the classpath.
 
-For a practical example, see the ```compile-scala-code.sh``` scripts in [```packaged-examples/v0.5.0/list-queue/```](./packaged-examples/v0.5.0/list-queue/) and [```packaged-examples/v0.5.0/selection-sort/```](./packaged-examples/v0.5.0/selection-sort/).
+For a practical example, see the ```compile-scala-code.sh``` script in [```packaged-examples/v0.6.0/SelectionSort```](.packaged-examples/v0.6.0/SelectionSort).
 
 The source code of the Scallina Standard Library is available under [```src/main/resources/scala/of/coq/lang```](./src/main/resources/scala/of/coq/lang/).
