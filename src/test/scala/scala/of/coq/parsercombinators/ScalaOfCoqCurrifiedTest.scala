@@ -358,6 +358,55 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
+  test("""Testing Scala conversion of tree whose use does not compile correctly in Scala
+       """) {
+    CoqParser("""
+        Inductive Tree A := Empty | NonEmpty (v: A) (l r: Tree A).
+
+        Arguments Empty {A}.
+        Arguments NonEmpty {A} _ _ _.
+
+        Definition t : Tree nat := NonEmpty (S (S 0)) (Empty) (NonEmpty (S 0) Empty Empty).
+        Definition l : list (Tree nat) := app (Empty :: nil) (t :: nil).
+      """) should generateScalaCode("""
+        "sealed abstract class Tree[+A]
+        "case object Empty extends Tree[Nothing]
+        "case class NonEmpty[A](v: A, l: Tree[A], r: Tree[A]) extends Tree[A]
+        "object NonEmpty {
+        "  def apply[A] =
+        "    (v: A) => (l: Tree[A]) => (r: Tree[A]) => new NonEmpty(v, l, r)
+        "}
+        "def t: Tree[Nat] = NonEmpty(S(S(0)))(Empty)(NonEmpty(S(0))(Empty)(Empty))
+        "def l: List[Tree[Nat]] = app(Empty :: Nil)(t :: Nil)
+        """)
+  }
+
+  test("""
+      Testing Scala conversion of a simple curried function
+      where Scala fails to infer correct types during its application
+       """) {
+    CoqParser("""
+      Require Import List.
+      Require Import ZArith.
+      Open Scope Z_scope.
+
+      Definition app {A} (l m : list A) : list A :=
+        match l with
+         | nil => m
+         | a :: l1 => a :: (app l1 m)
+        end.
+
+      Definition xs : list (option Z) := app (None :: nil) ((Some 1) :: nil).
+      """) should generateScalaCode("""
+        "def app[A](l: List[A])(m: List[A]): List[A] =
+        "  l match {
+        "    case Nil     => m
+        "    case a :: l1 => a :: app(l1)(m)
+        "  }
+        "def xs: List[Option[BigInt]] = app(None :: Nil)(Some(1) :: Nil)
+        """)
+  }
+
   test("""Testing Scala conversion of
           Inductive Tree {A B : Type} : Type :=
           | Leaf {C : Type} (firstValue: A) (secondValue: C)
@@ -642,25 +691,11 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   }
 
   test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
-      From Coq Require Import ZArith.
-
-      Open Scope Z_scope.
-
-      Record aMonoid : Type := {
-        dom : Type;
-        zero : dom;
-        op : dom -> dom -> dom
-      }.
-
-      Definition intMonoid : aMonoid := {|
-        dom := Z;
-        zero := 0;
-        op := fun (a: Z) (b: Z) => a + b
-      |}.
+      intMonoid example
+      Anonymous function with typed arguments
        """) {
     CoqParser("""
       From Coq Require Import ZArith.
-
       Open Scope Z_scope.
 
       Record aMonoid : Type := {
@@ -672,7 +707,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       Definition intMonoid : aMonoid := {|
         dom := Z;
         zero := 0;
-        op := fun (a: Z) (b: Z) => a + b
+        op := fun (a b: Z) => a + b
       |}.
       """) should generateScalaCode("""
       "trait aMonoid {
@@ -686,6 +721,94 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  def op: dom => dom => dom = (a: BigInt) => (b: BigInt) => a + b
       "}
       """)
+  }
+
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+      intMonoid example
+      Anonymous function with untyped arguments
+       """) {
+    CoqParser("""
+      From Coq Require Import ZArith.
+      Open Scope Z_scope.
+
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+
+      Definition intMonoid : aMonoid := {|
+        dom := Z;
+        zero := 0;
+        op := fun a b => a + b
+      |}.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "object intMonoid extends aMonoid {
+      "  type dom = BigInt
+      "  def zero: dom = 0
+      "  def op: dom => dom => dom = a => b => a + b
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+      intMonoid example
+      Alternative notation without anonymous functions
+       """) {
+    CoqParser("""
+      From Coq Require Import ZArith.
+      Open Scope Z_scope.
+
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op (a b: dom): dom
+      }.
+
+      Definition intMonoid : aMonoid := {|
+        dom := Z;
+        zero := 0;
+        op a b := a + b
+      |}.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "object intMonoid extends aMonoid {
+      "  type dom = BigInt
+      "  def zero: dom = 0
+      "  def op: dom => dom => dom = (a: dom) => (b: dom) => a + b
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
+      intMonoid
+      Different signatures between record definition and instanciation is not currently supported
+       """) {
+    coqParserShouldFailToGenerateScalaCodeFor("""
+      From Coq Require Import ZArith.
+      Open Scope Z_scope.
+
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+
+      Definition intMonoid : aMonoid := {|
+        dom := Z;
+        zero := 0;
+        op a b := a + b
+      |}.
+        """)
   }
 
   test("""Testing Scala conversion of the example by P. Letouzey in ``Extraction in Coq: An Overview''
@@ -2328,6 +2451,161 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case (S(k), S(l)) => sub(k)(l)
       "    case (_, _)       => n
       "  }
+      """)
+  }
+
+  test("Testing Scala conversion of dependent function types - avoids bug in scalac compiler - https://github.com/scala/bug/issues/4751") {
+    CoqParser("""
+      Require Import List.
+
+      Record NatOperation := {
+        T : Type;
+        op : nat -> T
+      }.
+
+      Definition Square : NatOperation := {|
+        T := nat;
+        op := fun x => x * x
+      |}.
+
+      Definition sq (natOp: NatOperation) (xs : list nat) : list natOp.(T) :=
+        map natOp.(op) xs.
+      """) should generateScalaCode("""
+      "trait NatOperation {
+      "  type T
+      "  def op: Nat => T
+      "}
+      "object Square extends NatOperation {
+      "  type T = Nat
+      "  def op: Nat => T = x => x * x
+      "}
+      "def sq(natOp: NatOperation)(xs: List[Nat]): List[natOp.T] = map(natOp.op)(xs)
+      """)
+  }
+
+  test("Testing Scala conversion of dependent function types with monoids - avoids bug in scalac compiler - https://github.com/scala/bug/issues/4751") {
+    CoqParser("""
+      Require Import List.
+
+      Record aMonoid : Type := newMonoid {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+      Definition testZero (m: aMonoid) (xs: list m.(dom)) : list m.(dom) :=
+        map (m.(op) m.(zero)) xs.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "def newMonoid[dom](zero: dom)(op: dom => dom => dom): aMonoid = {
+      "  type aMonoid_dom = dom
+      "  def aMonoid_zero = zero
+      "  def aMonoid_op = op
+      "  new aMonoid {
+      "    type dom = aMonoid_dom
+      "    def zero: dom = aMonoid_zero
+      "    def op: dom => dom => dom = aMonoid_op
+      "  }
+      "}
+      "def testZero(m: aMonoid)(xs: List[m.dom]): List[m.dom] = map(m.op(m.zero))(xs)
+      """)
+  }
+
+  test("Testing Scala conversion of foldRight on monoids") {
+    CoqParser("""
+      Require Import List.
+
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+
+      Fixpoint foldRight (m: aMonoid) (l : list m.(dom)) : m.(dom) :=
+      match l with
+      | nil => m.(zero)
+      | x :: xs => m.(op) x (foldRight m xs)
+      end.
+      """) should generateScalaCode("""
+      "trait aMonoid {
+      "  type dom
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "def foldRight(m: aMonoid)(l: List[m.dom]): m.dom =
+      "  l match {
+      "    case Nil     => m.zero
+      "    case x :: xs => m.op(x)(foldRight(m)(xs))
+      "  }
+      """)
+  }
+
+  test("Testing Scala conversion of foldRight on monoids - avoids bug in scalac compiler - https://github.com/scala/bug/issues/4751") {
+    CoqParser("""
+      Require Import List.
+
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op : dom -> dom -> dom
+      }.
+
+      Fixpoint foldRight {A} {B} (op: B -> A -> A) (zero : A) (l : list B) : A :=
+      match l with
+      | nil => zero
+      | x :: xs => op x (foldRight op zero xs)
+      end.
+
+      Definition mFoldRight (m: aMonoid) (l : list m.(dom)) : m.(dom) :=
+        foldRight m.(op) m.(zero) l.
+      """) should generateScalaCode("""
+     "trait aMonoid {
+     "  type dom
+     "  def zero: dom
+     "  def op: dom => dom => dom
+     "}
+     "def foldRight[A, B](op: B => A => A)(zero: A)(l: List[B]): A =
+     "  l match {
+     "    case Nil     => zero
+     "    case x :: xs => op(x)(foldRight(op)(zero)(xs))
+     "  }
+     "def mFoldRight(m: aMonoid)(l: List[m.dom]): m.dom = foldRight(m.op)(m.zero)(l)
+      """)
+  }
+
+  test("Testing Scala conversion of foldRight on monoids - alternate syntax also avoids bug in scalac compiler - https://github.com/scala/bug/issues/4751") {
+    CoqParser("""
+      Require Import List.
+
+      Record aMonoid : Type := {
+        dom : Type;
+        zero : dom;
+        op (a b: dom): dom
+      }.
+
+      Fixpoint foldRight {A} {B} (op: B -> A -> A) (zero : A) (l : list B) : A :=
+      match l with
+      | nil => zero
+      | x :: xs => op x (foldRight op zero xs)
+      end.
+
+      Definition mFoldRight (m: aMonoid) (l : list m.(dom)) : m.(dom) :=
+        foldRight m.(op) m.(zero) l.
+      """) should generateScalaCode("""
+     "trait aMonoid {
+     "  type dom
+     "  def zero: dom
+     "  def op: dom => dom => dom
+     "}
+     "def foldRight[A, B](op: B => A => A)(zero: A)(l: List[B]): A =
+     "  l match {
+     "    case Nil     => zero
+     "    case x :: xs => op(x)(foldRight(op)(zero)(xs))
+     "  }
+     "def mFoldRight(m: aMonoid)(l: List[m.dom]): m.dom = foldRight(m.op)(m.zero)(l)
       """)
   }
 }
