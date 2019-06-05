@@ -5,8 +5,8 @@ object Pairs {
     p match {
       case (x, y) => x
     }
-  def snd[A, B](p: (A, B)): A =
+  def snd[A, B](p: (A, B)): B =
     p match {
-      case (x, y) => x
+      case (x, y) => y
     }
 }

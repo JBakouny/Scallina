@@ -14,6 +14,8 @@ sealed abstract class Nat {
   def +(that: Nat): Nat = Nat.add(this)(that)
   def *(that: Nat): Nat = Nat.mul(this)(that)
   def -(that: Nat): Nat = Nat.sub(this)(that)
+
+  def mod(that: Nat): Nat = Nat.modulo(this)(that)
 }
 case object Zero extends Nat
 case class S(n: Nat) extends Nat
@@ -29,7 +31,7 @@ object Nat {
 
   implicit def natToBigInt(n: Nat): BigInt = n match {
     case Zero => 0
-    case S(m) => 1 + natToBigInt(n)
+    case S(m) => 1 + natToBigInt(m)
   }
 
   import Bools._
