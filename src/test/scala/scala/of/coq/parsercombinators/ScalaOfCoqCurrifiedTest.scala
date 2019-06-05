@@ -407,6 +407,58 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
+  test("""
+      Testing covariance example
+       """) {
+    CoqParser("""
+        Require Import ZArith.
+        Open Scope Z_scope.
+
+        Record aMonoid : Type := {
+          dom : Type;
+          zero : dom;
+          op : dom -> dom -> dom
+        }.
+
+        Definition intMonoid : aMonoid := {|
+          dom := Z;
+          zero := 0;
+          op := fun a b => a + b
+        |}.
+
+        Inductive Test A : Type :=
+          C (f: A -> A) (next: Test A)
+        | E.
+
+        Arguments C {A} _ _.
+        Arguments E {A}.
+
+        Definition myFunc (a : Test aMonoid) : Test aMonoid := a.
+
+        Definition test := myFunc (C (fun (m : aMonoid) => intMonoid) E).
+        """) should generateScalaCode("""
+        "trait aMonoid {
+        " type dom
+        " def zero: dom
+        " def op: dom => dom => dom
+        "}
+        "object intMonoid extends aMonoid {
+        " type dom = BigInt
+        " def zero: dom = 0
+        " def op: dom => dom => dom = a => b => a + b
+        "}
+        "sealed abstract class Test[+A]
+        "case class C[A](f: A => A, next: Test[A]) extends Test[A]
+        "object C {
+        " def apply[A] =
+        " (f: A => A) => (next: Test[A]) => new C(f, next)
+        "}
+        "case object E extends Test[Nothing]
+        "def myFunc(a: Test[aMonoid]): Test[aMonoid] = a
+        "def test = myFunc(C((m: aMonoid) => intMonoid)(E))
+        """)
+  }
+
   test("""Testing Scala conversion of
           Inductive Tree {A B : Type} : Type :=
           | Leaf {C : Type} (firstValue: A) (secondValue: C)
