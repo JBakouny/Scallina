@@ -2747,4 +2747,42 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
      "def mFoldRight(m: aMonoid)(l: List[m.dom]): m.dom = foldRight(m.op)(m.zero)(l)
       """)
   }
+
+  // TODO(Joseph Bakouny): Fix this Scallina issue.
+  ignore("""STLC example from Gallina to Scala
+    Fix this bug in the Scallina prototype:
+    we generate "def compose_type: Tree => List => List => BigInt => Tree => BigInt"
+    instead of "def compose_type: (Tree => List) => (List => BigInt) => Tree => BigInt"
+    """) {
+    CoqParser("""
+      Require Import ZArith.
+      Open Scope Z_scope.
+
+      Inductive Tree := Leaf | Node (v : Z) (l r: Tree).
+      Inductive List := Nil | Cons (v : Z) (t: List).
+
+      Definition compose_type: (Tree -> List) -> (List -> Z) -> Tree -> Z :=
+        fun (f : Tree -> List) (g: List -> Z) (x : Tree) => g (f x).
+
+      Definition compose(f : Tree -> List) (g: List -> Z) (x : Tree) : Z := g (f x).
+      """) should generateScalaCode("""
+      "sealed abstract class Tree
+      "case object Leaf extends Tree
+      "case class Node(v: BigInt, l: Tree, r: Tree) extends Tree
+      "object Node {
+      "  def apply =
+      "    (v: BigInt) => (l: Tree) => (r: Tree) => new Node(v, l, r)
+      "}
+      "sealed abstract class List
+      "case object Nil extends List
+      "case class Cons(v: BigInt, t: List) extends List
+      "object Cons {
+      "  def apply =
+      "    (v: BigInt) => (t: List) => new Cons(v, t)
+      "}
+      "def compose_type: (Tree => List) => (List => BigInt) => Tree => BigInt =
+      "  (f: Tree => List) => (g: List => BigInt) => (x: Tree) => g(f(x))
+      "def compose(f: Tree => List)(g: List => BigInt)(x: Tree): BigInt = g(f(x))
+      """)
+  }
 }
