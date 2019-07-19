@@ -104,6 +104,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
        * TODO (Jospeh Bakouny): This case clause ignores the type term.
        * Check what needs to be done with the type Term in future version
        */
+      // TODO (Joseph Bakouny): Consider implementing the translation of GADTs
       createCaseClassHierarchy(parentBinders, parentName, indBodyItems)
     case Fixpoint(FixBody(id, binders, _, typeTerm, bodyTerm)) =>
       List(createDefinition(id, Some(binders), typeTerm) := termToTreeHuggerAst(bodyTerm))
@@ -711,6 +712,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
           createTypeAliasDefinition(convertNameToIdent(name), binders) :=
             coqTypeToTreeHuggerType(bodyTypeTerm)
         case (ConcreteRecordField(name, binders, Some(typeTerm), bodyTerm), false) =>
+          // TODO (Joseph Bakouny): Consider implementing the conversion of record methods with type parameters in head position.
           createRecordFieldDefinition(name, binders, typeTerm) :=
             binders.fold(
               termToTreeHuggerAst(bodyTerm))(
