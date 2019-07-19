@@ -2785,4 +2785,83 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "def compose(f: Tree => List)(g: List => BigInt)(x: Tree): BigInt = g(f(x))
       """)
   }
+
+  test("""Hindley-Milner example from Gallina to Scala
+    """) {
+    CoqParser("""
+      Definition compose {A B C : Set} (f : A -> B) (g: B -> C) (x : A) : C := g (f x).
+      """) should generateScalaCode("""
+      "def compose[A, B, C](f: A => B)(g: B => C)(x: A): C = g(f(x))
+      """)
+  }
+
+  test("""System Fomega with Hindley-Milner type polymorphism example from Gallina to Scala
+    """) {
+    CoqParser("""
+        Definition compose {A B C : Set} (f : A -> B) (g: B -> C) (x : A) : C :=
+          g (f x).
+
+        Inductive Tree (A : Set) :=
+        | Leaf
+        | Node (v : A) (l r: Tree A).
+
+        Arguments Leaf {A}.
+        Arguments Node {A}.
+
+        Inductive List (A : Set) :=
+        | Nil
+        | Cons (v : A) (t: List A).
+
+        Arguments Nil {A}.
+        Arguments Cons {A}.
+
+        Fixpoint app {A : Set} (l1 l2: List A) : List A :=
+        match l1 with
+        | Nil => l2
+        | Cons x xs => Cons x (app xs l2)
+        end.
+
+        Fixpoint elems {A : Set} (t : Tree A) : List A :=
+        match t with
+        | Leaf => Nil
+        | Node v l r => Cons v (app (elems l) (elems r))
+        end.
+
+        Fixpoint size {A : Set} (xs : List A) : nat := match xs with
+        | Nil => 0
+        | Cons _ t => 1 + (size t)
+        end.
+      """) should generateScalaCode("""
+      "def compose[A, B, C](f: A => B)(g: B => C)(x: A): C = g(f(x))
+      "sealed abstract class Tree[+A]
+      "case object Leaf extends Tree[Nothing]
+      "case class Node[A](v: A, l: Tree[A], r: Tree[A]) extends Tree[A]
+      "object Node {
+      "  def apply[A] =
+      "    (v: A) => (l: Tree[A]) => (r: Tree[A]) => new Node(v, l, r)
+      "}
+      "sealed abstract class List[+A]
+      "case object Nil extends List[Nothing]
+      "case class Cons[A](v: A, t: List[A]) extends List[A]
+      "object Cons {
+      "  def apply[A] =
+      "    (v: A) => (t: List[A]) => new Cons(v, t)
+      "}
+      "def app[A](l1: List[A])(l2: List[A]): List[A] =
+      "  l1 match {
+      "    case Nil         => l2
+      "    case Cons(x, xs) => Cons(x)(app(xs)(l2))
+      "  }
+      "def elems[A](t: Tree[A]): List[A] =
+      "  t match {
+      "    case Leaf          => Nil
+      "    case Node(v, l, r) => Cons(v)(app(elems(l))(elems(r)))
+      "  }
+      "def size[A](xs: List[A]): Nat =
+      "  xs match {
+      "    case Nil        => 0
+      "    case Cons(_, t) => 1 + size(t)
+      "  }
+      """)
+  }
 }
