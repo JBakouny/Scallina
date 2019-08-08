@@ -13,15 +13,16 @@ object InductiveDefinition {
     def apply[A] =
       (l: Tree[A]) => (r: Tree[A]) => new Node(l, r)
   }
-  def size[A](t: Tree[A]): Nat =
-    t match {
-      case Leaf(_) => 1
-      case Node(l, r) => 1 + (size(l) + size(r))
-    }
   def map[A, B](t: Tree[A])(f: A => B): Tree[B] =
     t match {
       case Leaf(a) => Leaf(f(a))
       case Node(l, r) => Node(map(l)(f))(map(r)(f))
+    }
+  def compose[A, B, C](g: B => C)(f: A => B)(x: A) = g(f(x))
+  def size[A](t: Tree[A]): Nat =
+    t match {
+      case Leaf(_) => 1
+      case Node(l, r) => 1 + (size(l) + size(r))
     }
 }
 
