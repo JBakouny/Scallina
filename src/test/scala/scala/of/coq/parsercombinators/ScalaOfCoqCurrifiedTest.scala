@@ -570,6 +570,27 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
+  ignore("""Integrate the coming version of treehugger to obtain a case class with an empty paremeter list
+          Our fix was integrated into treehugger:
+          https://github.com/eed3si9n/treehugger/pull/45
+          but a new version was not released yet (it is still at version 0.4.3):
+          https://github.com/eed3si9n/treehugger/releases
+          Currently treehugger generates
+          case class C2[A, B] extends Test[A]
+          instead of
+          case class C2[A, B]() extends Test[A]
+       """) {
+    CoqParser("""
+          Inductive Test (A : Set) : Type :=
+          | C1 {B : Set} (n : A)
+          | C2 {B : Set}.
+      """) should generateScalaCode("""
+        "sealed abstract class Test[+A]
+        "case class C1[A, B](n: A) extends Test[A]
+        "case class C2[A, B]() extends Test[A]
+        """)
+  }
+
   test("""Testing Scala conversion of
         Require Import Omega.
 
