@@ -570,7 +570,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
-  ignore("""Integrate the coming version of treehugger to obtain a case class with an empty paremeter list
+  test("""Integrate the coming version of treehugger to obtain a case class with an empty paremeter list
           Our fix was integrated into treehugger:
           https://github.com/eed3si9n/treehugger/pull/45
           but a new version was not released yet (it is still at version 0.4.3):
@@ -579,6 +579,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           case class C2[A, B] extends Test[A]
           instead of
           case class C2[A, B]() extends Test[A]
+          The test now succeeds since we patched treehugger in our code.
        """) {
     CoqParser("""
           Inductive Test (A : Set) : Type :=

@@ -1,6 +1,6 @@
 package scala.of.coq.parsercombinators.compiler
 
-import treehugger.forest._
+import customtreehugger.MyForest._
 import definitions._
 import treehuggerDSL._
 
@@ -9,32 +9,29 @@ trait CurryingStrategy {
   def createDefinition(functionDef: DefTreeStart, paramDefs: List[ValDef]): DefTreeStart
   def createAnonymousFunction(paramDefs: List[ValDef], bodyTerm: Tree): Tree
   def createCompanionObject(
-    name: String,
-    typeDefs: List[TypeDefTreeStart],
+    name:      String,
+    typeDefs:  List[TypeDefTreeStart],
     paramDefs: List[ValDef]): Option[ModuleDef]
 }
 
 object Currify extends CurryingStrategy {
   def createApplication(functionTerm: Tree, arguments: List[Tree]): Tree = {
     arguments.foldLeft(functionTerm)(
-      (f, param) => f.APPLY(param)
-    )
+      (f, param) => f.APPLY(param))
   }
   def createDefinition(functionDef: DefTreeStart, paramDefs: List[ValDef]): DefTreeStart = {
     paramDefs.foldLeft(functionDef)(
-      (funDef, param) => funDef.withParams(param)
-    )
+      (funDef, param) => funDef.withParams(param))
   }
   def createAnonymousFunction(paramDefs: List[ValDef], bodyTerm: Tree): Tree = {
     paramDefs.foldRight(bodyTerm)(
       (param, bodyTerm) =>
-        LAMBDA(param) ==> bodyTerm
-    )
+        LAMBDA(param) ==> bodyTerm)
   }
 
   def createCompanionObject(
-    name: String,
-    typeDefs: List[TypeDefTreeStart],
+    name:      String,
+    typeDefs:  List[TypeDefTreeStart],
     paramDefs: List[ValDef]): Option[ModuleDef] =
     {
       def callClassConstructor(name: String, paramDefs: List[ValDef]) = {
@@ -42,15 +39,13 @@ object Currify extends CurryingStrategy {
           name,
           paramDefs.map {
             param => REF(param.name)
-          }: _*
-        )
+          }: _*)
       }
 
       def createApplyMethodBody(name: String, paramDefs: List[ValDef]) = {
         createAnonymousFunction(
           paramDefs,
-          callClassConstructor(name, paramDefs)
-        )
+          callClassConstructor(name, paramDefs))
       }
 
       if (paramDefs.size <= 1)
@@ -62,10 +57,7 @@ object Currify extends CurryingStrategy {
               DEF("apply").withTypeParams(typeDefs) :=
                 createApplyMethodBody(
                   name,
-                  paramDefs
-                )
-            )
-        )
+                  paramDefs)))
     }
 }
 
@@ -80,7 +72,7 @@ object NoCurrying extends CurryingStrategy {
     LAMBDA(paramDefs) ==> bodyTerm
   }
   def createCompanionObject(
-    name: String,
-    typeDefs: List[TypeDefTreeStart],
+    name:      String,
+    typeDefs:  List[TypeDefTreeStart],
     paramDefs: List[ValDef]): Option[ModuleDef] = None
 }

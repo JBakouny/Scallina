@@ -1,6 +1,6 @@
 package scala.of.coq.parsercombinators.compiler
 
-import treehugger.forest._
+import customtreehugger.MyForest._
 import definitions._
 import treehuggerDSL._
 
@@ -363,7 +363,12 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
          * Check what needs to be done with the type Term in future version
          */
         case InductiveBodyItem(Ident(name), binders, indBodyItemType) =>
-          require(!indBodyItemType.isDefined, "Return types of inductive body items should be ommitted")
+          val returnTypeIndBodyItem = indBodyItemType.map {
+            case genericApplication @ UncurriedTermApplication(_, _) =>
+              coqTypeToScalaCode(genericApplication)
+            case other =>
+              throw new IllegalStateException("Unsupported inductive body return type:" + other)
+          }
           binders.fold {
             val caseObjectDeclaration: Tree =
               CASEOBJECTDEF(name)
