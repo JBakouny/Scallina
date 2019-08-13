@@ -366,7 +366,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       convertTypeBindersToTypeVars(parentBinders, true) // Not a GADT
     ) {
         numberOfParams => // Generate GADT type parameters at the Scala trait-level
-          (0 to numberOfParams - 1).toList.map(i => ('A' + i).toChar).map(c => TYPEVAR(c.toString))
+          (0 to numberOfParams - 1).toList.map(i => ('A' to 'Z')(i)).map(c => TYPEVAR(c.toString))
       }
 
     val parentDeclaration: Tree =
