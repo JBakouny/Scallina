@@ -99,13 +99,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       List(RecordUtils.convertRecordInstance(name, args, recordType, concreteRecordFields))
     case Definition(id, binders, typeTerm, bodyTerm) =>
       List(createDefinition(id, binders, typeTerm) := termToTreeHuggerAst(bodyTerm))
-    case Inductive(InductiveBody(Ident(parentName), parentBinders, _, indBodyItems)) =>
-      /*
-       * TODO (Jospeh Bakouny): This case clause ignores the type term.
-       * Check what needs to be done with the type Term in future version
-       */
-      // TODO (Joseph Bakouny): Consider implementing the translation of GADTs
-      createCaseClassHierarchy(parentBinders, parentName, indBodyItems)
+    case Inductive(InductiveBody(Ident(parentName), parentBinders, typeTerm, indBodyItems)) =>
+      createCaseClassHierarchy(parentBinders, parentName, typeTerm, indBodyItems)
     case Fixpoint(FixBody(id, binders, _, typeTerm, bodyTerm)) =>
       List(createDefinition(id, Some(binders), typeTerm) := termToTreeHuggerAst(bodyTerm))
     // NOTE(Joseph Bakouny): annotations should be ignored in Scala
@@ -346,8 +341,33 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       DEFINFER(definitionName))(
         typeTerm => DEF(definitionName, coqTypeToTreeHuggerType(typeTerm)))
 
-  private def createCaseClassHierarchy(parentBinders: Option[Binders], parentName: String, indBodyItems: List[InductiveBodyItem]) = {
-    val covariantParentTypeDefs = convertTypeBindersToTypeVars(parentBinders, true)
+  private def createCaseClassHierarchy(parentBinders: Option[Binders], parentName: String, typeTerm: Option[Term], indBodyItems: List[InductiveBodyItem]) = {
+
+    val GADT_NumberOfParams = typeTerm.fold[Option[Int]](
+      None // Not a GADT
+    ) {
+      case Type | Set => None // Not a GADT
+      case arrowType @ Term_->(_, _) =>
+        def calculateGADTnbParams(t: Term): Int = t match {
+          case Type                      => 0 // stop recursion
+          case Term_->(Set | Type, tail) => 1 + calculateGADTnbParams(tail)
+          case anythingElse =>
+            throw new IllegalStateException("Illegal GADT top-level return type: " + anythingElse.toCoqCode)
+        }
+        Some(calculateGADTnbParams(arrowType))
+      case anythingElse =>
+        throw new IllegalStateException("Illegal Inductive return type: " + anythingElse.toCoqCode)
+    }
+
+    // GADT cannot define top-level type params
+    require(!(GADT_NumberOfParams.isDefined && parentBinders.isDefined), "GADTs are not allowed to have top-level parameters in Scallina!")
+
+    val covariantParentTypeDefs = GADT_NumberOfParams.fold[List[TypeDefTreeStart]](
+      convertTypeBindersToTypeVars(parentBinders, true) // Not a GADT
+    ) {
+        numberOfParams => // Generate GADT type parameters at the Scala trait-level
+          (0 to numberOfParams - 1).toList.map(i => ('A' + i).toChar).map(c => TYPEVAR(c.toString))
+      }
 
     val parentDeclaration: Tree =
       CLASSDEF(parentName)
@@ -358,21 +378,29 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
     val caseClassHierarchy: List[Tree] =
       indBodyItems flatMap {
-        /*
-         * TODO (Jospeh Bakouny): This case clause ignores the type term.
-         * Check what needs to be done with the type Term in future version
-         */
         case InductiveBodyItem(Ident(name), binders, indBodyItemType) =>
+          // If a simple return type was explicitely specified, use it!
           val returnTypeIndBodyItem = indBodyItemType.map {
-            case genericApplication @ UncurriedTermApplication(_, _) =>
-              coqTypeToScalaCode(genericApplication)
-            case other =>
-              throw new IllegalStateException("Unsupported inductive body return type:" + other)
+            case genericApplication @ (UncurriedTermApplication(_, _) | ExplicitQualidApplication(_, _)) =>
+              coqTypeToTreeHuggerType(genericApplication)
+            case anythingElse =>
+              throw new IllegalStateException("Unsupported inductive body return type:" + anythingElse.toCoqCode)
           }
+
           binders.fold {
             val caseObjectDeclaration: Tree =
               CASEOBJECTDEF(name)
-                .withParents(createTypeWithGenericParams(parentName, covariantParentTypeDefs.map(_ => TYPE_REF("Nothing"))))
+                .withParents(
+                  if (!parentBinders.isDefined && returnTypeIndBodyItem.isDefined) // case of GADTs
+                    returnTypeIndBodyItem.get
+                  // No binders + no parent binders => no type paremeters
+                  //=> no need to insert Scala's Nothing
+                  else //If parent binders are defined => This is not a GADT, see below
+                    // Given the fact that we have no binders at the constructor-level
+                    //-> ignore specific return type and add Nothing instead of generics
+                    // Note that, to ensure correctness:
+                    // Scallina prohibits GADTs from having parent binders (top-level parameters)
+                    createTypeWithGenericParams(parentName, covariantParentTypeDefs.map(_ => TYPE_REF("Nothing"))))
                 .tree
 
             List(caseObjectDeclaration)
@@ -385,7 +413,13 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
                 CASECLASSDEF(name)
                   .withTypeParams(parentTypeDefs ::: typeDefs)
                   .withParams(paramsDefs)
-                  .withParents(createTypeWithGenericParams(parentName, parentTypeDefs.map(typeVar => TYPE_REF(typeVar.name))))
+                  .withParents(
+                    returnTypeIndBodyItem.fold(
+                      createTypeWithGenericParams(parentName, parentTypeDefs.map(typeVar => TYPE_REF(typeVar.name)))
+                    // No return type was specified, generate it from the environment
+                    )(
+                        x => x // A return type was explicitly specified, keep it as it is => this could serve for GADTs
+                      ))
                   .tree
 
               val optionalCompanion =
@@ -434,7 +468,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     (implicitBinders, paramsDefs)
   }
 
-  private def convertTypeBindersToTypeVars(typeBinders: Option[Binders], covariant: Boolean = false) =
+  private def convertTypeBindersToTypeVars(typeBinders: Option[Binders], covariant: Boolean = false): List[TypeDefTreeStart] =
     typeBinders.fold(List[TypeDefTreeStart]()) {
       case Binders(binders) =>
         def convertNamesToTypeVars(names: List[Name]) = {

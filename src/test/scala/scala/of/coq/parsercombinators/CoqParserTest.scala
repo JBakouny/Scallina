@@ -451,6 +451,35 @@ class CoqParserTest extends FunSuite {
                 None))))))
   }
 
+  test("""Testing the parsing of GADTs
+    """) {
+    CoqParser("""
+        Inductive Term : Set -> Type :=
+        | Int (n : Z) : Term Z
+        | Sum : Term (Z -> Z -> Z)
+        | App {A B : Set} (t1 : Term (B -> A)) (t2 : Term B) : Term A.
+              """) should parse(
+      List(
+        Inductive(
+          InductiveBody(Ident("Term"), None, Some(Term_->(Set, Type)),
+            List(
+              InductiveBodyItem(
+                Ident("Int"),
+                Some(Binders(List(ExplicitBinderWithType(List(Name(Some(Ident("n")))), Qualid(List(Ident("Z"))))))),
+                Some(UncurriedTermApplication(Qualid(List(Ident("Term"))), List(Argument(None, Qualid(List(Ident("Z")))))))),
+              InductiveBodyItem(
+                Ident("Sum"),
+                None,
+                Some(UncurriedTermApplication(Qualid(List(Ident("Term"))), List(Argument(None, BetweenParenthesis(Term_->(Qualid(List(Ident("Z"))), Term_->(Qualid(List(Ident("Z"))), Qualid(List(Ident("Z"))))))))))),
+              InductiveBodyItem(
+                Ident("App"),
+                Some(Binders(List(
+                  ImplicitBinder(List(Name(Some(Ident("A"))), Name(Some(Ident("B")))), Some(Set)),
+                  ExplicitBinderWithType(List(Name(Some(Ident("t1")))), UncurriedTermApplication(Qualid(List(Ident("Term"))), List(Argument(None, BetweenParenthesis(Term_->(Qualid(List(Ident("B"))), Qualid(List(Ident("A"))))))))),
+                  ExplicitBinderWithType(List(Name(Some(Ident("t2")))), UncurriedTermApplication(Qualid(List(Ident("Term"))), List(Argument(None, Qualid(List(Ident("B")))))))))),
+                Some(UncurriedTermApplication(Qualid(List(Ident("Term"))), List(Argument(None, Qualid(List(Ident("A")))))))))))))
+  }
+
   test("""Testing
       Record Queue :=
       {

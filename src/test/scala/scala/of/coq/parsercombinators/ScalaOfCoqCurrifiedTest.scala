@@ -592,6 +592,73 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
+  // TODO add GADT functions to this example
+  test("""Testing the translation of GADTs
+       """) {
+    CoqParser("""
+          Require Import ZArith.
+          Open Scope Z_scope.
+
+          Inductive Term : Set -> Type :=
+          | Int (n : Z) : Term Z
+          | Sum : Term (Z -> Z -> Z)
+          | App {A B : Set} (t1 : Term (B -> A)) (t2 : Term B) : Term A.
+
+          Fixpoint eval {A : Set} (t: Term A) : A :=
+          match t with
+          | Int n => n
+          | Sum => (fun x y => x + y)
+          | App f x => (eval f) (eval x)
+          end.
+
+          Definition two : Z := eval(App (App Sum (Int 1)) (Int 1)).
+
+          Fixpoint sum {A : Set} (t : Term A) : Z :=
+          let y : Z :=
+          match t with
+          | Int n => n
+          | Sum => 0
+          | App f x => (sum f) + (sum x)
+          end
+          in y + 1.
+      """) should generateScalaCode("""
+        "sealed abstract class Term[A]
+        "case class Int(n: BigInt) extends Term[BigInt]
+        "case object Sum extends Term[BigInt => BigInt => BigInt]
+        "case class App[A, B](t1: Term[B => A], t2: Term[B]) extends Term[A]
+        "object App {
+        "  def apply[A, B] =
+        "    (t1: Term[B => A]) => (t2: Term[B]) => new App(t1, t2)
+        "}
+        "def eval[A](t: Term[A]): A =
+        "  t match {
+        "    case Int(n)    => n
+        "    case Sum       => (x => y => x + y)
+        "    case App(f, x) => eval(f)(eval(x))
+        "  }
+        "def two: BigInt = eval(App(App(Sum)(Int(1)))(Int(1)))
+        "def sum[A](t: Term[A]): BigInt = {
+        "  val y: BigInt = t match {
+        "    case Int(n)    => n
+        "    case Sum       => 0
+        "    case App(f, x) => sum(f) + sum(x)
+        "  }
+        "  y + 1
+        "}
+        """)
+  }
+
+  test("""Testing the translation of another GADT requiring 2 sets
+       """) {
+    CoqParser("""
+        Inductive Equality : Set -> Set -> Type :=
+        | Eq {A : Set} : Equality A A.
+      """) should generateScalaCode("""
+        "sealed abstract class Equality[A, B]
+        "case class Eq[A]() extends Equality[A, A]
+        """)
+  }
+
   test("""Testing Scala conversion of
         Require Import Omega.
 
