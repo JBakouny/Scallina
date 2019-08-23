@@ -175,8 +175,11 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     case ExplicitQualidApplication(id, genericTypeParams) =>
       createTypeWithGenericParams(coqTypeToTreeHuggerType(id), genericTypeParams.map(coqTypeToTreeHuggerType(_)))
     case Term_->(typeTerm1, typeTerm2) =>
-      // TODO (Joseph Bakouny): Coq -> in lemmas can have a different significance, check how this can be supported if needed ?
-      coqTypeToTreeHuggerType(typeTerm1).TYPE_=>(coqTypeToTreeHuggerType(typeTerm2))
+      def converseParensIfNeeded(typeTerm: Term): Type = typeTerm match {
+        case BetweenParenthesis(t @ Term_->(_, _)) => TYPE_REF(PAREN(coqTypeToTreeHuggerType(t)))
+        case otherType                             => coqTypeToTreeHuggerType(otherType)
+      }
+      converseParensIfNeeded(typeTerm1).TYPE_=>(converseParensIfNeeded(typeTerm2))
     case SimpleProjection(recordInstance @ Qualid(List(Ident(_))), Qualid(List(Ident(fieldName)))) =>
       TYPE_REF(createFieldSelection(recordInstance, fieldName))
     case Qualid(xs) =>

@@ -2837,11 +2837,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  // TODO(Joseph Bakouny): Fix this Scallina issue.
-  ignore("""STLC example from Gallina to Scala
-    Fix this bug in the Scallina prototype:
-    we generate "def compose_type: Tree => List => List => BigInt => Tree => BigInt"
-    instead of "def compose_type: (Tree => List) => (List => BigInt) => Tree => BigInt"
+  test("""STLC example from Gallina to Scala
     """) {
     CoqParser("""
       Require Import ZArith.
