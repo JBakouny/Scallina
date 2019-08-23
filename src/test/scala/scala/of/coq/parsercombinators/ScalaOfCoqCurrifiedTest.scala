@@ -1482,6 +1482,43 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
+  test("""A program that does not specify return types is not translated correctly
+       """) {
+    CoqParser("""
+        Definition natType := nat.
+
+        Definition id (n : nat) : natType := n.
+      """) should generateScalaCode("""
+      "def natType = nat
+      "def id(n: Nat): natType = n
+      """)
+  }
+
+  test("""A program that does not specify return types is not translated correctly
+          Definition natType (A:Set) : Set := nat * A.
+       """) {
+    CoqParser("""
+        Definition natType (A:Set) : Set := nat * A.
+
+        Definition createTuple (n : nat) : natType nat := (n, n).
+      """) should generateScalaCode("""
+      "type natType[A] = (Nat, A)
+      "def createTuple(n: Nat): natType[Nat] = (n, n)
+      """)
+  }
+
+  test("""A program that does respect coding conventions is translated correctly
+       """) {
+    CoqParser("""
+        Definition natType : Set := nat.
+
+        Definition id (n : nat) : natType := n.
+      """) should generateScalaCode("""
+      "type natType = Nat
+      "def id(n: Nat): natType = n
+      """)
+  }
+
   test("""Testing Scala conversion of
           Definition prepend (a : nat) (l: list nat) := a :: l.
           Definition test := prepend 3 (record.(f) (7 :: nil)).
