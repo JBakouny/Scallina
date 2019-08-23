@@ -661,7 +661,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       } yield (convertNameToString(fieldName) -> abstractField)).toMap
 
     private def convertRecord(record: Record): Tree = {
-      val Record(_, Ident(recordName), binders, (None | Some(Type)), _, fields) = record
+      val Record(_, Ident(recordName), binders, (None | Some(Set | Type)), _, fields) = record
 
       TRAITDEF(recordName).withTypeParams(convertTypeBindersToTypeVars(binders)) :=
         BLOCK(
@@ -740,8 +740,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
     private def convertAbstractRecordField(abstractRecordField: AbstractRecordField): Tree =
       (abstractRecordField, recordFieldIsTypeField(abstractRecordField)) match {
-        case (AbstractRecordField(name, None, Type), true) =>
-          createTypeAliasDefinition(convertNameToIdent(name), None)
+        case (AbstractRecordField(name, binders, Set | Type), true) =>
+          createTypeAliasDefinition(convertNameToIdent(name), binders)
         case (AbstractRecordField(name, binders, typeTerm), false) =>
           createRecordFieldDefinition(name, binders, typeTerm)
         case (anythingElse, _) =>
@@ -750,7 +750,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
     private def convertConcreteRecordField(concreteRecordField: ConcreteRecordField): Tree =
       (concreteRecordField, recordFieldIsTypeField(concreteRecordField)) match {
-        case (ConcreteRecordField(name, binders, Some(Type), bodyTypeTerm), true) =>
+        case (ConcreteRecordField(name, binders, Some(Set | Type), bodyTypeTerm), true) =>
           createTypeAliasDefinition(convertNameToIdent(name), binders) :=
             coqTypeToTreeHuggerType(bodyTypeTerm)
         case (ConcreteRecordField(name, binders, Some(typeTerm), bodyTerm), false) =>

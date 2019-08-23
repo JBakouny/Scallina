@@ -1351,33 +1351,52 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
-  // TODO(Joseph Bakouny): Consider implementing the support of concrete type field replacements in the constructor's arguments.
-  ignore("""Testing Scala conversion of
-          Record ComplicatedRecord :=
-          newComplicatedRecord {
-            B : Type := nat;
-            T (A : Type) : Type := list A;
-            f (x: T B) : T B
-          }.
+  // TODO(Joseph Bakouny): Note that the use of an explicit constructor for such complicated records is not supported!
+  test("""Testing Scala conversion of
+      Record ComplicatedRecord :=
+      {
+        B : Type;
+        T (A : Type) : Type;
+        f : (T B) -> T B
+      }.
+
+      Require Import ZArith.
+      Open Scope Z_scope.
+      Definition instCompRecord : ComplicatedRecord :=
+      {|
+        B := Z;
+        T (A : Type) := list A;
+        f := fun x => x
+      |}.
+
+      Note that the use of an explicit constructor for such complicated records is not supported!
        """) {
     CoqParser("""
-      Record ComplicatedRecord :=
-      newComplicatedRecord {
-        B : Type := nat;
-        T (A : Type) : Type := list A;
-        f (x: T B) : T B
-      }.
+        Record ComplicatedRecord :=
+        {
+          B : Type;
+          T (A : Type) : Type;
+          f : (T B) -> T B
+        }.
+
+        Require Import ZArith.
+        Open Scope Z_scope.
+        Definition instCompRecord : ComplicatedRecord :=
+        {|
+          B := Z;
+          T (A : Type) := list A;
+          f := fun x => x
+        |}.
       """) should generateScalaCode("""
       "trait ComplicatedRecord {
-      "  type B = Nat
-      "  type T[A] = List[A]
+      "  type B
+      "  type T[A]
       "  def f: T[B] => T[B]
       "}
-      "def newComplicatedRecord(f: List[Nat] => List[Nat]): ComplicatedRecord = {
-      "  def ComplicatedRecord_f = f
-      "  new ComplicatedRecord {
-      "    def f: T[B] => T[B] = ComplicatedRecord_f
-      "  }
+      "object instCompRecord extends ComplicatedRecord {
+      "  type B = BigInt
+      "  type T[A] = List[A]
+      "  def f: T[B] => T[B] = x => x
       "}
       """)
   }
