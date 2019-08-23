@@ -436,37 +436,43 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     parentDeclaration :: caseClassHierarchy
   }
 
-  private def partitionParams(binders: Binders): (List[TypeDefTreeStart], List[ValDef]) = {
-    val Binders(bindersList) = binders;
-
-    val (typeParams, params) = bindersList.partition {
-      /*
+  private def isTypeBinder(binder: Binder): Boolean = binder match {
+    /*
        *  TODO (Jospeh Bakouny): The partitioning algorithm between typeParams and params can be improved.
        *  In fact, in future versions, it might not be necessary to consider all implicit parameters as type params.
        *  Consider supporting converting implicit non-type params to Scala implicits.
        */
-      case ImplicitBinder(_, Some(Set | Type)) => true
-      case ImplicitBinder(_, None)             => true
-      case ExplicitBinderWithType(_, _)        => false
-      case anythingElse =>
-        throw new IllegalStateException("The following parameter notation is not supported: " + anythingElse.toCoqCode);
+    case ImplicitBinder(_, Some(Set | Type)) => true
+    case ImplicitBinder(_, None)             => true
+    case ExplicitBinderWithType(_, _)        => false
+    case anythingElse =>
+      throw new IllegalStateException("The following parameter notation is not supported: " + anythingElse.toCoqCode);
+  }
+
+  private def convertTypeBinders(typeBinders: List[Binder]): List[TypeDefTreeStart] =
+    for {
+      ImplicitBinder(names, _) <- typeBinders
+      Name(Some(Ident(nameString))) <- names
+    } yield TYPEVAR(nameString)
+
+  private def convertValueBinders(valueBinders: List[Binder]): List[ValDef] =
+    // TODO (Joseph Bakouny): Should we take currying into consideration ?
+    for {
+      ExplicitBinderWithType(names, typeTerm) <- valueBinders
+      // TODO (Joseph Bakouny): Should we ignore names with the pattern "Name(None)"?
+      Name(Some(Ident(nameString))) <- names
+    } yield {
+      mkTreeFromDefStart(PARAM(nameString, coqTypeToTreeHuggerType(typeTerm)))
     }
 
-    val implicitBinders: List[TypeDefTreeStart] =
-      for {
-        ImplicitBinder(names, _) <- typeParams
-        Name(Some(Ident(nameString))) <- names
-      } yield TYPEVAR(nameString)
+  private def partitionParams(binders: Binders): (List[TypeDefTreeStart], List[ValDef]) = {
+    val Binders(bindersList) = binders;
 
-    // TODO (Joseph Bakouny): Should we take currying into consideration ?
-    val paramsDefs: List[ValDef] =
-      for {
-        ExplicitBinderWithType(names, typeTerm) <- params
-        // TODO (Joseph Bakouny): Should we ignore names with the pattern "Name(None)"?
-        Name(Some(Ident(nameString))) <- names
-      } yield {
-        mkTreeFromDefStart(PARAM(nameString, coqTypeToTreeHuggerType(typeTerm)))
-      }
+    val (typeParams, params) = bindersList.partition(isTypeBinder)
+
+    val implicitBinders: List[TypeDefTreeStart] = convertTypeBinders(typeParams)
+
+    val paramsDefs: List[ValDef] = convertValueBinders(params)
 
     (implicitBinders, paramsDefs)
   }
@@ -630,20 +636,24 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
         case (None, Some(Binders(binders))) => throw potentialException
         case (Some(Binders(binders)), None) => throw potentialException
         case (Some(Binders(defBinders)), Some(Binders(implBinders))) => {
-          def expandExplicitBinders(binders: List[Binder]) = binders.flatMap {
+          def expandBinders(binders: List[Binder]) = binders.flatMap {
             case ExplicitBinderWithType(names, typeTerm) => names.map(name => ExplicitBinderWithType(List(name), typeTerm))
+            case ImplicitBinder(names, typeTerm)         => names.map(name => ImplicitBinder(List(name), typeTerm))
             case anthingElse                             => List(anthingElse)
           }
 
-          val expandedDefBinders = expandExplicitBinders(defBinders)
-          val expandedImplBinders = expandExplicitBinders(implBinders)
+          val expandedDefBinders = expandBinders(defBinders)
+          val expandedImplBinders = expandBinders(implBinders)
 
           if (expandedDefBinders.length != expandedImplBinders.length)
             throw potentialException
 
           Some(Binders(expandedDefBinders.zip(expandedImplBinders).map {
             case (ExplicitBinderWithType(List(_), typeTerm), ExplicitSimpleBinder(implName))           => ExplicitBinderWithType(List(implName), typeTerm)
+            case (ImplicitBinder(List(_), typeTerm), ExplicitSimpleBinder(implName))                   => ImplicitBinder(List(implName), typeTerm)
+            case (ImplicitBinder(List(_), typeTerm), ExplicitBinderWithType(implName, _))              => ImplicitBinder(implName, typeTerm)
             case (ExplicitBinderWithType(List(_), _), implBinder @ ExplicitBinderWithType(List(_), _)) => implBinder
+            case (ImplicitBinder(List(_), _), implBinder @ ImplicitBinder(List(_), _))                 => implBinder
             case (defBinder, implBinder) =>
               throw new IllegalStateException(
                 "Unexpected record definition parameter: " + defBinder.toCoqCode + "\n" +
@@ -754,17 +764,35 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
           createTypeAliasDefinition(convertNameToIdent(name), binders) :=
             coqTypeToTreeHuggerType(bodyTypeTerm)
         case (ConcreteRecordField(name, binders, Some(typeTerm), bodyTerm), false) =>
-          // TODO (Joseph Bakouny): Consider implementing the conversion of record methods with type parameters in head position.
           createRecordFieldDefinition(name, binders, typeTerm) :=
             binders.fold(
-              termToTreeHuggerAst(bodyTerm))(
-                createAnonymousFunction(_, bodyTerm))
+              termToTreeHuggerAst(bodyTerm)) {
+                case Binders(params) =>
+                  val valueParams = params.filter(binder => !isTypeBinder(binder))
+                  if (valueParams.isEmpty)
+                    termToTreeHuggerAst(bodyTerm)
+                  else
+                    createAnonymousFunction(Binders(valueParams), bodyTerm)
+              }
         case (anythingElse, _) =>
           throw new IllegalStateException("This record field cannot be converted to Scala: " + anythingElse.toCoqCode)
       }
 
     private def createRecordFieldDefinition(name: Name, binders: Option[Binders], typeTerm: Term): Tree = {
-      DEF(convertNameToString(name), computeFunctionReturnType(binders, typeTerm))
+      val (typeBinders, valueBinders) =
+        binders.fold[(Option[Binders], Option[Binders])]((None, None)) {
+          case Binders(params) =>
+            val (typeBinders, valueBinders) = params.partition(isTypeBinder)
+            (if (typeBinders.isEmpty) None else Some(Binders(typeBinders)),
+              if (valueBinders.isEmpty) None else Some(Binders(valueBinders)))
+        }
+      val defWithoutTypeParams = DEF(convertNameToString(name), computeFunctionReturnType(valueBinders, typeTerm))
+
+      typeBinders.fold(defWithoutTypeParams) {
+        case Binders(typeParams) =>
+          defWithoutTypeParams.withTypeParams(convertTypeBinders(typeParams))
+      }
+
     }
 
     private def convertTypeFieldsToTypeVars(fields: List[AbstractRecordField]) =

@@ -1401,6 +1401,87 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """)
   }
 
+  test("""Testing Scala translation of records with Hindley-Milner polymorphic methods
+       """) {
+    CoqParser("""
+      Record Test : Type := {
+        unfold {A : Set} (x : A) : A;
+        unfold2 {B : Type} : B -> B
+      }.
+
+      Definition instTest : Test :=
+      {|
+        unfold {A : Set} (x : A) := x;
+        unfold2 {B : Type} := fun (x : B) => x
+      |}.
+
+      Definition simplifiedBinderTest : Test :=
+      {|
+        unfold A (x : A) := x;
+        unfold2 B := fun (x : B) => x
+      |}.
+
+      Definition explicitBinderTest : Test :=
+      {|
+        unfold (A : Set) (x : A) := x;
+        unfold2 (B : Type) := fun (x : B) => x
+      |}.
+      """) should generateScalaCode("""
+      "trait Test {
+      " def unfold[A]: A => A
+      " def unfold2[B]: B => B
+      "}
+      "object instTest extends Test {
+      " def unfold[A]: A => A = (x: A) => x
+      " def unfold2[B]: B => B = (x: B) => x
+      "}
+      "object simplifiedBinderTest extends Test {
+      " def unfold[A]: A => A = (x: A) => x
+      " def unfold2[B]: B => B = (x: B) => x
+      "}
+      "object explicitBinderTest extends Test {
+      " def unfold[A]: A => A = (x: A) => x
+      " def unfold2[B]: B => B = (x: B) => x
+      "}
+      """)
+  }
+
+  test("""Testing Scala translation of system F nats encoded as records
+        Note that, however, in this translated example, the scalac compiler fails to infer the types for:
+        def mult(m: Nat)(n: Nat): Nat = m.unfold(zero)(plus(n))
+       """) {
+    CoqParser("""
+        (*Set Universe Polymorphism.*)
+
+        Record Nat := {
+          unfold {A} : A -> (A -> A) -> A
+        }.
+
+        Definition zero : Nat := {|
+          unfold {A} := fun (x : A) (y : A -> A) => x
+        |}.
+
+        Definition succ (n : Nat) : Nat := {|
+          unfold {A} := fun (x : A) (y : A -> A) => y (n.(unfold) x y)
+        |}.
+
+        Definition plus (m n : Nat) : Nat := m.(unfold) n succ.
+        Definition mult (m n : Nat) : Nat := m.(unfold) zero (plus n).
+      """) should generateScalaCode("""
+      "trait Nat {
+      "  def unfold[A]: A => (A => A) => A
+      "}
+      "object zero extends Nat {
+      "  def unfold[A]: A => (A => A) => A = (x: A) => (y: A => A) => x
+      "}
+      "def succ(n: Nat): Nat = new Nat {
+      "  def unfold[A]: A => (A => A) => A = (x: A) => (y: A => A) => y(n.unfold(x)(y))
+      "}
+      "def plus(m: Nat)(n: Nat): Nat = m.unfold(n)(succ)
+      "def mult(m: Nat)(n: Nat): Nat = m.unfold(zero)(plus(n))
+      """)
+  }
+
   test("""Testing Scala conversion of
           Definition prepend (a : nat) (l: list nat) := a :: l.
           Definition test := prepend 3 (record.(f) (7 :: nil)).
