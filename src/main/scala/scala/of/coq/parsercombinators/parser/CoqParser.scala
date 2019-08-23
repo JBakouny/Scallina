@@ -33,6 +33,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     importCommand
     | loadCommand
     | argumentsCommand
+    | setCommand
     | scopeCommand
     | definition
     | inductive
@@ -58,6 +59,10 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     "Arguments" ~> qualid ~ binders <~ "." ^^ {
       case id ~ binders => ArgumentsCommand(id, binders)
     }
+
+  private lazy val setCommand: P[SetCommand] = {
+    "Set" ~> rep(ident) <~ "." ^^ { xs => SetCommand(xs mkString " ") }
+  }
 
   /*
    *  NOTE: This production is not in the grammar, it supports the commands of the form:

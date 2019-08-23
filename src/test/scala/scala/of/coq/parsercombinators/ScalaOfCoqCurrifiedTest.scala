@@ -1451,7 +1451,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         def mult(m: Nat)(n: Nat): Nat = m.unfold(zero)(plus(n))
        """) {
     CoqParser("""
-        (*Set Universe Polymorphism.*)
+        Set Universe Polymorphism.
 
         Record Nat := {
           unfold {A} : A -> (A -> A) -> A

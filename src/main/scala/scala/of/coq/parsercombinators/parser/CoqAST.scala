@@ -18,6 +18,10 @@ case class LoadCommand(moduleName: Qualid) extends Sentence {
   def toCoqCode: String = "Load " + moduleName.toCoqCode + "."
 }
 
+case class SetCommand(flag: String) extends Sentence {
+  def toCoqCode: String = "Set " + flag + "."
+}
+
 /*
  *  NOTE: This AST node is not in the grammar, it supports the commands of the form:
  *  Arguments Leaf {A} _.
