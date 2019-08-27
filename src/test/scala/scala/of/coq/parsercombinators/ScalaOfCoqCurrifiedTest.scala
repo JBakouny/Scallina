@@ -1385,7 +1385,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         {|
           B := Z;
           T (A : Type) := list A;
-          f := fun x => x
+          f := fun (x : T B) => x
         |}.
       """) should generateScalaCode("""
       "trait ComplicatedRecord {
@@ -1396,7 +1396,54 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "object instCompRecord extends ComplicatedRecord {
       "  type B = BigInt
       "  type T[A] = List[A]
-      "  def f: T[B] => T[B] = x => x
+      "  def f: T[B] => T[B] = (x: T[B]) => x
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of
+          Record ComplicatedRecord :=
+          {
+            B : Type;
+            T (A : Type) : Type;
+            f (x : T B): T B
+          }.
+          Require Import ZArith.
+          Open Scope Z_scope.
+          Definition instCompRecord : ComplicatedRecord :=
+          {|
+            B := Z;
+            T (A : Type) := list A;
+            f x := x
+          |}.
+
+      Note that the use of an explicit constructor for such complicated records is not supported!
+       """) {
+    CoqParser("""
+          Record ComplicatedRecord :=
+          {
+            B : Type;
+            T (A : Type) : Type;
+            f (x : T B): T B
+          }.
+          Require Import ZArith.
+          Open Scope Z_scope.
+          Definition instCompRecord : ComplicatedRecord :=
+          {|
+            B := Z;
+            T (A : Type) := list A;
+            f x := x
+          |}.
+      """) should generateScalaCode("""
+      "trait ComplicatedRecord {
+      "  type B
+      "  type T[A]
+      "  def f: T[B] => T[B]
+      "}
+      "object instCompRecord extends ComplicatedRecord {
+      "  type B = BigInt
+      "  type T[A] = List[A]
+      "  def f: T[B] => T[B] = (x: T[B]) => x
       "}
       """)
   }
@@ -2971,6 +3018,52 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
      "    case x :: xs => op(x)(foldRight(op)(zero)(xs))
      "  }
      "def mFoldRight(m: aMonoid)(l: List[m.dom]): m.dom = foldRight(m.op)(m.zero)(l)
+      """)
+  }
+
+  test("Testing Scala conversion of foldRight on monoids with type parameters") {
+    CoqParser("""
+        Record aMonoid (dom : Set) : Set :=
+        {
+          zero : dom;
+          op : dom -> dom -> dom
+        }.
+
+        Arguments op {dom}.
+        Arguments zero {dom}.
+
+        Require Import Arith.
+        Definition natMonoid : aMonoid nat := {|
+          zero := 0;
+          op := fun x y => x + y
+        |}.
+
+        Require Import ZArith.
+        Open Scope Z_scope.
+        Definition intMonoid : aMonoid Z := {|
+          zero := 0;
+          op := fun x y => x + y
+        |}.
+
+        Require Import List.
+        Definition mFoldRight {A : Set} (m: aMonoid A) (l : list A) : A :=
+          fold_right m.(op) m.(zero) l.
+      """) should generateScalaCode("""
+      "trait aMonoid[dom] {
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "object natMonoid extends aMonoid[Nat] {
+      "  type dom = Nat
+      "  def zero: dom = 0
+      "  def op: dom => dom => dom = x => y => x + y
+      "}
+      "object intMonoid extends aMonoid[BigInt] {
+      "  type dom = BigInt
+      "  def zero: dom = 0
+      "  def op: dom => dom => dom = x => y => x + y
+      "}
+      "def mFoldRight[A](m: aMonoid[A])(l: List[A]): A = fold_right(m.op)(m.zero)(l)
       """)
   }
 

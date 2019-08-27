@@ -96,7 +96,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       List() // The above commands do not generate any Scala code
     case Definition(id, binders, Some(Set | Type), bodyTypeTerm) =>
       List(createTypeAliasDefinition(id, binders) := coqTypeToTreeHuggerType(bodyTypeTerm))
-    case Definition(Ident(name), args, Some(Qualid(List(Ident(recordType)))), RecordInstantiation(concreteRecordFields)) =>
+    case Definition(Ident(name), args, Some(recordType), RecordInstantiation(concreteRecordFields)) =>
       List(RecordUtils.convertRecordInstance(name, args, recordType, concreteRecordFields))
     case Definition(id, binders, typeTerm, bodyTerm) =>
       List(createDefinition(id, binders, typeTerm) := termToTreeHuggerAst(bodyTerm))
@@ -107,7 +107,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     // NOTE(Joseph Bakouny): annotations should be ignored in Scala
     case FunctionDef(FunctionBody(id, binders, _, typeTerm, bodyTerm)) =>
       List(createDefinition(id, Some(binders), typeTerm) := termToTreeHuggerAst(bodyTerm))
-    case record @ Record(_, _, _, (None | Some(Type)), _, _) =>
+    case record @ Record(_, _, _, (None | Some(Set | Type)), _, _) =>
       RecordUtils.createTreeHuggerAstFromRecord(record)
     case Assertion(_, id, binders, bodyTerm) =>
       List()
@@ -478,7 +478,18 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     (implicitBinders, paramsDefs)
   }
 
+  private def getNamesFromTypeParameter(binders: List[Binder]): List[Name] =
+    binders.flatMap {
+      case ExplicitSimpleBinder(name)                => List(name)
+      case ExplicitBinderWithType(names, Set | Type) => names
+      case ImplicitBinder(names, None)               => names
+      case ImplicitBinder(names, Some(Set | Type))   => names
+      case anythingElse =>
+        throw new IllegalStateException("The following Coq type parameter is not supported: " + anythingElse)
+    }
+
   private def convertTypeBindersToTypeVars(typeBinders: Option[Binders], covariant: Boolean = false): List[TypeDefTreeStart] =
+
     typeBinders.fold(List[TypeDefTreeStart]()) {
       case Binders(binders) =>
         def convertNamesToTypeVars(names: List[Name]) = {
@@ -490,14 +501,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
             else
               TYPEVAR(nameString))
         }
-        binders.flatMap {
-          case ExplicitSimpleBinder(name)                => convertNamesToTypeVars(List(name))
-          case ExplicitBinderWithType(names, Set | Type) => convertNamesToTypeVars(names)
-          case ImplicitBinder(names, None)               => convertNamesToTypeVars(names)
-          case ImplicitBinder(names, Some(Set | Type))   => convertNamesToTypeVars(names)
-          case anythingElse =>
-            throw new IllegalStateException("The following Coq type parameter is not supported: " + anythingElse)
-        }
+        convertNamesToTypeVars(getNamesFromTypeParameter(binders))
     }
 
   private def createTypeWithGenericParams(typeName: Type, genericTypeParams: List[Type]): Type = {
@@ -598,12 +602,29 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       }
     }
 
-    def convertRecordInstance(instanceName: String, args: Option[Binders], recordType: String, concreteRecordFields: List[ConcreteRecordField]): Tree = {
+    def convertRecordInstance(instanceName: String, args: Option[Binders], recordType: Term, concreteRecordFields: List[ConcreteRecordField]): Tree = {
 
-      val abstractFields = fetchRecordAbstractFields(recordType)
+      def getNameAndArgsFrom(recordType: Term) = recordType match {
+        case Qualid(List(Ident(name))) => (name, None)
+        case UncurriedTermApplication(Qualid(List(Ident(name))), args) => (name, Some(args.map {
+          case Argument(_, typeTerm) => typeTerm
+        }))
+        case ExplicitQualidApplication(Qualid(List(Ident(name))), args) => (name, Some(args))
+        case anythingElse =>
+          throw new IllegalStateException("Unsupported record instance return type: " + anythingElse.toCoqCode)
+      }
+
+      val (recordName, typeApps) = getNameAndArgsFrom(recordType)
+      val abstractFields = fetchRecordAbstractFields(recordName)
+
+      val binderTypeAliases = typeApps.fold[List[Tree]](List()){ typeArgs =>
+        getNamesFromTypeParameter(fetchRecordBinders(recordName)).zip(typeArgs).map {
+          case (Name(Some(id)), typeArg) => createTypeAliasDefinition(id, None) := coqTypeToTreeHuggerType(typeArg)
+        }
+      }
 
       val recordBlock = BLOCK(
-        concreteRecordFields.map {
+        binderTypeAliases ++ concreteRecordFields.map {
           case ConcreteRecordField(name, implementedBinders, _, bodyTerm) =>
             val AbstractRecordField(abstractFieldName, definedBinders, typeTerm) = abstractFields(convertNameToString(name))
 
@@ -620,12 +641,13 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
               bodyTerm)
         }.map(convertConcreteRecordField))
 
+      val translatedRecordType = coqTypeToScalaCode(recordType)
       args.fold[Tree](
-        OBJECTDEF(instanceName).withParents(List(TYPE_REF(recordType))) := recordBlock) {
+        OBJECTDEF(instanceName).withParents(List(translatedRecordType)) := recordBlock) {
           binders =>
-            createDefinition(Ident(instanceName), Some(binders), Some(Qualid(List(Ident(recordType))))) :=
+            createDefinition(Ident(instanceName), Some(binders), Some(recordType)) :=
               NEW(
-                ANONDEF(recordType) :=
+                ANONDEF(translatedRecordType) :=
                   recordBlock)
         }
 
@@ -667,9 +689,14 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
     private def fetchRecordAbstractFields(recordType: String): Map[String, AbstractRecordField] = (
       for {
-        Record(_, Ident(recordName), None, (None | Some(Type)), _, fields) <- coqTrees if (recordName == recordType)
+        Record(_, Ident(recordName), _, (None | Some(Set | Type)), _, fields) <- coqTrees if (recordName == recordType)
         abstractField @ AbstractRecordField(fieldName, _, _) <- fields
       } yield (convertNameToString(fieldName) -> abstractField)).toMap
+
+    private def fetchRecordBinders(recordType: String): List[Binder] =
+      (for {
+        Record(_, Ident(recordName), Some(Binders(binders)), (None | Some(Set | Type)), _, _) <- coqTrees if (recordName == recordType)
+      } yield binders).flatten
 
     private def convertRecord(record: Record): Tree = {
       val Record(_, Ident(recordName), binders, (None | Some(Set | Type)), _, fields) = record
@@ -684,7 +711,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       val constructor = computeRecordConstructorName(record)
 
       constructor.map { constructorName =>
-        val Record(_, Ident(recordName), binders, (None | Some(Type)), _, fields) = record
+        val Record(_, Ident(recordName), binders, (None | Some(Set | Type)), _, fields) = record
         val abstractFields = filterAbstractRecordFields(fields)
 
         val typeBinderParams = convertTypeBindersToTypeVars(binders)
@@ -708,7 +735,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     }
 
     private def computeRecordConstructorName(record: Record): Option[String] = {
-      val Record(_, Ident(recordName), _, (None | Some(Type)), constructor, _) = record
+      val Record(_, Ident(recordName), _, (None | Some(Set | Type)), constructor, _) = record
       constructor.map { case Ident(constructorName) => constructorName }
     }
 
