@@ -1353,39 +1353,37 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
   // TODO(Joseph Bakouny): Note that the use of an explicit constructor for such complicated records is not supported!
   test("""Testing Scala conversion of
-      Record ComplicatedRecord :=
-      {
-        B : Type;
-        T (A : Type) : Type;
-        f : (T B) -> T B
-      }.
-
-      Require Import ZArith.
-      Open Scope Z_scope.
-      Definition instCompRecord : ComplicatedRecord :=
-      {|
-        B := Z;
-        T (A : Type) := list A;
-        f := fun x => x
-      |}.
+          Record ComplicatedRecord :=
+          {
+            B : Set;
+            T (A : Set) : Set;
+            f : (T B) -> T B
+          }.
+          Require Import ZArith.
+          Open Scope Z_scope.
+          Definition instCompRecord : ComplicatedRecord :=
+          {|
+            B := Z;
+            T (A : Set) := list A;
+            f := fun x => x
+          |}.
 
       Note that the use of an explicit constructor for such complicated records is not supported!
        """) {
     CoqParser("""
         Record ComplicatedRecord :=
         {
-          B : Type;
-          T (A : Type) : Type;
+          B : Set;
+          T (A : Set) : Set;
           f : (T B) -> T B
         }.
-
         Require Import ZArith.
         Open Scope Z_scope.
         Definition instCompRecord : ComplicatedRecord :=
         {|
           B := Z;
-          T (A : Type) := list A;
-          f := fun (x : T B) => x
+          T (A : Set) := list A;
+          f := fun x => x
         |}.
       """) should generateScalaCode("""
       "trait ComplicatedRecord {
@@ -1396,7 +1394,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "object instCompRecord extends ComplicatedRecord {
       "  type B = BigInt
       "  type T[A] = List[A]
-      "  def f: T[B] => T[B] = (x: T[B]) => x
+      "  def f: T[B] => T[B] = x => x
       "}
       """)
   }
@@ -1404,8 +1402,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
   test("""Testing Scala conversion of
           Record ComplicatedRecord :=
           {
-            B : Type;
-            T (A : Type) : Type;
+            B : Set;
+            T (A : Set) : Set;
             f (x : T B): T B
           }.
           Require Import ZArith.
@@ -1413,7 +1411,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Definition instCompRecord : ComplicatedRecord :=
           {|
             B := Z;
-            T (A : Type) := list A;
+            T (A : Set) := list A;
             f x := x
           |}.
 
@@ -1422,8 +1420,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
     CoqParser("""
           Record ComplicatedRecord :=
           {
-            B : Type;
-            T (A : Type) : Type;
+            B : Set;
+            T (A : Set) : Set;
             f (x : T B): T B
           }.
           Require Import ZArith.
@@ -1431,7 +1429,7 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Definition instCompRecord : ComplicatedRecord :=
           {|
             B := Z;
-            T (A : Type) := list A;
+            T (A : Set) := list A;
             f x := x
           |}.
       """) should generateScalaCode("""
