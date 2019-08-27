@@ -350,10 +350,10 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     val GADT_NumberOfParams = typeTerm.fold[Option[Int]](
       None // Not a GADT
     ) {
-      case Type | Set => None // Not a GADT
+      case Set | Type => None // Not a GADT
       case arrowType @ Term_->(_, _) =>
         def calculateGADTnbParams(t: Term): Int = t match {
-          case Type                      => 0 // stop recursion
+          case Set | Type                => 0 // stop recursion
           case Term_->(Set | Type, tail) => 1 + calculateGADTnbParams(tail)
           case anythingElse =>
             throw new IllegalStateException("Illegal GADT top-level return type: " + anythingElse.toCoqCode)
@@ -617,7 +617,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       val (recordName, typeApps) = getNameAndArgsFrom(recordType)
       val abstractFields = fetchRecordAbstractFields(recordName)
 
-      val binderTypeAliases = typeApps.fold[List[Tree]](List()){ typeArgs =>
+      val binderTypeAliases = typeApps.fold[List[Tree]](List()) { typeArgs =>
         getNamesFromTypeParameter(fetchRecordBinders(recordName)).zip(typeArgs).map {
           case (Name(Some(id)), typeArg) => createTypeAliasDefinition(id, None) := coqTypeToTreeHuggerType(typeArg)
         }
