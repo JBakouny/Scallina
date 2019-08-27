@@ -358,6 +358,194 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
+  ignore(""" Although this is a contrived example where an ADT was defined as a GADT,
+        Conisder implementing its support in Scallina.
+
+        Notably, since Empty is a case class and not a case object, the Gallina code:
+        | Empty => Empty
+        should be translated to:
+        case Empty() => Empty()
+        instead of:
+        case Empty => Empty
+
+        Note also that the function that could be defined on such a GADT in Coq are restricted.
+        For example, the following function cannot be defined on it:
+        Fixpoint map {A B : Set} (t: Tree A) (f: A -> B): Tree B :=
+          match t with
+          | Empty => Empty
+          | NonEmpty v l r => NonEmpty (f v) (map l f) (map r f)
+          end.
+       """) {
+    CoqParser("""
+        Inductive Tree : Set -> Type :=
+        | Empty {A : Set} : Tree A
+        | NonEmpty {A : Set} (v: A) (l r: Tree A) : Tree A.
+
+        Definition test {A B : Set} (t : Tree A) : Tree A :=
+        match t with
+        | Empty => Empty
+        | NonEmpty v l r => NonEmpty v l r
+        end.
+      """) should generateScalaCode("""
+      "sealed abstract class Tree[A]
+      "case class Empty[A]() extends Tree[A]
+      "case class NonEmpty[A](v: A, l: Tree[A], r: Tree[A]) extends Tree[A]
+      "object NonEmpty {
+      " def apply[A] =
+      " (v: A) => (l: Tree[A]) => (r: Tree[A]) => new NonEmpty(v, l, r)
+      "}
+      "def test[A, B](t: Tree[A]): Tree[A] =
+      " t match {
+      " case Empty() => Empty()
+      " case NonEmpty(v, l, r) => NonEmpty(v)(l)(r)
+      " }
+      """)
+  }
+
+  test(""" Translating the IdMonad in Set and removing its proofs
+       """) {
+    CoqParser("""
+        Inductive IdMonad (A : Set) : Type :=
+        | Ret (a: A)
+        | Bind {B : Set} (f: B -> IdMonad A) (b: IdMonad B).
+
+        Arguments Ret {A}.
+        Arguments Bind {A B}.
+
+        Fixpoint eval {A : Set} (m : IdMonad A) : A :=
+        match m with
+        | Ret a => a
+        | Bind f b => eval (f (eval b))
+        end.
+
+        Lemma bind_unit : forall (A B : Set) (a : B) (f : B -> IdMonad A),
+          eval (Bind f (Ret a)) = eval (f a)
+        .
+        Proof.
+          auto.
+        Qed.
+
+        Lemma unit_bind : forall A (m : IdMonad A),
+          eval (Bind Ret m) = eval m
+        .
+        Proof.
+          auto.
+        Qed.
+
+        (** Bind is an associative function *)
+        Lemma bind_bind : forall (A B C : Set)
+            (m : IdMonad B) (f : B -> IdMonad A) (g : A -> IdMonad C),
+          eval (Bind g (Bind f m))
+          =
+          eval (Bind (fun x => Bind g (f x)) m)
+        .
+        Proof.
+          auto.
+        Qed.
+      """) should generateScalaCode("""
+      "sealed abstract class IdMonad[+A]
+      "case class Ret[A](a: A) extends IdMonad[A]
+      "case class Bind[A, B](f: B => IdMonad[A], b: IdMonad[B]) extends IdMonad[A]
+      "object Bind {
+      "  def apply[A, B] =
+      "    (f: B => IdMonad[A]) => (b: IdMonad[B]) => new Bind(f, b)
+      "}
+      "def eval[A](m: IdMonad[A]): A =
+      "  m match {
+      "    case Ret(a)     => a
+      "    case Bind(f, b) => eval(f(eval(b)))
+      "  }
+      """)
+  }
+
+  test(""" Translating the IdMonad in Type as well as its interaction with system F Nats!
+          Also removes proofs.
+       """) {
+    CoqParser("""
+        Inductive IdMonad (A : Type) : Type :=
+        | Ret (a: A)
+        | Bind {B : Type} (f: B -> IdMonad A) (b: IdMonad B).
+
+        Arguments Ret {A}.
+        Arguments Bind {A B}.
+
+        Fixpoint eval {A : Type} (m : IdMonad A) : A :=
+        match m with
+        | Ret a => a
+        | Bind f b => eval (f (eval b))
+        end.
+
+        Lemma bind_unit : forall (A B : Type) (a : B) (f : B -> IdMonad A),
+          eval (Bind f (Ret a)) = eval (f a)
+        .
+        Proof.
+          intros.
+          auto.
+        Qed.
+
+        Lemma unit_bind : forall A (m : IdMonad A),
+          eval (Bind Ret m) = eval m
+        .
+        Proof.
+          intros.
+          auto.
+        Qed.
+
+        (** Bind is an associative function *)
+        Lemma bind_bind : forall (A B C : Type)
+            (m : IdMonad B) (f : B -> IdMonad A) (g : A -> IdMonad C),
+          eval (Bind g (Bind f m))
+          =
+          eval (Bind (fun x => Bind g (f x)) m)
+        .
+        Proof.
+          intros.
+          auto.
+        Qed.
+
+        Set Universe Polymorphism.
+        Record Nat := {
+          unfold {A} : A -> (A -> A) -> A
+        }.
+
+        Definition zero : Nat := {|
+          unfold {A} := fun (x : A) (y : A -> A) => x
+        |}.
+
+        Definition succ (n : Nat) : Nat := {|
+          unfold {A} := fun (x : A) (y : A -> A) => y (n.(unfold) x y)
+        |}.
+
+        Definition plus (m n : Nat) : Nat := m.(unfold) n succ.
+
+        Definition two : Nat := eval (Bind (fun (x : Nat) => Ret (plus (succ zero) x)) (Ret (succ zero))).
+      """) should generateScalaCode("""
+      "sealed abstract class IdMonad[+A]
+      "case class Ret[A](a: A) extends IdMonad[A]
+      "case class Bind[A, B](f: B => IdMonad[A], b: IdMonad[B]) extends IdMonad[A]
+      "object Bind {
+      "  def apply[A, B] =
+      "    (f: B => IdMonad[A]) => (b: IdMonad[B]) => new Bind(f, b)
+      "}
+      "def eval[A](m: IdMonad[A]): A =
+      "  m match {
+      "    case Ret(a)     => a
+      "    case Bind(f, b) => eval(f(eval(b)))
+      "  }
+      "trait Nat {
+      "  def unfold[A]: A => (A => A) => A
+      "}
+      "object zero extends Nat {
+      "  def unfold[A]: A => (A => A) => A = (x: A) => (y: A => A) => x
+      "}
+      "def succ(n: Nat): Nat = new Nat {
+      "  def unfold[A]: A => (A => A) => A = (x: A) => (y: A => A) => y(n.unfold(x)(y))
+      "}
+      "def plus(m: Nat)(n: Nat): Nat = m.unfold(n)(succ)
+      "def two: Nat = eval(Bind((x: Nat) => Ret(plus(succ(zero))(x)))(Ret(succ(zero))))
+      """)
+  }
+
   test("""Testing Scala conversion of tree whose use does not compile correctly in Scala
        """) {
     CoqParser("""
@@ -592,7 +780,6 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         """)
   }
 
-  // TODO add GADT functions to this example
   test("""Testing the translation of GADTs
        """) {
     CoqParser("""
@@ -601,30 +788,30 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
           Inductive Term : Set -> Type :=
           | Int (n : Z) : Term Z
-          | Sum : Term (Z -> Z -> Z)
+          | Add : Term (Z -> Z -> Z)
           | App {A B : Set} (t1 : Term (B -> A)) (t2 : Term B) : Term A.
 
           Fixpoint eval {A : Set} (t: Term A) : A :=
           match t with
           | Int n => n
-          | Sum => (fun x y => x + y)
+          | Add => fun x y => x + y
           | App f x => (eval f) (eval x)
           end.
 
-          Definition two : Z := eval(App (App Sum (Int 1)) (Int 1)).
+          Definition two : Z := eval(App (App Add (Int 1)) (Int 1)).
 
           Fixpoint sum {A : Set} (t : Term A) : Z :=
           let y : Z :=
           match t with
           | Int n => n
-          | Sum => 0
+          | Add => 0
           | App f x => (sum f) + (sum x)
           end
           in y + 1.
       """) should generateScalaCode("""
         "sealed abstract class Term[A]
         "case class Int(n: BigInt) extends Term[BigInt]
-        "case object Sum extends Term[BigInt => BigInt => BigInt]
+        "case object Add extends Term[BigInt => BigInt => BigInt]
         "case class App[A, B](t1: Term[B => A], t2: Term[B]) extends Term[A]
         "object App {
         "  def apply[A, B] =
@@ -633,18 +820,54 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         "def eval[A](t: Term[A]): A =
         "  t match {
         "    case Int(n)    => n
-        "    case Sum       => (x => y => x + y)
+        "    case Add       => x => y => x + y
         "    case App(f, x) => eval(f)(eval(x))
         "  }
-        "def two: BigInt = eval(App(App(Sum)(Int(1)))(Int(1)))
+        "def two: BigInt = eval(App(App(Add)(Int(1)))(Int(1)))
         "def sum[A](t: Term[A]): BigInt = {
         "  val y: BigInt = t match {
         "    case Int(n)    => n
-        "    case Sum       => 0
+        "    case Add       => 0
         "    case App(f, x) => sum(f) + sum(x)
         "  }
         "  y + 1
         "}
+        """)
+  }
+
+  test("""Testing the translation of the Exp GADT from Certified with Dependent Types by Adam Chlipala
+       """) {
+    CoqParser("""
+          Inductive Exp : Set -> Type :=
+          | Const {T : Set} (v : T) : Exp T
+          | Pair {T1 T2 : Set} (a : Exp T1) (b : Exp T2) : Exp (T1 * T2)
+          | Eq {T : Set} (a b : Exp T) (eq : T -> T -> bool) : Exp bool.
+
+          Fixpoint eval {A : Set} (e : Exp A) : A :=
+          match e with
+          | Const v => v
+          | Pair a b => (eval a, eval b)
+          | Eq a b eq => eq (eval a) (eval b)
+          end.
+        """) should generateScalaCode("""
+        "sealed abstract class Exp[A]
+        "case class Const[T](v: T) extends Exp[T]
+        "case class Pair[T1, T2](a: Exp[T1], b: Exp[T2]) extends Exp[(T1, T2)]
+        "object Pair {
+        "  def apply[T1, T2] =
+        "    (a: Exp[T1]) => (b: Exp[T2]) => new Pair(a, b)
+        "}
+        "case class Eq[T](a: Exp[T], b: Exp[T], eq: T => T => Boolean) extends Exp[Boolean]
+        "object Eq {
+        "  def apply[T] =
+        "    (a: Exp[T]) => (b: Exp[T]) => (eq: T => T => Boolean) => new Eq(a, b, eq)
+        "}
+        "def eval[A](e: Exp[A]): A =
+        "  e match {
+        "    case Const(v)     => v
+        "    case Pair(a, b)   => (eval(a), eval(b))
+        "    case Eq(a, b, eq) => eq(eval(a))(eval(b))
+        "  }
         """)
   }
 
@@ -656,6 +879,38 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       """) should generateScalaCode("""
         "sealed abstract class Equality[A, B]
         "case class Eq[A]() extends Equality[A, A]
+        """)
+  }
+
+  test("""Testing the translation of an ADT with existential parameters
+       """) {
+    CoqParser("""
+          Inductive Tree (A : Set) : Type :=
+          | Leaf
+          | Node {B : Set} (v : B) (f: B -> A) (l r: Tree A).
+
+          Arguments Leaf {A}.
+          Arguments Node {A B}.
+
+          Require Import List.
+          Fixpoint collect {A : Set} (t : Tree A) : list A :=
+          match t with
+          | Leaf => nil
+          | Node v f l r => cons (f v) (app (collect l) (collect r))
+          end.
+      """) should generateScalaCode("""
+        "sealed abstract class Tree[+A]
+        "case object Leaf extends Tree[Nothing]
+        "case class Node[A, B](v: B, f: B => A, l: Tree[A], r: Tree[A]) extends Tree[A]
+        "object Node {
+        " def apply[A, B] =
+        " (v: B) => (f: B => A) => (l: Tree[A]) => (r: Tree[A]) => new Node(v, f, l, r)
+        "}
+        "def collect[A](t: Tree[A]): List[A] =
+        " t match {
+        " case Leaf => Nil
+        " case Node(v, f, l, r) => Cons(f(v))(app(collect(l))(collect(r)))
+        " }
         """)
   }
 
@@ -817,6 +1072,41 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case Leaf(v)    => Leaf(f(v))
       "    case Node(l, r) => Node(map(l)(f))(map(r)(f))
       "  }
+      """)
+  }
+
+  test("""Scallina can generate ill-typed Scala code if coding conventions are not followed adequately
+       """) {
+    CoqParser("""
+        Inductive Tree (A: Type) : Type :=
+        | Leaf : Tree A
+        | Node (v : A) (l r: Tree A) : Tree A.
+
+        Arguments Leaf {A}.
+        Arguments Node {A}.
+
+        Fixpoint map {A B : Type} (t: Tree A) (f: A -> B): Tree B :=
+          match t with
+          | Leaf => Leaf
+          | Node v l r => Node (f v) (map l f) (map r f)
+          end.
+
+        Definition foxyTree : Tree nat :=
+          map (Node nat (Node bool (Leaf) (Leaf)) (Leaf)) (fun _ => 3).
+      """) should generateScalaCode("""
+      "sealed abstract class Tree[+A]
+      "case object Leaf extends Tree[Nothing]
+      "case class Node[A](v: A, l: Tree[A], r: Tree[A]) extends Tree[A]
+      "object Node {
+      "  def apply[A] =
+      "    (v: A) => (l: Tree[A]) => (r: Tree[A]) => new Node(v, l, r)
+      "}
+      "def map[A, B](t: Tree[A])(f: A => B): Tree[B] =
+      "  t match {
+      "    case Leaf          => Leaf
+      "    case Node(v, l, r) => Node(f(v))(map(l)(f))(map(r)(f))
+      "  }
+      "def foxyTree: Tree[Nat] = map(Node(nat)(Node(bool)(Leaf)(Leaf))(Leaf))(_ => 3)
       """)
   }
 
@@ -1442,6 +1732,54 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  type B = BigInt
       "  type T[A] = List[A]
       "  def f: T[B] => T[B] = (x: T[B]) => x
+      "}
+      """)
+  }
+
+  test("""Testing Scala conversion of CollectionUtils
+      Note that the use of an explicit constructor for such complicated records is not supported!
+       """) {
+    CoqParser("""
+        Record CollectionUtils :=
+        {
+          C (A : Set) : Set;
+          cmerge {A : Set} (x y : C A) : C A;
+          csplit {A : Set} (x : C A) : (C A) * (C A)
+        }.
+
+        Require Import List.
+        Fixpoint split {A : Set} (l: list A) : (list A) * (list A) :=
+        match l with
+          nil => (nil, nil)
+        | x :: nil => (x :: nil, nil)
+        | x :: y :: xs => let (l1, l2) := (split xs) in (x :: l1, y :: l2)
+        end.
+
+        Definition ListUtils : CollectionUtils :=
+        {|
+          C (A : Set) := list A;
+          cmerge {A : Set} (x y : list A) := app x y;
+          csplit {A : Set} (x : list A) := split x
+        |}.
+      """) should generateScalaCode("""
+      "trait CollectionUtils {
+      "  type C[A]
+      "  def cmerge[A]: C[A] => C[A] => C[A]
+      "  def csplit[A]: C[A] => (C[A], C[A])
+      "}
+      "def split[A](l: List[A]): (List[A], List[A]) =
+      "  l match {
+      "    case Nil      => (Nil, Nil)
+      "    case x :: Nil => (x :: Nil, Nil)
+      "    case x :: y :: xs => {
+      "      val (l1, l2) = split(xs)
+      "      (x :: l1, y :: l2)
+      "    }
+      "  }
+      "object ListUtils extends CollectionUtils {
+      "  type C[A] = List[A]
+      "  def cmerge[A]: List[A] => List[A] => C[A] = (x: List[A]) => (y: List[A]) => app(x)(y)
+      "  def csplit[A]: List[A] => (C[A], C[A]) = (x: List[A]) => split(x)
       "}
       """)
   }
@@ -3060,6 +3398,50 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  type dom = BigInt
       "  def zero: dom = 0
       "  def op: dom => dom => dom = x => y => x + y
+      "}
+      "def mFoldRight[A](m: aMonoid[A])(l: List[A]): A = fold_right(m.op)(m.zero)(l)
+      """)
+  }
+
+  test("Testing Scala conversion of on monoids using the alternative syntax") {
+    CoqParser("""
+      Record aMonoid (dom : Set) : Set :=
+      {
+        zero : dom;
+        op (a b : dom) : dom
+      }.
+      Arguments op {dom}.
+      Arguments zero {dom}.
+
+      Definition genMonoid {A : Set} (z: A) (f: A -> A -> A) : aMonoid A := {|
+        zero := z;
+        op a b := f a b
+      |}.
+
+      Require Import ZArith.
+      Open Scope Z_scope.
+      Definition intMonoid : aMonoid Z := {|
+        zero := 0;
+        op x y := x + y
+      |}.
+
+      Require Import List.
+      Definition mFoldRight {A : Set} (m: aMonoid A) (l : list A) : A :=
+        fold_right m.(op) m.(zero) l.
+      """) should generateScalaCode("""
+      "trait aMonoid[dom] {
+      "  def zero: dom
+      "  def op: dom => dom => dom
+      "}
+      "def genMonoid[A](z: A)(f: A => A => A): aMonoid[A] = new aMonoid[A] {
+      "  type dom = A
+      "  def zero: dom = z
+      "  def op: dom => dom => dom = (a: dom) => (b: dom) => f(a)(b)
+      "}
+      "object intMonoid extends aMonoid[BigInt] {
+      "  type dom = BigInt
+      "  def zero: dom = 0
+      "  def op: dom => dom => dom = (x: dom) => (y: dom) => x + y
       "}
       "def mFoldRight[A](m: aMonoid[A])(l: List[A]): A = fold_right(m.op)(m.zero)(l)
       """)
