@@ -2,7 +2,10 @@ package scala.of.coq.lang
 
 object MoreLists {
   type Cons[A] = ::[A]
-  val Cons = ::
+
+  object Cons {
+    def apply[A](v: A)(tail: List[A]): List[A] = v :: tail
+  }
 
   def length[A](l: List[A]): Int = l.length
 
