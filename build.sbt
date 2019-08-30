@@ -3,7 +3,7 @@ organization := "scala.of.coq"
 
 name := "scallina"
 
-version := "0.7-SNAPSHOT"
+version := "0.7"
 
 scalaVersion := "2.12.3"
 
