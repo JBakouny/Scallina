@@ -37,8 +37,8 @@ case class ArgumentsCommand(id: Qualid, args: Binders) extends Sentence {
  *  or
  *  Open Scope Z_scope.
  */
-case class ScopeCommand(scopeName: Qualid, isLocal: Boolean) extends Sentence {
-  def toCoqCode: String = (if (isLocal) "Local" else "") + "Open Scope " + scopeName.toCoqCode + "."
+case class ScopeCommand(scopeName: Qualid, isLocal: Boolean, openOrClose: String = "Open") extends Sentence {
+  def toCoqCode: String = (if (isLocal) "Local" else "") + openOrClose + "Scope " + scopeName.toCoqCode + "."
 }
 
 /*

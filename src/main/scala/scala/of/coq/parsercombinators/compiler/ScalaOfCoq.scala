@@ -92,7 +92,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
   private def toTreeHuggerAst(coqTrees: List[Sentence]): List[Tree] = coqTrees.flatMap(t => toTreeHuggerAst(t))
 
   private def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
-    case RequireImport(_, _) | LoadCommand(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _) | SetCommand(_) =>
+    case RequireImport(_, _) | LoadCommand(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _, _) | SetCommand(_) =>
       List() // The above commands do not generate any Scala code
     case Definition(id, binders, Some(Set | Type), bodyTypeTerm) =>
       List(createTypeAliasDefinition(id, binders) := coqTypeToTreeHuggerType(bodyTypeTerm))

@@ -71,8 +71,8 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
    *  Open Scope Z_scope.
    */
   private lazy val scopeCommand: P[ScopeCommand] =
-    ("Local"?) ~ "Open" ~ "Scope" ~ qualid <~ "." ^^ {
-      case localOptional ~ open ~ scope ~ scopeName => ScopeCommand(scopeName, localOptional.isDefined)
+    ("Local"?) ~ ("Open" | "Close") ~ "Scope" ~ qualid <~ "." ^^ {
+      case localOptional ~ openOrClose ~ scope ~ scopeName => ScopeCommand(scopeName, localOptional.isDefined, openOrClose)
     }
 
   /*

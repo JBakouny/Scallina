@@ -213,6 +213,7 @@ object CoqLexer extends StdLexical {
   reserved += "Arguments"
   reserved += "Local"
   reserved += "Open"
+  reserved += "Close"
   reserved += "Scope"
 
 }
