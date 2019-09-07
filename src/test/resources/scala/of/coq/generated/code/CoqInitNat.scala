@@ -59,7 +59,7 @@ object CoqInitNat {
   def max(n: Nat)(m: Nat): Nat =
     (n, m) match {
       case (Zero, _) => m
-      case (S(n1), Zero) => n
+      case (S(_), Zero) => n
       case (S(n1), S(m1)) => S(max(n1)(m1))
     }
   def min(n: Nat)(m: Nat): Nat =

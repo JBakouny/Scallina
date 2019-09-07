@@ -75,7 +75,7 @@ Fixpoint compare (n m : Nat) : comparison :=
 Fixpoint max (n m : Nat) : Nat :=
   match n, m with
     | Zero, _ => m
-    | S n1, Zero => n
+    | S _, Zero => n
     | S n1, S m1 => S (max n1 m1)
   end.
 
