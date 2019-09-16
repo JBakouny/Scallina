@@ -9,6 +9,8 @@ import scala.of.coq.parsercombinators.lexer.CoqLexer.Identifier
 import scala.of.coq.parsercombinators.lexer.CoqLexer.NumericLit
 import scala.of.coq.parsercombinators.lexer.CoqLexer.StringLit
 
+import scala.language.postfixOps
+
 object CoqParser extends StandardTokenParsers with PackratParsers {
 
   override val lexical = CoqLexer
