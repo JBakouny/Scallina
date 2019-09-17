@@ -46,8 +46,8 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   //TODO (Joseph Bakouny): This production is not in the official grammar... consider a more in-depth support for modules.
   private lazy val importCommand: P[RequireImport] = (
-    opt("From" ~ qualid) ~ "Require" ~ "Import" ~> qualid <~ "." ^^ { RequireImport(_, false) }
-    | opt("Require") ~ "Export" ~> qualid <~ "." ^^ { RequireImport(_, true) })
+    opt("Require") ~ "Export" ~> qualid <~ "." ^^ { RequireImport(_, true) }
+    | opt("From" ~ qualid) ~ "Require" ~ opt("Import") ~> qualid <~ "." ^^ { RequireImport(_, false) })
 
   private lazy val loadCommand: P[LoadCommand] =
     "Load" ~> qualid <~ "." ^^ { LoadCommand(_) }
