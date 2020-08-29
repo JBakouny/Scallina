@@ -1,11 +1,11 @@
 
 ### Publications
 
-- **Introduction:** *[A Coq-based synthesis of Scala programs which are correct-by-construction](http://dl.acm.org/citation.cfm?doid=3103111.3104041)*
+- **Introduction:** *[A Coq-based synthesis of Scala programs which are correct-by-construction](http://dl.acm.org/citation.cfm?doid=3103111.3104041)* ([Direct link to the PDF](https://cedric.cnam.fr/fichiers/art_4027.pdf))
 
-- **Demonstration:** *[Scallina: Translating Verified Programs from Coq to Scala](https://link.springer.com/chapter/10.1007/978-3-030-02768-1_7)*
+- **Demonstration:** *[Scallina: Translating Verified Programs from Coq to Scala](https://link.springer.com/chapter/10.1007/978-3-030-02768-1_7)* ([Direct link to google book extract](https://books.google.fr/books?id=kmF7DwAAQBAJ&pg=PA130))
 
-- **Foundations:** *[The Scallina Grammar](https://link.springer.com/chapter/10.1007/978-3-030-03044-5_7)*
+- **Foundations:** *[The Scallina Grammar](https://link.springer.com/chapter/10.1007/978-3-030-03044-5_7)* ([Direct link to google book extract](https://books.google.fr/books?id=QM96DwAAQBAJ&pg=PA90))
 
 A video demo is also [available on YouTube](https://youtu.be/-UM-kcYf7jQ).
 

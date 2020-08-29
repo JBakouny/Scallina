@@ -1,21 +1,16 @@
 package scala.of.coq.parsercombinators
 
-import scala.of.coq.parsercombinators.compiler.ScalaOfCoq
-import scala.of.coq.parsercombinators.parser.CoqParser
-
-import org.scalatest.Finders
 import org.scalatest.FunSuite
 import org.scalatest.Matchers.convertToAnyShouldWrapper
 
-import CustomMatchers.generateScalaCode
-
-import scala.of.coq.parsercombinators.compiler.Currify
-
+import scala.of.coq.parsercombinators.CustomMatchers.generateScalaCode
 import scala.of.coq.parsercombinators.TestUtils.coqParserShouldFailToGenerateScalaCodeFor
+import scala.of.coq.parsercombinators.compiler.Currify
+import scala.of.coq.parsercombinators.parser.CoqParser
 
 class ScalaOfCoqCurrifiedTest extends FunSuite {
 
-  implicit val curryingStrategy = Currify
+  implicit val curryingStrategy: Currify.type = Currify
 
   test("""Testing that a different signature between record definition and instanciation is not supported
         Require Import Coq.Lists.List.
@@ -90,11 +85,13 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
 
         Definition createQueue (Q: Queue) (n: nat) : (f Q).(T) := insertElems Q Q.(empty) n.
        """) {
-    coqParserShouldFailToGenerateScalaCodeFor("""
+    coqParserShouldFailToGenerateScalaCodeFor(
+      """
         Definition f (Q: Queue) : Queue := Q.
 
         Definition createQueue (Q: Queue) (n: nat) : (f Q).(T) := insertElems Q Q.(empty) n.
-        """)
+        """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -132,11 +129,13 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       Definition plus (a b : Z) : Z := a + b.
       Definition higherOrder (f: Z -> Z -> Z) (a b : Z) : Z := f a b.
       Definition plusAgain : Z -> Z -> Z := higherOrder plus.
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
       "def plus(a: BigInt)(b: BigInt): BigInt = a + b
       "def higherOrder(f: BigInt => BigInt => BigInt)(a: BigInt)(b: BigInt): BigInt = f(a)(b)
       "def plusAgain: BigInt => BigInt => BigInt = higherOrder(plus)
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -356,7 +355,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
           Inductive Tree {A B : Type} : Type :=
           | Leaf {C : Type} (v1: A) (v2: C)
           | Node {D} (v1: B) (v2: D) (l: @Tree A B) (r: @Tree A B).
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
         "sealed abstract class Tree[+A, +B]
         "case class Leaf[A, B, C](v1: A, v2: C) extends Tree[A, B]
         "object Leaf {
@@ -368,7 +368,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         "  def apply[A, B, D] =
         "    (v1: B) => (v2: D) => (l: Tree[A, B]) => (r: Tree[A, B]) => new Node(v1, v2, l, r)
         "}
-        """)
+        """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -764,7 +765,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         push (x : nat) (q : T) : T;
         pop (q: T) : option (nat * T)
       }.
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
       "trait Queue {
       "  type T
       "  def empty: T
@@ -783,7 +785,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    def pop: T => Option[(Nat, T)] = Queue_pop
       "  }
       "}
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -1178,7 +1181,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
             test a b l := a
           |}.
 
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
       "trait TestRecord {
       "  def test: Nat => Nat => List[Nat] => Nat
       "}
@@ -1191,7 +1195,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "object RecordInstance extends TestRecord {
       "  def test: Nat => Nat => List[Nat] => Nat = (a: Nat) => (b: Nat) => (l: List[Nat]) => a
       "}
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -1271,7 +1276,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
               end)
             (nil, nil)
           .
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
       "trait Queue {
       "  type T
       "  def push: Nat => T => T
@@ -1307,7 +1313,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case hd :: tl => Some((hd, (back, tl)))
       "  }
       "})((Nil, Nil))
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -1387,7 +1394,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
                 | hd :: tl => Some (hd, (back, tl))
               end)
           .
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
       "trait Queue {
       "  type T
       "  def empty: T
@@ -1423,7 +1431,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case hd :: tl => Some((hd, (back, tl)))
       "  }
       "})
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -1503,7 +1512,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
                 | hd :: tl => Some (hd, (back, tl))
               end)
           .
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
       "trait Queue {
       "  type T
       "  def empty: T
@@ -1539,7 +1549,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case hd :: tl => Some((hd, (back, tl)))
       "  }
       "})
-      """)
+      """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -2006,7 +2017,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         bind_option q0
           (fun (q1 : Q.(t)) => option_map (Q.(pop) q1) fst)
         .
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
       "trait Queue {
       "  type t
       "  def empty: t
@@ -2074,7 +2086,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  val q0: Option[Q.t] = nat_rect(_ => (q0: Option[Q.t]) => sumElems(Q)(q0))(n)(Some(q))
       "  bind_option(q0)((q1: Q.t) => option_map(Q.pop(q1))(fst))
       "}
-      """)
+      """
+    )
 
   }
 }

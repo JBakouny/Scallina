@@ -1,41 +1,37 @@
 package scala.of.coq.parsercombinators
 
-import org.scalatest._
-import matchers._
-import scala.of.coq.parsercombinators.parser.CoqAST
+import org.scalatest.matchers._
 
-import scala.of.coq.parsercombinators.parser.CoqParser
+import scala.of.coq.parsercombinators.TestUtils._
+import scala.of.coq.parsercombinators.compiler.{CurryingStrategy, ScalaOfCoq}
 import scala.of.coq.parsercombinators.lexer.CoqLexer
-
-import scala.util.parsing.combinator.token.Tokens
-import scala.of.coq.parsercombinators.parser.CoqParser
-import scala.util.parsing.combinator.lexical.StdLexical
-import scala.of.coq.parsercombinators.compiler.ScalaOfCoq
-import scala.of.coq.parsercombinators.parser.Sentence
-
-import TestUtils._
-import scala.of.coq.parsercombinators.compiler.CurryingStrategy
+import scala.of.coq.parsercombinators.parser.{CoqAST, CoqParser, Sentence}
 
 trait CustomMatchers {
 
   class TokenParserMatcher[T](expected: T) extends Matcher[CoqParser.ParseResult[T]] {
 
-    def apply(left: CoqParser.ParseResult[T]) = {
-      val actual = Option(left.getOrElse(null));
+    def apply(left: CoqParser.ParseResult[T]): MatchResult = {
+      val actual = Option(left.getOrElse(null))
 
       MatchResult(
-        actual == Some(expected),
+        actual.contains(expected),
         s"""Expected "$expected" but obtained "$left" """,
         s"""Successfully parsed "$expected" """
       )
     }
   }
 
-  class ScalaCodeMatcher(expected: String, curryingStrategy: CurryingStrategy) extends Matcher[CoqParser.ParseResult[List[Sentence]]] {
-    def apply(left: CoqParser.ParseResult[List[Sentence]]) = {
+  class ScalaCodeMatcher(expected: String, curryingStrategy: CurryingStrategy)
+      extends Matcher[CoqParser.ParseResult[List[Sentence]]] {
+    def apply(left: CoqParser.ParseResult[List[Sentence]]): MatchResult = {
 
       val expectedCode = normalizeWhitespace(expected)
-      val actualCode = normalizeWhitespace(left.map(new ScalaOfCoq(_, curryingStrategy).generateScalaCode).getOrElse(left.toString));
+      val actualCode = normalizeWhitespace(
+        left
+          .map(new ScalaOfCoq(_, curryingStrategy).generateScalaCode)
+          .getOrElse(left.toString)
+      )
 
       MatchResult(
         actualCode == expectedCode,
@@ -47,24 +43,25 @@ trait CustomMatchers {
 
   class LexemMatcher[T](expected: T) extends Matcher[CoqLexer.ParseResult[T]] {
 
-    def apply(left: CoqLexer.ParseResult[T]) = {
-      val actual = Option(left.getOrElse(null));
+    def apply(left: CoqLexer.ParseResult[T]): MatchResult = {
+      val actual = Option(left.getOrElse(null))
 
       MatchResult(
-        actual == Some(expected),
+        actual.contains(expected),
         s"""Expected "$expected" but obtained "$left" """,
         s"""Successfully parsed "$expected" """
       )
     }
   }
 
-  def parse(coqAst: CoqAST) = new TokenParserMatcher(coqAst)
+  def parse(coqAst: CoqAST): TokenParserMatcher[CoqAST] = new TokenParserMatcher(coqAst)
 
-  def parse(coqAst: List[CoqAST]) = new TokenParserMatcher(coqAst)
+  def parse(coqAst: List[CoqAST]): TokenParserMatcher[List[CoqAST]] = new TokenParserMatcher(coqAst)
 
-  def generateScalaCode(scalaCode: String)(implicit curryingStrategy: CurryingStrategy) = new ScalaCodeMatcher(scalaCode, curryingStrategy)
+  def generateScalaCode(scalaCode: String)(implicit curryingStrategy: CurryingStrategy): ScalaCodeMatcher =
+    new ScalaCodeMatcher(scalaCode, curryingStrategy)
 
-  def identify(lex: CoqLexer.Token) = new LexemMatcher(lex)
+  def identify(lex: CoqLexer.Token): LexemMatcher[CoqLexer.Token] = new LexemMatcher(lex)
 }
 
 // Make them easy to import with:

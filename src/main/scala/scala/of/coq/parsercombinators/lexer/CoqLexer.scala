@@ -1,6 +1,5 @@
 package scala.of.coq.parsercombinators.lexer
 
-import scala.annotation.migration
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.input.CharArrayReader
 import scala.util.parsing.input.CharArrayReader.EofCh
@@ -8,26 +7,29 @@ import scala.util.parsing.input.CharArrayReader.EofCh
 object CoqLexer extends StdLexical {
 
   /**
-   * Warning: Do not use this method unless you want to parse only one token (even if it is an error token).
-   *
-   * It is, therefore, preferable to use a Scanner instead of calling this method.
-   */
-  def apply(s: String) = token(new CharArrayReader(s.toCharArray()))
+    * Warning: Do not use this method unless you want to parse only one token (even if it is an error token).
+    *
+    * It is, therefore, preferable to use a Scanner instead of calling this method.
+    */
+  def apply(s: String): CoqLexer.ParseResult[CoqLexer.Token] = token(new CharArrayReader(s.toCharArray))
 
   /**
-   * Warning: Do not use this method unless you plan on continuing if illegal characters are found.
-   *
-   * It is, therefore, preferable to use a Scanner instead of calling this method.
-   */
-  def parseAllTokens(s: String) = {
+    * Warning: Do not use this method unless you plan on continuing if illegal characters are found.
+    *
+    * It is, therefore, preferable to use a Scanner instead of calling this method.
+    */
+  def parseAllTokens(s: String): List[CoqLexer.Token] = {
     val scanner = new Scanner(s)
 
     def parseAllTokensHelper(scanner: CoqLexer.Scanner): List[CoqLexer.Token] = {
-      if (scanner.atEnd) Nil
-      else (scanner.first) :: parseAllTokensHelper(scanner.rest)
+      if (scanner.atEnd) {
+        Nil
+      } else {
+        scanner.first :: parseAllTokensHelper(scanner.rest)
+      }
     }
 
-    parseAllTokensHelper(scanner);
+    parseAllTokensHelper(scanner)
   }
 
   override def whitespace: Parser[Any] = rep[Any](
@@ -37,12 +39,8 @@ object CoqLexer extends StdLexical {
   )
 
   override protected def comment: Parser[Any] = (
-    rep(chrExcept(EofCh, '*')) ~ '*' ~ ')' ^^ {
-      case _ => ' '
-    }
-    | rep(chrExcept(EofCh, '*')) ~ '*' ~ comment ^^ {
-      case _ => ' '
-    }
+    rep(chrExcept(EofCh, '*')) ~ '*' ~ ')' ^^ (_ => ' ')
+      | rep(chrExcept(EofCh, '*')) ~ '*' ~ comment ^^ (_ => ' ')
   )
 
   /*
@@ -54,16 +52,18 @@ object CoqLexer extends StdLexical {
   override def token: Parser[Token] =
     (
       delim // delimiters take precedence
-      | identifier
-      | number
-      | literal
-      | EofCh ^^^ EOF
-      | '\"' ~> failure("unclosed string literal")
-      | failure("illegal character")
+        | identifier
+        | number
+        | literal
+        | EofCh ^^^ EOF
+        | '\"' ~> failure("unclosed string literal")
+        | failure("illegal character")
     )
 
   private def identifier: Parser[Token] = {
-    identChar ~ ((identChar | digit) *) ^^ { case first ~ rest => processIdent(first :: rest mkString "") }
+    identChar ~ ((identChar | digit) *) ^^ {
+      case first ~ rest => processIdent(first :: rest mkString "")
+    }
   }
 
   /*
@@ -71,7 +71,9 @@ object CoqLexer extends StdLexical {
    * Support for relative integers is scheduled to be incorporated in future versions.
    */
   private def number: Parser[NumericLit] = {
-    digit ~ (digit *) ^^ { case first ~ rest => NumericLit(first :: rest mkString "") }
+    digit ~ (digit *) ^^ {
+      case first ~ rest => NumericLit(first :: rest mkString "")
+    }
   }
 
   // TODO (Joseph Bakouny): Add support for integers in future versions.
@@ -80,7 +82,7 @@ object CoqLexer extends StdLexical {
     val numberRegexString = "[0-9]+"
     regex((numberRegexString + "| -" + numberRegexString).r) ^^ { (str => INTEGER(str.toInt)) }
   }
-  */
+   */
 
   /*
    * TODO (Joseph Bakouny): The definition of a string was simplified for this first version.
@@ -89,7 +91,8 @@ object CoqLexer extends StdLexical {
   private def literal: Parser[StringLit] = {
     '\"' ~ (chrExcept('\"', '\n', EofCh) *) ~ '\"' ^^ {
       case '\"' ~ chars ~ '\"' => StringLit(chars mkString "")
-      case anythingElse        => throw new IllegalStateException("String literal parser: should not get here!")
+      case _ =>
+        throw new IllegalStateException("String literal parser: should not get here!")
     }
   }
 

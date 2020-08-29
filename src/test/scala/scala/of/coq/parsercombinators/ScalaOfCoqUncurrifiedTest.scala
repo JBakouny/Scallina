@@ -1,21 +1,16 @@
 package scala.of.coq.parsercombinators
 
-import scala.of.coq.parsercombinators.compiler.ScalaOfCoq
-import scala.of.coq.parsercombinators.parser.CoqParser
-
-import org.scalatest.Finders
 import org.scalatest.FunSuite
 import org.scalatest.Matchers.convertToAnyShouldWrapper
 
-import CustomMatchers.generateScalaCode
-
-import scala.of.coq.parsercombinators.compiler.NoCurrying
-
+import scala.of.coq.parsercombinators.CustomMatchers.generateScalaCode
 import scala.of.coq.parsercombinators.TestUtils.coqParserShouldFailToGenerateScalaCodeFor
+import scala.of.coq.parsercombinators.compiler.NoCurrying
+import scala.of.coq.parsercombinators.parser.CoqParser
 
 class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
-  implicit val curryingStrategy = NoCurrying
+  implicit val curryingStrategy: NoCurrying.type = NoCurrying
 
   /*
    * TODO(Joseph Bakouny) - Error handling:
@@ -822,11 +817,13 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
               Inductive Tree {A B : Type} : Type :=
               | Leaf (value: A)
               | Node (info: B) (left: @Tree A B) (right: @Tree A B).
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
         "sealed abstract class Tree[+A, +B]
         "case class Leaf[A, B](value: A) extends Tree[A, B]
         "case class Node[A, B](info: B, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B]
-        """)
+        """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -838,11 +835,13 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
           Inductive Tree {A B : Type} : Type :=
           | Leaf {C : Type} (v1: A) (v2: C)
           | Node {D} (v1: B) (v2: D) (l: @Tree A B) (r: @Tree A B).
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
         "sealed abstract class Tree[+A, +B]
         "case class Leaf[A, B, C](v1: A, v2: C) extends Tree[A, B]
         "case class Node[A, B, D](v1: B, v2: D, l: Tree[A, B], r: Tree[A, B]) extends Tree[A, B]
-        """)
+        """
+    )
   }
 
   test("""Testing Scala conversion of
@@ -1122,7 +1121,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
 
         Definition insert {V} (x : Z) (vx : V) (s : tree V) : tree V := makeBlack (ins x vx s).
 
-      """) should generateScalaCode("""
+      """) should generateScalaCode(
+      """
         "sealed abstract class color
         "case object Red extends color
         "case object Black extends color
@@ -1162,6 +1162,7 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         "    else T(c, a, x, vx, b)
         "  }
         "def insert[V](x: BigInt, vx: V, s: tree[V]): tree[V] = makeBlack(ins(x, vx, s))
-        """)
+        """
+    )
   }
 }
