@@ -38,13 +38,12 @@ import scala.of.coq.parsercombinators.parser.Type
 import scala.of.coq.parsercombinators.parser.UncurriedTermApplication
 import scala.of.coq.parsercombinators.parser.UnderscorePattern
 
-import org.scalatest.Finders
-import org.scalatest.FunSuite
-import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import CustomMatchers.parse
 
-class CoqTermParserFileBasedTest extends FunSuite {
+class CoqTermParserFileBasedTest extends AnyFunSuite with Matchers {
 
   def fileToString(fileName: String): String = {
     val fileBufferedSource = io.Source.fromURL(getClass.getResource("/TermFragments/" + fileName));

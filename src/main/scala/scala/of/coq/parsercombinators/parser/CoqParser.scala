@@ -439,7 +439,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   private object Term extends AbstractTerm {
 
     override protected lazy val termApplication: P[UncurriedTermApplication] =
-      term ~ (argument +) ^^ { case term ~ arguments => UncurriedTermApplication(term, arguments) }
+      this.term ~ (argument +) ^^ { case term ~ arguments => UncurriedTermApplication(term, arguments) }
 
     private lazy val argument: P[Argument] = (
       TermWithoutApplication.term ^^ { case term => Argument(None, term) }

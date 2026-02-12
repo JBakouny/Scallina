@@ -34,8 +34,8 @@ import scala.of.coq.parsercombinators.parser.Type
 import scala.of.coq.parsercombinators.parser.UncurriedTermApplication
 import scala.of.coq.parsercombinators.parser.UnderscorePattern
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import CustomMatchers.parse
 import scala.of.coq.parsercombinators.parser.Match
@@ -53,7 +53,7 @@ import scala.of.coq.parsercombinators.parser.SimpleProjection
 import scala.of.coq.parsercombinators.parser.ApplicationProjection
 import scala.of.coq.parsercombinators.parser.ExplicitApplicationProjection
 
-class CoqTermParserTest extends FunSuite {
+class CoqTermParserTest extends AnyFunSuite with Matchers {
 
   test("""Testing "forall a, (a -> a)" """) {
     CoqTermParser("forall a, (a -> a)") should parse(

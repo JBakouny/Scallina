@@ -1,8 +1,7 @@
 package scala.of.coq.parsercombinators
 
-import org.scalatest.Finders
-import org.scalatest.FunSuite
-import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import CustomMatchers.identify
 import scala.of.coq.parsercombinators.lexer.CoqLexer.Identifier
@@ -19,7 +18,7 @@ import lexer.CoqLexer
  * There should be a test for each lexer token.
  *
  */
-class LexerPrecendenceTest extends FunSuite {
+class LexerPrecendenceTest extends AnyFunSuite with Matchers {
 
   test("""lexer identifies "myVar" Identifier""") { CoqLexer("myVar") should identify (Identifier("myVar")) }
   test("""lexer identifies "my_2nd_var" Identifier""") { CoqLexer("my_2nd_var") should identify (Identifier("my_2nd_var")) }

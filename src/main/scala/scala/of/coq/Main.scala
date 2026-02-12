@@ -17,27 +17,27 @@ object Main {
     System.exit(exitCode)
   }
 
-  type OptionMap = Map[Symbol, Boolean]
+  type OptionMap = Map[String, Boolean]
   type FileNames = List[String]
 
   def parseCommandLineArgs(commandLineArgs: List[String]): (OptionMap, FileNames) = {
     def nextArgument(optionMap: OptionMap, fileNamesAcc: FileNames, commandLineArgs: List[String]): (OptionMap, FileNames) = {
       commandLineArgs match {
-        case "--source" :: tail    => nextArgument(optionMap ++ Map('source -> true), fileNamesAcc, tail)
-        case "--trim" :: tail      => nextArgument(optionMap ++ Map('trim -> true), fileNamesAcc, tail)
-        case "--ast" :: tail       => nextArgument(optionMap ++ Map('ast -> true), fileNamesAcc, tail)
-        case "--lexer" :: tail     => nextArgument(optionMap ++ Map('lexer -> true), fileNamesAcc, tail)
-        case "--coq" :: tail       => nextArgument(optionMap ++ Map('coq -> true), fileNamesAcc, tail)
-        case "--uncurrify" :: tail => nextArgument(optionMap ++ Map('uncurrify -> true), fileNamesAcc, tail)
+        case "--source" :: tail    => nextArgument(optionMap ++ Map("source" -> true), fileNamesAcc, tail)
+        case "--trim" :: tail      => nextArgument(optionMap ++ Map("trim" -> true), fileNamesAcc, tail)
+        case "--ast" :: tail       => nextArgument(optionMap ++ Map("ast" -> true), fileNamesAcc, tail)
+        case "--lexer" :: tail     => nextArgument(optionMap ++ Map("lexer" -> true), fileNamesAcc, tail)
+        case "--coq" :: tail       => nextArgument(optionMap ++ Map("coq" -> true), fileNamesAcc, tail)
+        case "--uncurrify" :: tail => nextArgument(optionMap ++ Map("uncurrify" -> true), fileNamesAcc, tail)
         case fileName :: tail      => nextArgument(optionMap, fileName :: fileNamesAcc, tail)
         case Nil                   => (optionMap, fileNamesAcc)
       }
     }
 
-    nextArgument(Map() withDefaultValue false, Nil, commandLineArgs)
+    nextArgument(Map().withDefaultValue(false), Nil, commandLineArgs)
   }
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
     if (args.length <= 0) {
       printUsageAndExit(1)
     }
@@ -50,9 +50,9 @@ object Main {
         val fileBufferedSource = io.Source.fromFile(fileName);
         val inputString = try fileBufferedSource.mkString finally fileBufferedSource.close()
 
-        val shouldTrimCode = map('trim)
+        val shouldTrimCode = map("trim")
 
-        if (map('source)) {
+        if (map("source")) {
           println("Before parsing:");
           println(if (shouldTrimCode) inputString.trim else inputString)
           println("After parsing:");
@@ -63,12 +63,12 @@ object Main {
 
         val outputString = optionalCoqAst.fold(coqAST.toString) {
           coqTrees =>
-            val shouldPrintCoqOutput = map('coq)
+            val shouldPrintCoqOutput = map("coq")
             if (shouldPrintCoqOutput) {
               coqTrees.map(_.toCoqCode).mkString("\n")
             } else {
               val scalaOfCoq = new ScalaOfCoq(coqTrees,
-                if (map('uncurrify))
+                if (map("uncurrify"))
                   NoCurrying
                 else
                   Currify
@@ -81,11 +81,11 @@ object Main {
 
         println(if (shouldTrimCode) outputString.trim else outputString)
 
-        if (map('ast)) {
+        if (map("ast")) {
           println(coqAST)
         }
 
-        if (map('lexer)) {
+        if (map("lexer")) {
           println(CoqLexer.parseAllTokens(inputString))
         }
 

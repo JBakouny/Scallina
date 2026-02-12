@@ -1,7 +1,1 @@
-
-//addSbtPlugin("com.artima.supersafe" % "sbtplugin" % "1.1.8")
-
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.4")
-
-
-
+// sbteclipse removed — modern IDEs (IntelliJ, Metals/VS Code) import sbt projects natively.
