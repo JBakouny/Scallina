@@ -95,4 +95,8 @@ local.properties
 # Code Recommenders
 .recommenders/
 
-
+.metals
+.vscode
+.cursor
+.bloop/
+metals.sbt

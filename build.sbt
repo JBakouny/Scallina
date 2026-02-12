@@ -5,19 +5,13 @@ name := "scallina"
 
 version := "0.8-SNAPSHOT"
 
-scalaVersion := "2.13.0"
+scalaVersion := "3.8.1"
 
 libraryDependencies ++= Seq(
-  "org.scalactic" %% "scalactic" % "3.0.8",
-  "org.scalatest" %% "scalatest" % "3.0.8" % "test",
-  "org.scala-lang.modules"  %% "scala-parser-combinators" % "1.1.2"
+  "org.scalactic"            %% "scalactic"                % "3.2.19",
+  "org.scalatest"            %% "scalatest"                % "3.2.19" % "test",
+  "org.scala-lang.modules"   %% "scala-parser-combinators" % "2.4.0",
+  "junit"                     % "junit"                    % "4.13.2" % "test",
+  ("com.eed3si9n"            %% "treehugger"               % "0.4.4").cross(CrossVersion.for3Use2_13)
 )
-
-libraryDependencies += "junit" % "junit" % "4.12" % "test"
-
-libraryDependencies += "com.eed3si9n" %% "treehugger" % "0.4.4"
-
-resolvers += Resolver.sonatypeRepo("public")
-
-EclipseKeys.withSource := true
 

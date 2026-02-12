@@ -3,19 +3,19 @@ package scala.of.coq.parsercombinators
 import scala.of.coq.parsercombinators.compiler.ScalaOfCoq
 import scala.of.coq.parsercombinators.parser.CoqParser
 
-import org.scalatest.Finders
-import org.scalatest.FunSuite
-import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import CustomMatchers.generateScalaCode
 
 import scala.of.coq.parsercombinators.compiler.NoCurrying
+import scala.of.coq.parsercombinators.compiler.CurryingStrategy
 
 import scala.of.coq.parsercombinators.TestUtils.coqParserShouldFailToGenerateScalaCodeFor
 
-class ScalaOfCoqUncurrifiedTest extends FunSuite {
+class ScalaOfCoqUncurrifiedTest extends AnyFunSuite with Matchers {
 
-  implicit val curryingStrategy = NoCurrying
+  implicit val curryingStrategy: CurryingStrategy = NoCurrying
 
   test("""Testing that explicit Type parameters are not supported if the return type is not Type
       Definition illegalFunction (x: Type) := x -> x.

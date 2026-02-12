@@ -452,16 +452,16 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
   private def convertTypeBinders(typeBinders: List[Binder]): List[TypeDefTreeStart] =
     for {
-      ImplicitBinder(names, _) <- typeBinders
-      Name(Some(Ident(nameString))) <- names
+      case ImplicitBinder(names, _) <- typeBinders
+      case Name(Some(Ident(nameString))) <- names
     } yield TYPEVAR(nameString)
 
   private def convertValueBinders(valueBinders: List[Binder]): List[ValDef] =
     // TODO (Joseph Bakouny): Should we take currying into consideration ?
     for {
-      ExplicitBinderWithType(names, typeTerm) <- valueBinders
+      case ExplicitBinderWithType(names, typeTerm) <- valueBinders
       // TODO (Joseph Bakouny): Should we ignore names with the pattern "Name(None)"?
-      Name(Some(Ident(nameString))) <- names
+      case Name(Some(Ident(nameString))) <- names
     } yield {
       mkTreeFromDefStart(PARAM(nameString, coqTypeToTreeHuggerType(typeTerm)))
     }
@@ -494,7 +494,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       case Binders(binders) =>
         def convertNamesToTypeVars(names: List[Name]) = {
           for {
-            Name(Some(Ident(nameString))) <- names
+            case Name(Some(Ident(nameString))) <- names
           } yield (
             if (covariant)
               TYPEVAR(COVARIANT(nameString))
@@ -689,17 +689,17 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
 
     private def fetchRecordAbstractFields(recordType: String): Map[String, AbstractRecordField] = (
       for {
-        Record(_, Ident(recordName), _, (None | Some(Set | Type)), _, fields) <- coqTrees if (recordName == recordType)
-        abstractField @ AbstractRecordField(fieldName, _, _) <- fields
+        case Record(_, Ident(recordName), _, (None | Some(Set | Type)), _, fields) <- coqTrees if (recordName == recordType)
+        case abstractField @ AbstractRecordField(fieldName, _, _) <- fields
       } yield (convertNameToString(fieldName) -> abstractField)).toMap
 
     private def fetchRecordBinders(recordType: String): List[Binder] =
       (for {
-        Record(_, Ident(recordName), Some(Binders(binders)), (None | Some(Set | Type)), _, _) <- coqTrees if (recordName == recordType)
+        case Record(_, Ident(recordName), Some(Binders(binders)), (None | Some(Set | Type)), _, _) <- coqTrees if (recordName == recordType)
       } yield binders).flatten
 
     private def convertRecord(record: Record): Tree = {
-      val Record(_, Ident(recordName), binders, (None | Some(Set | Type)), _, fields) = record
+      val Record(_, Ident(recordName), binders, (None | Some(Set | Type)), _, fields) = record: @unchecked
 
       TRAITDEF(recordName).withTypeParams(convertTypeBindersToTypeVars(binders)) :=
         BLOCK(
@@ -711,7 +711,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
       val constructor = computeRecordConstructorName(record)
 
       constructor.map { constructorName =>
-        val Record(_, Ident(recordName), binders, (None | Some(Set | Type)), _, fields) = record
+        val Record(_, Ident(recordName), binders, (None | Some(Set | Type)), _, fields) = record: @unchecked
         val abstractFields = filterAbstractRecordFields(fields)
 
         val typeBinderParams = convertTypeBindersToTypeVars(binders)
@@ -735,12 +735,12 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     }
 
     private def computeRecordConstructorName(record: Record): Option[String] = {
-      val Record(_, Ident(recordName), _, (None | Some(Set | Type)), constructor, _) = record
+      val Record(_, Ident(recordName), _, (None | Some(Set | Type)), constructor, _) = record: @unchecked
       constructor.map { case Ident(constructorName) => constructorName }
     }
 
     private def filterAbstractRecordFields(fields: List[RecordField]): List[AbstractRecordField] =
-      for { abstractField @ AbstractRecordField(_, _, _) <- fields } yield abstractField
+      for { case abstractField @ AbstractRecordField(_, _, _) <- fields } yield abstractField
 
     private def extractNameFromRecordField(field: RecordField): String = field match {
       case AbstractRecordField(name, _, _)    => convertNameToString(name)

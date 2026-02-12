@@ -1,16 +1,14 @@
 package scala.of.coq.parsercombinators
 
-import org.scalatest.Finders
-import org.scalatest.FunSuite
-import org.scalatest.Matchers.contain
-import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.of.coq.parsercombinators.lexer.CoqLexer.Identifier
 import scala.of.coq.parsercombinators.lexer.CoqLexer.Keyword
 import scala.of.coq.parsercombinators.lexer.CoqLexer.errorToken
 import lexer.CoqLexer
 
-class InductiveCoqLexerTest extends FunSuite {
+class InductiveCoqLexerTest extends AnyFunSuite with Matchers {
 
   val validCoqCode =
     """

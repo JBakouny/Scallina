@@ -1,7 +1,6 @@
 package scala.of.coq.parsercombinators
 
-import org.scalatest._
-import matchers._
+import org.scalatest.matchers._
 import scala.of.coq.parsercombinators.parser.CoqAST
 
 import scala.of.coq.parsercombinators.parser.CoqParser

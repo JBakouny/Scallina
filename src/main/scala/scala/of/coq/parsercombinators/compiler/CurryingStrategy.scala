@@ -39,7 +39,7 @@ object Currify extends CurryingStrategy {
           name,
           paramDefs.map {
             param => REF(param.name)
-          }: _*)
+          }*)
       }
 
       def createApplyMethodBody(name: String, paramDefs: List[ValDef]) = {

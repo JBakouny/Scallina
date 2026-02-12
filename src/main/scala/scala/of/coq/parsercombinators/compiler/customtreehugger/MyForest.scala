@@ -4,10 +4,10 @@ import treehugger.forest._
 import definitions._
 import treehuggerDSL._
 import java.io.PrintWriter
+import java.io.StringWriter
 import treehugger.Forest
-import treehugger.TreePrinters
 
-trait MyTreePrinters extends TreePrinters { self: Forest =>
+object MyForest extends Forest {
 
   class MyTreePrinter(out: PrintWriter) extends TreePrinter(out) {
 
@@ -19,7 +19,7 @@ trait MyTreePrinters extends TreePrinters { self: Forest =>
 
     import treehugger.api.Modifier
     import Flags._
-    override def printTree(tree: Tree) {
+    override def printTree(tree: Tree): Unit = {
       tree match {
         case EmptyTree =>
           print("")
@@ -53,9 +53,12 @@ trait MyTreePrinters extends TreePrinters { self: Forest =>
     }
   }
 
-  override def newTreePrinter(writer: PrintWriter): TreePrinter = new MyTreePrinter(writer)
-}
-
-object MyForest extends Forest with MyTreePrinters { self: Forest =>
-
+  override def treeToString(args: Any*): String = {
+    val sw = new StringWriter()
+    val pw = new PrintWriter(sw)
+    val printer = new MyTreePrinter(pw)
+    args.foreach(arg => printer.print(arg))
+    pw.flush()
+    sw.toString()
+  }
 }

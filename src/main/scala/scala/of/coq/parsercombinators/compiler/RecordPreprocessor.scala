@@ -15,7 +15,7 @@ object RecordPreprocessor {
 
   def computeConstructorToRecordTypeFields(coqTrees: List[Sentence]): Map[RecordConstructorName, List[IsRecordTypeField]] = {
     for {
-      Record(_, Ident(recordName), _, (None | Some(Set | Type)), Some(Ident(constructorName)), fields) <- coqTrees
+      case Record(_, Ident(recordName), _, (None | Some(Set | Type)), Some(Ident(constructorName)), fields) <- coqTrees
     } yield (
       constructorName ->
       fields.map(recordFieldIsTypeField))

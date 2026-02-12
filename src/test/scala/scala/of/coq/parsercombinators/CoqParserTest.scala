@@ -10,13 +10,12 @@ import scala.of.coq.parsercombinators.parser._
 import scala.of.coq.parsercombinators.parser.Qualid
 import scala.of.coq.parsercombinators.parser.Type
 
-import org.scalatest.Finders
-import org.scalatest.FunSuite
-import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import CustomMatchers.parse
 
-class CoqParserTest extends FunSuite {
+class CoqParserTest extends AnyFunSuite with Matchers {
 
   test("""Testing "Require Import Coq.Arith.PeanoNat." """) {
     CoqParser("Require Import Coq.Arith.PeanoNat.") should parse(
