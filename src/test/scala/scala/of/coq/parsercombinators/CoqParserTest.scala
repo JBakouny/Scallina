@@ -23,9 +23,26 @@ class CoqParserTest extends FunSuite {
       List(RequireImport(Qualid(List(Ident("Coq"), Ident("Arith"), Ident("PeanoNat"))))))
   }
 
+  test("""Testing multiple modules in Require Import""") {
+    val source = "From Stdlib Require Import List Bool Strings.Byte."
+    CoqParser(source) should parse(
+      List(RequireImports(List(
+        Qualid(List(Ident("List"))),
+        Qualid(List(Ident("Bool"))),
+        Qualid(List(Ident("Strings"), Ident("Byte")))), false,
+        Some(Qualid(List(Ident("Stdlib")))))))
+    CoqParser(source).get.head.toCoqCode shouldBe source
+  }
+
+  test("""Testing Import of a notation module""") {
+    CoqParser("Import ListNotations.") should parse(
+      List(ModuleImport(List(Qualid(List(Ident("ListNotations")))))))
+  }
+
   test("""Testing "From Coq Require Import Coq.Arith.PeanoNat." """) {
     CoqParser("From Coq Require Import Coq.Arith.PeanoNat.") should parse(
-      List(RequireImport(Qualid(List(Ident("Coq"), Ident("Arith"), Ident("PeanoNat"))))))
+      List(RequireImport(Qualid(List(Ident("Coq"), Ident("Arith"), Ident("PeanoNat"))), false,
+        Some(Qualid(List(Ident("Coq")))))))
   }
 
   test("""Testing "Arguments Leaf {A} _." """) {

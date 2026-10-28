@@ -10,8 +10,18 @@ sealed trait CoqAST {
 sealed trait Sentence extends CoqAST
 
 //TODO (Joseph Bakouny): This AST is not in the grammar, consider a more in-depth support for modules.
-case class RequireImport(moduleName: Qualid, shouldExport: Boolean = false) extends Sentence {
-  def toCoqCode: String = "Require " + (if (shouldExport) "Export" else "Import") + " " + moduleName.toCoqCode + "."
+case class RequireImport(moduleName: Qualid, shouldExport: Boolean = false, fromPrefix: Option[Qualid] = None) extends Sentence {
+  def toCoqCode: String = fromPrefix.fold("")("From " + _.toCoqCode + " ") + "Require " + (if (shouldExport) "Export" else "Import") + " " + moduleName.toCoqCode + "."
+}
+
+case class RequireImports(moduleNames: List[Qualid], shouldExport: Boolean = false, fromPrefix: Option[Qualid] = None) extends Sentence {
+  require(moduleNames.size > 1)
+  def toCoqCode: String = fromPrefix.fold("")("From " + _.toCoqCode + " ") + "Require " + (if (shouldExport) "Export" else "Import") + " " + moduleNames.map(_.toCoqCode).mkString(" ") + "."
+}
+
+case class ModuleImport(moduleNames: List[Qualid]) extends Sentence {
+  require(moduleNames.nonEmpty)
+  def toCoqCode: String = "Import " + moduleNames.map(_.toCoqCode).mkString(" ") + "."
 }
 
 case class LoadCommand(moduleName: Qualid) extends Sentence {
@@ -337,7 +347,7 @@ case object Type extends Sort {
 }
 // End of Sort
 
-case class Number(n: Int) extends Term {
+case class Number(n: BigInt) extends Term {
   def toCoqCode: String = n.toString
 }
 

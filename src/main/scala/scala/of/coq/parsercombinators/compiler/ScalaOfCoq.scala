@@ -41,6 +41,8 @@ import scala.of.coq.parsercombinators.parser.Sentence
 import scala.of.coq.parsercombinators.parser.Assertion
 import scala.of.coq.parsercombinators.parser.TermIf
 import scala.of.coq.parsercombinators.parser.RequireImport
+import scala.of.coq.parsercombinators.parser.RequireImports
+import scala.of.coq.parsercombinators.parser.ModuleImport
 import scala.of.coq.parsercombinators.parser.InfixPattern
 import scala.of.coq.parsercombinators.parser.ArgumentsCommand
 import scala.of.coq.parsercombinators.parser.Type
@@ -92,7 +94,7 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
   private def toTreeHuggerAst(coqTrees: List[Sentence]): List[Tree] = coqTrees.flatMap(t => toTreeHuggerAst(t))
 
   private def toTreeHuggerAst(coqAst: Sentence): List[Tree] = coqAst match {
-    case RequireImport(_, _) | LoadCommand(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _, _) | SetCommand(_) =>
+    case RequireImport(_, _, _) | RequireImports(_, _, _) | ModuleImport(_) | LoadCommand(_) | ArgumentsCommand(_, _) | ScopeCommand(_, _, _) | SetCommand(_) =>
       List() // The above commands do not generate any Scala code
     case Definition(id, binders, Some(Set | Type), bodyTypeTerm) =>
       List(createTypeAliasDefinition(id, binders) := coqTypeToTreeHuggerType(bodyTypeTerm))
@@ -139,7 +141,8 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     case Qualid(xs) =>
       REF(xs.map { case Ident(name) => convertValue(name) }.mkString("."))
     case Number(n) =>
-      LIT(n)
+      if (n.isValidInt) LIT(n.toInt)
+      else REF("BigInt") APPLY LIT(n.toString)
     case BetweenParenthesis(term) =>
       PAREN(termToTreeHuggerAst(term))
     case TupleValue(tupleTerms) =>
@@ -251,10 +254,14 @@ class ScalaOfCoq(coqTrees: List[Sentence], curryingStrategy: CurryingStrategy) {
     case anyOtherOperator => anyOtherOperator
   }
 
-  private def toNat(inputValue: Int): Tree = inputValue match {
-    case 0            => REF("Zero")
-    case n if (n > 0) => REF("S") APPLY toNat(n - 1)
-    case n if (n < 0) => throw new IllegalStateException("Only Coq natural numbers are currently supported, the following negative number is, therefore, illegal: " + n)
+  private def toNat(inputValue: BigInt): Tree = {
+    if (!inputValue.isValidInt)
+      throw new IllegalStateException("Large numeric patterns require a target-specific extraction mapping: " + inputValue)
+    inputValue.toInt match {
+      case 0            => REF("Zero")
+      case n if (n > 0) => REF("S") APPLY toNat(BigInt(n - 1))
+      case n if (n < 0) => throw new IllegalStateException("Only Coq natural numbers are currently supported, the following negative number is, therefore, illegal: " + n)
+    }
   }
 
   private def qualidIsPrimitiveValueInScala(inputValue: String): Boolean = inputValue match {

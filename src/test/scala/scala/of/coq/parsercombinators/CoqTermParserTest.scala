@@ -682,6 +682,10 @@ class CoqTermParserTest extends FunSuite {
     CoqTermParser("37") should parse(Number(37))
   }
 
+  test("""Testing a numeral larger than Int.MaxValue""") {
+    CoqTermParser("18446744073709551615") should parse(Number(BigInt("18446744073709551615")))
+  }
+
   test("""Testing "true" """) {
     CoqTermParser("true") should parse(Qualid(List(Ident("true"))))
   }

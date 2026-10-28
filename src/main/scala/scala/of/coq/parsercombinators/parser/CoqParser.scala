@@ -45,9 +45,17 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     | assertion <~ proof)
 
   //TODO (Joseph Bakouny): This production is not in the official grammar... consider a more in-depth support for modules.
-  private lazy val importCommand: P[RequireImport] = (
-    opt("Require") ~ "Export" ~> qualid <~ "." ^^ { RequireImport(_, true) }
-    | opt("From" ~ qualid) ~ "Require" ~ opt("Import") ~> qualid <~ "." ^^ { RequireImport(_, false) })
+  private lazy val importCommand: P[Sentence] = (
+    opt("Require") ~ "Export" ~> rep1(qualid) <~ "." ^^ { modules => importSentence(modules, true, None) }
+    | opt("From" ~> qualid) ~ "Require" ~ opt("Import") ~ rep1(qualid) <~ "." ^^ {
+      case prefix ~ _ ~ _ ~ modules => importSentence(modules, false, prefix)
+    }
+    | "Import" ~> rep1(qualid) <~ "." ^^ { ModuleImport(_) })
+
+  private def importSentence(modules: List[Qualid], shouldExport: Boolean, fromPrefix: Option[Qualid]): Sentence = modules match {
+    case module :: Nil => RequireImport(module, shouldExport, fromPrefix)
+    case many          => RequireImports(many, shouldExport, fromPrefix)
+  }
 
   private lazy val loadCommand: P[LoadCommand] =
     "Load" ~> qualid <~ "." ^^ { LoadCommand(_) }
@@ -225,7 +233,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
   }
 
   private lazy val numberLiteral: P[Number] = {
-    accept("number literal", { case NumericLit(n) => Number(n.toInt) })
+    accept("number literal", { case NumericLit(n) => Number(BigInt(n)) })
   }
 
   // TODO (Joseph Bakouny): The stringLiteral production is not used yet. It should either be used or removed.
