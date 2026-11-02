@@ -10,8 +10,18 @@ sealed trait CoqAST {
 sealed trait Sentence extends CoqAST
 
 //TODO (Joseph Bakouny): This AST is not in the grammar, consider a more in-depth support for modules.
-case class RequireImport(moduleName: Qualid, shouldExport: Boolean = false) extends Sentence {
-  def toCoqCode: String = "Require " + (if (shouldExport) "Export" else "Import") + " " + moduleName.toCoqCode + "."
+case class RequireImport(moduleName: Qualid, shouldExport: Boolean = false, fromPrefix: Option[Qualid] = None) extends Sentence {
+  def toCoqCode: String = fromPrefix.fold("")("From " + _.toCoqCode + " ") + "Require " + (if (shouldExport) "Export" else "Import") + " " + moduleName.toCoqCode + "."
+}
+
+case class RequireImports(moduleNames: List[Qualid], shouldExport: Boolean = false, fromPrefix: Option[Qualid] = None) extends Sentence {
+  require(moduleNames.size > 1)
+  def toCoqCode: String = fromPrefix.fold("")("From " + _.toCoqCode + " ") + "Require " + (if (shouldExport) "Export" else "Import") + " " + moduleNames.map(_.toCoqCode).mkString(" ") + "."
+}
+
+case class ModuleImport(moduleNames: List[Qualid]) extends Sentence {
+  require(moduleNames.nonEmpty)
+  def toCoqCode: String = "Import " + moduleNames.map(_.toCoqCode).mkString(" ") + "."
 }
 
 case class LoadCommand(moduleName: Qualid) extends Sentence {
@@ -20,6 +30,10 @@ case class LoadCommand(moduleName: Qualid) extends Sentence {
 
 case class SetCommand(flag: String) extends Sentence {
   def toCoqCode: String = "Set " + flag + "."
+}
+
+case class PrintAssumptions(id: Qualid) extends Sentence {
+  def toCoqCode: String = "Print Assumptions " + id.toCoqCode + "."
 }
 
 /*
@@ -39,6 +53,11 @@ case class ArgumentsCommand(id: Qualid, args: Binders) extends Sentence {
  */
 case class ScopeCommand(scopeName: Qualid, isLocal: Boolean, openOrClose: String = "Open") extends Sentence {
   def toCoqCode: String = (if (isLocal) "Local" else "") + openOrClose + "Scope " + scopeName.toCoqCode + "."
+}
+
+case object BindNotationCommand extends Sentence {
+  def toCoqCode: String =
+    "Notation \"x <- r ;; f\" := (bind r (fun x => f)) (at level 100, r at next level, right associativity)."
 }
 
 /*
@@ -183,6 +202,11 @@ case class Inductive(indBody: InductiveBody) extends Sentence {
   def toCoqCode: String = "Inductive " + indBody.toCoqCode + "."
 }
 
+case class MutualInductive(bodies: List[InductiveBody]) extends Sentence {
+  require(bodies.size > 1)
+  def toCoqCode: String = "Inductive " + bodies.map(_.toCoqCode).mkString("\nwith ") + "."
+}
+
 // End of sentence
 
 // TODO (Joseph Bakouny): Check why the InductiveBody typeTerm seems optional in Coq but marked as required in the grammar
@@ -202,6 +226,10 @@ case class InductiveBodyItem(id: Ident, binders: Option[Binders], typeTerm: Opti
 // Start of term
 sealed trait Term extends CoqAST
 
+case class ListLiteral(elements: List[Term]) extends Term {
+  def toCoqCode: String = elements.map(_.toCoqCode).mkString("[", "; ", "]")
+}
+
 case class ForAll(binders: Binders, term: Term) extends Term {
   def toCoqCode: String = "forall " + binders.toCoqCode + ", " + term.toCoqCode
 }
@@ -209,6 +237,10 @@ case class ForAll(binders: Binders, term: Term) extends Term {
 case class Fun(binders: Binders, term: Term) extends Term {
   def toCoqCode: String =
     "fun " + binders.toCoqCode + " => " + term.toCoqCode
+}
+
+case class BindNotationUse(variable: Name, received: Term, body: Term) extends Term {
+  def toCoqCode: String = variable.toCoqCode + " <- " + received.toCoqCode + " ;; " + body.toCoqCode
 }
 
 case class Fix(fixBodies: FixBodies) extends Term {
@@ -306,8 +338,24 @@ case class Term_%(term: Term, ident: Ident) extends Term {
 /*
  * TODO (Joseph Bakouny): infix operators are not represented in the Coq grammar, this class should perhaps be re-thinked.
  */
+case class SumBool(left: Term, right: Term) extends Term {
+  def toCoqCode: String = "{" + left.toCoqCode + "} + {" + right.toCoqCode + "}"
+}
+
+case class LogicalNot(value: Term) extends Term {
+  def toCoqCode: String = "~ (" + value.toCoqCode + ")"
+}
+
+case class Exists(binders: Binders, value: Term) extends Term {
+  def toCoqCode: String = "exists " + binders.toCoqCode + ", " + value.toCoqCode
+}
+
 case class InfixOperator(leftOperand: Term, operator: String, rightOperand: Term) extends Term {
   def toCoqCode: String = leftOperand.toCoqCode + " " + operator + " " + rightOperand.toCoqCode
+}
+
+case class UnaryMinus(operand: Term) extends Term {
+  def toCoqCode: String = "- " + operand.toCoqCode
 }
 
 case class Match(matchItems: List[MatchItem], returnType: Option[ReturnType], equations: List[PatternEquation]) extends Term {
@@ -337,7 +385,7 @@ case object Type extends Sort {
 }
 // End of Sort
 
-case class Number(n: Int) extends Term {
+case class Number(n: BigInt) extends Term {
   def toCoqCode: String = n.toString
 }
 
@@ -504,6 +552,10 @@ case class MultPattern(patterns: List[Pattern]) extends CoqAST {
 
 // Start of Pattern
 sealed trait Pattern extends CoqAST
+
+case class ListPattern(elements: List[Pattern]) extends Pattern {
+  def toCoqCode: String = elements.map(_.toCoqCode).mkString("[", "; ", "]")
+}
 
 //TODO (Joseph Bakouny): Consider a more elegant representation of infix patterns
 /*

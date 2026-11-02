@@ -35,6 +35,61 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       generateScalaCode("type newTypeAlias = Nat => Nat")
   }
 
+  test("A type-scoped product definition becomes a type alias") {
+    CoqParser("Definition member (A : Type) := (bytes * A)%type.") should
+      generateScalaCode("type member[A] = (bytes, A)")
+  }
+
+  test("An unannotated list type definition becomes a type alias") {
+    CoqParser("Definition bytes := list N. Definition byte_chunks := list bytes.") should
+      generateScalaCode("type bytes = List[N]\ntype byte_chunks = List[bytes]")
+  }
+
+  test("A local function named list stays a value application") {
+    CoqParser("Definition list (x : nat) : nat := x. Definition value := list 3.") should
+      generateScalaCode("def list(x: Nat): Nat = x\ndef value = list(3)")
+  }
+
+  test("The declared bind notation translates to its explicit application") {
+    CoqParser("""
+      Notation "x <- r ;; f" := (bind r (fun x => f))
+        (at level 100, r at next level, right associativity).
+      Definition notation_version (r : outcome nat) : outcome nat :=
+        x <- r ;; Success (S x).
+    """) should generateScalaCode(
+      "def notation_version(r: outcome[Nat]): outcome[Nat] = bind(r, x => Success(S(x)))")
+  }
+
+  test("The declared bind notation accepts an ignored result") {
+    CoqParser("""
+      Notation "x <- r ;; f" := (bind r (fun x => f))
+        (at level 100, r at next level, right associativity).
+      Definition ignore_result (r : outcome nat) : outcome nat :=
+        _ <- r ;; Success 1.
+    """) should generateScalaCode(
+      "def ignore_result(r: outcome[Nat]): outcome[Nat] = bind(r, _ => Success(1))")
+  }
+
+  test("Nested bind notation preserves continuation order") {
+    CoqParser("""
+      Notation "x <- r ;; f" := (bind r (fun x => f))
+        (at level 100, r at next level, right associativity).
+      Definition chain (r : outcome nat) : outcome nat :=
+        x <- r ;; y <- Success x ;; Success y.
+    """) should generateScalaCode(
+      "def chain(r: outcome[Nat]): outcome[Nat] = bind(r, x => bind(Success(x), y => Success(y)))")
+  }
+
+  test("Bind notation use without its declaration fails closed") {
+    coqParserShouldFailToGenerateScalaCodeFor(
+      "Definition notation_version (r : outcome nat) := x <- r ;; Success x.")
+  }
+
+  test("A different bind notation declaration is rejected") {
+    assert(!CoqParser("Notation \"x <- r ;; f\" := (other r (fun x => f)) " +
+      "(at level 100, r at next level, right associativity).").successful)
+  }
+
   test("""Testing that explicit Prop parameters are not supported
       Definition illegalFunction (x: Prop) := 3.
        """) {
@@ -102,6 +157,18 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
   test("""Testing Scala conversion of "Definition f(a : A) := 3." """) {
     CoqParser("Definition f(a : A) := 3.") should
       generateScalaCode("def f(a: A) = 3")
+  }
+
+  test("""Testing exact generation of a numeral larger than Int.MaxValue""") {
+    CoqParser("Definition max_u64 : N := 18446744073709551615.") should
+      generateScalaCode("def max_u64: N = BigInt(\"18446744073709551615\")")
+  }
+
+  test("""Testing imports and a large numeral in the same source""") {
+    CoqParser("""From Stdlib Require Import NArith List.
+Import ListNotations.
+Definition max_u64 : N := 18446744073709551615.""") should
+      generateScalaCode("def max_u64: N = BigInt(\"18446744073709551615\")")
   }
 
   test("""Testing Scala conversion of "Definition f(l : list bool) := 3." """) {
@@ -241,6 +308,48 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       "  if (b1) b2
       "  else true
       """)
+  }
+
+  test("Testing Scala conversion of boolean conjunction") {
+    CoqParser("Definition both (left right : bool) : bool := left && right.") should
+      generateScalaCode("def both(left: Boolean, right: Boolean): Boolean = left && right")
+  }
+
+  test("Testing Scala conversion of boolean disjunction") {
+    CoqParser("Definition either (left right : bool) : bool := left || right.") should
+      generateScalaCode("def either(left: Boolean, right: Boolean): Boolean = left || right")
+  }
+
+  test("Testing Scala conversion of natural-number remainder") {
+    CoqParser("Definition mod16 (value : nat) : nat := value mod 16.") should
+      generateScalaCode("def mod16(value: Nat): Nat = value mod 16")
+  }
+
+  test("ListNotations translates empty and nonempty list terms") {
+    CoqParser("Import ListNotations. Definition empty : list nat := []. Definition pair : list nat := [1; 2].") should
+      generateScalaCode("def empty: List[Nat] = Nil\ndef pair: List[Nat] = List(1, 2)")
+  }
+
+  test("ListNotations translates an empty-list match pattern") {
+    CoqParser("""Import ListNotations.
+      Definition head_or_zero (values : list nat) : nat :=
+        match values with | [] => 0 | head :: _ => head end.""") should
+      generateScalaCode("""
+        "def head_or_zero(values: List[Nat]): Nat =
+        "  values match {
+        "    case Nil       => 0
+        "    case head :: _ => head
+        "  }
+        """)
+  }
+
+  test("ListNotations translates list append") {
+    CoqParser("Import ListNotations. Definition join (left right : list nat) : list nat := left ++ right.") should
+      generateScalaCode("def join(left: List[Nat], right: List[Nat]): List[Nat] = left ++ right")
+  }
+
+  test("list notation without ListNotations import fails closed") {
+    coqParserShouldFailToGenerateScalaCodeFor("Definition empty : list nat := [].")
   }
 
   test("""Testing Scala conversion of
@@ -394,8 +503,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         let y := 2 * x in 7 * y.
       """) should generateScalaCode("""
       "def testSimpleLet(x: Nat): Nat = {
-      " val y = 2 * x
-      " 7 * y
+      " val scallinaLet_y = 2 * x
+      " 7 * scallinaLet_y
       "}
       """)
   }
@@ -409,8 +518,8 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         let f (a : nat) := 3 * a in 7 * (f x).
       """) should generateScalaCode("""
       "def testSimpleLetWithBinders(x: Nat): Nat = {
-      " val f = (a: Nat) => 3 * a
-      " 7 * f(x)
+      " val scallinaLet_f = (a: Nat) => 3 * a
+      " 7 * scallinaLet_f(x)
       "}
       """)
   }
@@ -437,12 +546,12 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       "  l match {
       "    case Nil => (x, Nil)
       "    case h :: t => if (x <= h) {
-      "      val (j, l2) = select(x, t)
-      "      (j, h :: l2)
+      "      val (scallinaLet_j, scallinaLet_l2) = select(x, t)
+      "      (scallinaLet_j, h :: scallinaLet_l2)
       "    }
       "    else {
-      "      val (j, l2) = select(h, t)
-      "      (j, x :: l2)
+      "      val (scallinaLet_j1, scallinaLet_l21) = select(h, t)
+      "      (scallinaLet_j1, x :: scallinaLet_l21)
       "    }
       "  }
       """)
@@ -470,12 +579,12 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
       "  l match {
       "    case Nil => (x, Nil)
       "    case h :: t => if (x <= h) {
-      "      val Tuple2(j, l2) = select(x, t)
-      "      (j, h :: l2)
+      "      val Tuple2(scallinaLet_j, scallinaLet_l2) = select(x, t)
+      "      (scallinaLet_j, h :: scallinaLet_l2)
       "    }
       "    else {
-      "      val Tuple2(j, l2) = select(h, t)
-      "      (j, x :: l2)
+      "      val Tuple2(scallinaLet_j1, scallinaLet_l21) = select(h, t)
+      "      (scallinaLet_j1, x :: scallinaLet_l21)
       "    }
       "  }
       """)
@@ -1012,6 +1121,20 @@ class ScalaOfCoqUncurrifiedTest extends FunSuite {
         "    case Node(l, r) => Node(map(l, f), map(r, f))
         "  }
         """)
+  }
+
+  test("Constructor arrows become value parameters") {
+    CoqParser("""
+      Inductive outcome (A : Type) : Type :=
+      | Success : A -> outcome A
+      | Failure : nat -> outcome A
+      | Retry : nat -> nat -> outcome A.
+    """) should generateScalaCode("""
+      "sealed abstract class outcome[+A]
+      "case class Success[A](arg1: A) extends outcome[A]
+      "case class Failure[A](arg1: Nat) extends outcome[A]
+      "case class Retry[A](arg1: Nat, arg2: Nat) extends outcome[A]
+    """)
   }
 
   test("Testing Scala conversion of modified VFA Redblack Tree example") {

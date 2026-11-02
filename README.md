@@ -32,3 +32,11 @@ The generated files can be compiled with the ```scalac``` Scala compiler provide
 For a practical example, see the ```compile-scala-code.sh``` script in [```packaged-examples/v0.7.0/SelectionSort```](./packaged-examples/v0.7.0/SelectionSort).
 
 The source code of the Scallina Standard Library is available under [```src/main/resources/scala/of/coq/lang```](./src/main/resources/scala/of/coq/lang/).
+
+With `--exact-numerics`, `--omit-peano-import` removes the generated `import Nat._` line. Use it only when the generated program compiles without the Peano `Nat` helper; the option does not rewrite uses of that helper or remove other runtime dependencies. The default output is unchanged.
+
+For explicit `From Stdlib Require Import NArith` and `ZArith` sources, exact numeric output also lowers `N.size`, `N.to_nat`, `N.to_uint`, `Z.of_N`, `Z.of_nat`, `Z.to_nat`, `Z.leb`, and `Z.ltb` to `BigInt` operations or checked helpers. The helpers reject negative values where Rocq expects `N` or `nat`; `Z.to_nat` maps negative integers to zero. These conversions do not make arbitrary Rocq libraries extractable: compile the generated Scala with its required language helpers and test the resulting behavior.
+
+With an explicit `From Stdlib Require Import List`, exact numeric output also lowers `repeat`, `firstn`, and `skipn` to helpers that retain `BigInt` counts. Negative counts are rejected; `firstn` and `skipn` handle counts above the list length without narrowing. `repeat` rejects counts above Scala's list capacity before converting to `Int`.
+
+With an explicit `From Stdlib Require Import Decimal`, exact numeric object output imports a structural `Decimal.uint` target with `Nil` and `D0` through `D9` constructors. This represents the inductive's shape for values and pattern matches. `N.to_uint` converts a checked nonnegative `BigInt` through its decimal digits into that structure; the helper's target behavior still needs qualification for each downstream program.
