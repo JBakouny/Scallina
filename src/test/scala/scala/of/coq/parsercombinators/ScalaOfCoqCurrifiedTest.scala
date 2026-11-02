@@ -164,8 +164,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         let f (a b : nat) := a * b in f 7 3.
       """) should generateScalaCode("""
       "def testSimpleLetWithBinders(x: Nat): Nat = {
-      "  val f = (a: Nat) => (b: Nat) => a * b
-      "  f(7)(3)
+      "  val scallinaLet_f = (a: Nat) => (b: Nat) => a * b
+      "  scallinaLet_f(7)(3)
       "}
       """)
   }
@@ -195,12 +195,12 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         (square x) + (square y).
       """) should generateScalaCode("""
       "def squareDistance(a: (BigInt, BigInt))(b: (BigInt, BigInt)): BigInt = {
-      "  val (x1, y1) = a
-      "  val Tuple2(x2, y2) = b
-      "  val square = (u: BigInt) => u * u
-      "  val x = x2 - x1
-      "  val y = y2 - y1
-      "  square(x) + square(y)
+      "  val (scallinaLet_x1, scallinaLet_y1) = a
+      "  val Tuple2(scallinaLet_x2, scallinaLet_y2) = b
+      "  val scallinaLet_square = (u: BigInt) => u * u
+      "  val scallinaLet_x = scallinaLet_x2 - scallinaLet_x1
+      "  val scallinaLet_y = scallinaLet_y2 - scallinaLet_y1
+      "  scallinaLet_square(scallinaLet_x) + scallinaLet_square(scallinaLet_y)
       "}
       """)
   }
@@ -256,13 +256,13 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       Qed.
       """) should generateScalaCode("""
       "def merge[A](less: A => A => Boolean)(z: (List[A], List[A])): List[A] = {
-      "  val (l1, l2) = z
-      "  l1 match {
-      "    case Nil => l2
-      "    case x1 :: l1_ => l2 match {
-      "      case Nil => l1
-      "      case x2 :: l2_ => if (less(x1)(x2)) x1 :: merge(less)((l1_, l2))
-      "      else x2 :: merge(less)((l1, l2_))
+      "  val (scallinaLet_l1, scallinaLet_l2) = z
+      "  scallinaLet_l1 match {
+      "    case Nil => scallinaLet_l2
+      "    case x1 :: l1_ => scallinaLet_l2 match {
+      "      case Nil => scallinaLet_l1
+      "      case x2 :: l2_ => if (less(x1)(x2)) x1 :: merge(less)((l1_, scallinaLet_l2))
+      "      else x2 :: merge(less)((scallinaLet_l1, l2_))
       "    }
       "  }
       "}
@@ -825,12 +825,12 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
         "  }
         "def two: BigInt = eval(App(App(Add)(Int(1)))(Int(1)))
         "def sum[A](t: Term[A]): BigInt = {
-        "  val y: BigInt = t match {
+        "  val scallinaLet_y: BigInt = t match {
         "    case Int(n)    => n
         "    case Add       => 0
         "    case App(f, x) => sum(f) + sum(x)
         "  }
-        "  y + 1
+        "  scallinaLet_y + 1
         "}
         """)
   }
@@ -1772,8 +1772,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case Nil      => (Nil, Nil)
       "    case x :: Nil => (x :: Nil, Nil)
       "    case x :: y :: xs => {
-      "      val (l1, l2) = split(xs)
-      "      (x :: l1, y :: l2)
+      "      val (scallinaLet_l1, scallinaLet_l2) = split(xs)
+      "      (x :: scallinaLet_l1, y :: scallinaLet_l2)
       "    }
       "  }
       "object ListUtils extends CollectionUtils {
@@ -2012,17 +2012,17 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  type t = (List[Nat], List[Nat])
       "  def empty: t = (Nil, Nil)
       "  def push: Nat => t => t = (x: Nat) => { (l: t) =>
-      "    val (back, front) = l
-      "    (x :: back, front)
+      "    val (scallinaLet_back, scallinaLet_front) = l
+      "    (x :: scallinaLet_back, scallinaLet_front)
       "  }
       "  def pop: t => Option[(Nat, t)] = { (l: t) =>
-      "    val (back, front) = l
-      "    front match {
-      "      case Nil => rev(back) match {
+      "    val (scallinaLet_back1, scallinaLet_front1) = l
+      "    scallinaLet_front1 match {
+      "      case Nil => rev(scallinaLet_back1) match {
       "        case Nil      => None
       "        case hd :: tl => Some((hd, (Nil, tl)))
       "      }
-      "      case hd :: tl => Some((hd, (back, tl)))
+      "      case hd :: tl => Some((hd, (scallinaLet_back1, tl)))
       "    }
       "  }
       "}
@@ -2229,16 +2229,16 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  case hd :: tl => Some((hd, rev(tl)))
       "})(Nil)
       "def DListQueue = Build_Queue((x: Nat) => { (l: (List[Nat], List[Nat])) =>
-      "  val (back, front) = l
-      "  (x :: back, front)
+      "  val (scallinaLet_back, scallinaLet_front) = l
+      "  (x :: scallinaLet_back, scallinaLet_front)
       "})({ l =>
-      "  val (back, front) = l
-      "  front match {
-      "    case Nil => rev(back) match {
+      "  val (scallinaLet_back1, scallinaLet_front1) = l
+      "  scallinaLet_front1 match {
+      "    case Nil => rev(scallinaLet_back1) match {
       "      case Nil      => None
       "      case hd :: tl => Some((hd, (Nil, tl)))
       "    }
-      "    case hd :: tl => Some((hd, (back, tl)))
+      "    case hd :: tl => Some((hd, (scallinaLet_back1, tl)))
       "  }
       "})((Nil, Nil))
       """)
@@ -2345,16 +2345,16 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  case hd :: tl => Some((hd, rev(tl)))
       "})
       "def DListQueue = Build_Queue[(List[Nat], List[Nat])]((Nil, Nil))((x: Nat) => { (l: (List[Nat], List[Nat])) =>
-      "  val (back, front) = l
-      "  (x :: back, front)
+      "  val (scallinaLet_back, scallinaLet_front) = l
+      "  (x :: scallinaLet_back, scallinaLet_front)
       "})({ l =>
-      "  val (back, front) = l
-      "  front match {
-      "    case Nil => rev(back) match {
+      "  val (scallinaLet_back1, scallinaLet_front1) = l
+      "  scallinaLet_front1 match {
+      "    case Nil => rev(scallinaLet_back1) match {
       "      case Nil      => None
       "      case hd :: tl => Some((hd, (Nil, tl)))
       "    }
-      "    case hd :: tl => Some((hd, (back, tl)))
+      "    case hd :: tl => Some((hd, (scallinaLet_back1, tl)))
       "  }
       "})
       """)
@@ -2461,16 +2461,16 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  case hd :: tl => Some((hd, rev(tl)))
       "})
       "def DListQueue = newQueue[(List[Nat], List[Nat])]((Nil, Nil))((x: Nat) => { (l: (List[Nat], List[Nat])) =>
-      "  val (back, front) = l
-      "  (x :: back, front)
+      "  val (scallinaLet_back, scallinaLet_front) = l
+      "  (x :: scallinaLet_back, scallinaLet_front)
       "})({ l =>
-      "  val (back, front) = l
-      "  front match {
-      "    case Nil => rev(back) match {
+      "  val (scallinaLet_back1, scallinaLet_front1) = l
+      "  scallinaLet_front1 match {
+      "    case Nil => rev(scallinaLet_back1) match {
       "      case Nil      => None
       "      case hd :: tl => Some((hd, (Nil, tl)))
       "    }
-      "    case hd :: tl => Some((hd, (back, tl)))
+      "    case hd :: tl => Some((hd, (scallinaLet_back1, tl)))
       "  }
       "})
       """)
@@ -2571,17 +2571,17 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  type T = (List[Nat], List[Nat])
       "  def empty: T = (Nil, Nil)
       "  def push: Nat => T => T = x => { l =>
-      "    val (back, front) = l
-      "    (x :: back, front)
+      "    val (scallinaLet_back, scallinaLet_front) = l
+      "    (x :: scallinaLet_back, scallinaLet_front)
       "  }
       "  def pop: T => Option[(Nat, T)] = { l =>
-      "    val (back, front) = l
-      "    front match {
-      "      case Nil => rev(back) match {
+      "    val (scallinaLet_back1, scallinaLet_front1) = l
+      "    scallinaLet_front1 match {
+      "      case Nil => rev(scallinaLet_back1) match {
       "        case Nil      => None
       "        case hd :: tl => Some((hd, (Nil, tl)))
       "      }
-      "      case hd :: tl => Some((hd, (back, tl)))
+      "      case hd :: tl => Some((hd, (scallinaLet_back1, tl)))
       "    }
       "  }
       "}
@@ -2960,17 +2960,17 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "  type t = (List[Nat], List[Nat])
       "  def empty: t = (Nil, Nil)
       "  def push: Nat => t => t = x => { l =>
-      "    val (back, front) = l
-      "    (x :: back, front)
+      "    val (scallinaLet_back, scallinaLet_front) = l
+      "    (x :: scallinaLet_back, scallinaLet_front)
       "  }
       "  def pop: t => Option[(Nat, t)] = { l =>
-      "    val (back, front) = l
-      "    front match {
-      "      case Nil => rev(back) match {
+      "    val (scallinaLet_back1, scallinaLet_front1) = l
+      "    scallinaLet_front1 match {
+      "      case Nil => rev(scallinaLet_back1) match {
       "        case Nil      => None
       "        case hd :: tl => Some((hd, (Nil, tl)))
       "      }
-      "      case hd :: tl => Some((hd, (back, tl)))
+      "      case hd :: tl => Some((hd, (scallinaLet_back1, tl)))
       "    }
       "  }
       "}
@@ -2980,8 +2980,8 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case None    => None
       "  }
       "def bind_option2[A, B, C](x: Option[(A, B)])(f: A => B => Option[C]): Option[C] = bind_option(x)({ (yz: (A, B)) =>
-      "  val (y, z) = yz
-      "  f(y)(z)
+      "  val (scallinaLet_y, scallinaLet_z) = yz
+      "  f(scallinaLet_y)(scallinaLet_z)
       "})
       "def option_map[A, B](o: Option[A])(f: A => B): Option[B] =
       "  o match {
@@ -2994,19 +2994,19 @@ class ScalaOfCoqCurrifiedTest extends FunSuite {
       "    case S(n0) => op(n0)(nat_rect(op)(n0)(x))
       "  }
       "def sumElems(Q: Queue)(q0: Option[Q.t]): Option[Q.t] = bind_option(q0)({ (q1: Q.t) =>
-      "  val x_q1 = Q.pop(q1)
-      "  bind_option2(x_q1)((x: Nat) => { (q2: Q.t) =>
-      "    val y_q3 = Q.pop(q2)
-      "    bind_option2(y_q3)((y: Nat) => { (q3: Q.t) =>
-      "      val sum = x + y
-      "      Some(Q.push(sum)(q3))
+      "  val scallinaLet_x_q1 = Q.pop(q1)
+      "  bind_option2(scallinaLet_x_q1)((x: Nat) => { (q2: Q.t) =>
+      "    val scallinaLet_y_q3 = Q.pop(q2)
+      "    bind_option2(scallinaLet_y_q3)((y: Nat) => { (q3: Q.t) =>
+      "      val scallinaLet_sum = x + y
+      "      Some(Q.push(scallinaLet_sum)(q3))
       "    })
       "  })
       "})
       "def program(Q: Queue)(n: Nat): Option[Nat] = {
-      "  val q: Q.t = nat_rect(Q.push)(S(n))(Q.empty)
-      "  val q0: Option[Q.t] = nat_rect(_ => (q0: Option[Q.t]) => sumElems(Q)(q0))(n)(Some(q))
-      "  bind_option(q0)((q1: Q.t) => option_map(Q.pop(q1))(fst))
+      "  val scallinaLet_q: Q.t = nat_rect(Q.push)(S(n))(Q.empty)
+      "  val scallinaLet_q0: Option[Q.t] = nat_rect(_ => (q0: Option[Q.t]) => sumElems(Q)(q0))(n)(Some(scallinaLet_q))
+      "  bind_option(scallinaLet_q0)((q1: Q.t) => option_map(Q.pop(q1))(fst))
       "}
       """)
 

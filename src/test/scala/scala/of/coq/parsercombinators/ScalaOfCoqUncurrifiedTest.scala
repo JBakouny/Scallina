@@ -503,8 +503,8 @@ Definition max_u64 : N := 18446744073709551615.""") should
         let y := 2 * x in 7 * y.
       """) should generateScalaCode("""
       "def testSimpleLet(x: Nat): Nat = {
-      " val y = 2 * x
-      " 7 * y
+      " val scallinaLet_y = 2 * x
+      " 7 * scallinaLet_y
       "}
       """)
   }
@@ -518,8 +518,8 @@ Definition max_u64 : N := 18446744073709551615.""") should
         let f (a : nat) := 3 * a in 7 * (f x).
       """) should generateScalaCode("""
       "def testSimpleLetWithBinders(x: Nat): Nat = {
-      " val f = (a: Nat) => 3 * a
-      " 7 * f(x)
+      " val scallinaLet_f = (a: Nat) => 3 * a
+      " 7 * scallinaLet_f(x)
       "}
       """)
   }
@@ -546,12 +546,12 @@ Definition max_u64 : N := 18446744073709551615.""") should
       "  l match {
       "    case Nil => (x, Nil)
       "    case h :: t => if (x <= h) {
-      "      val (j, l2) = select(x, t)
-      "      (j, h :: l2)
+      "      val (scallinaLet_j, scallinaLet_l2) = select(x, t)
+      "      (scallinaLet_j, h :: scallinaLet_l2)
       "    }
       "    else {
-      "      val (j, l2) = select(h, t)
-      "      (j, x :: l2)
+      "      val (scallinaLet_j1, scallinaLet_l21) = select(h, t)
+      "      (scallinaLet_j1, x :: scallinaLet_l21)
       "    }
       "  }
       """)
@@ -579,12 +579,12 @@ Definition max_u64 : N := 18446744073709551615.""") should
       "  l match {
       "    case Nil => (x, Nil)
       "    case h :: t => if (x <= h) {
-      "      val Tuple2(j, l2) = select(x, t)
-      "      (j, h :: l2)
+      "      val Tuple2(scallinaLet_j, scallinaLet_l2) = select(x, t)
+      "      (scallinaLet_j, h :: scallinaLet_l2)
       "    }
       "    else {
-      "      val Tuple2(j, l2) = select(h, t)
-      "      (j, x :: l2)
+      "      val Tuple2(scallinaLet_j1, scallinaLet_l21) = select(h, t)
+      "      (scallinaLet_j1, x :: scallinaLet_l21)
       "    }
       "  }
       """)

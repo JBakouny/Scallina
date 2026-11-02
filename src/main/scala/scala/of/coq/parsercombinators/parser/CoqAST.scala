@@ -32,6 +32,10 @@ case class SetCommand(flag: String) extends Sentence {
   def toCoqCode: String = "Set " + flag + "."
 }
 
+case class PrintAssumptions(id: Qualid) extends Sentence {
+  def toCoqCode: String = "Print Assumptions " + id.toCoqCode + "."
+}
+
 /*
  *  NOTE: This AST node is not in the grammar, it supports the commands of the form:
  *  Arguments Leaf {A} _.
@@ -198,6 +202,11 @@ case class Inductive(indBody: InductiveBody) extends Sentence {
   def toCoqCode: String = "Inductive " + indBody.toCoqCode + "."
 }
 
+case class MutualInductive(bodies: List[InductiveBody]) extends Sentence {
+  require(bodies.size > 1)
+  def toCoqCode: String = "Inductive " + bodies.map(_.toCoqCode).mkString("\nwith ") + "."
+}
+
 // End of sentence
 
 // TODO (Joseph Bakouny): Check why the InductiveBody typeTerm seems optional in Coq but marked as required in the grammar
@@ -329,6 +338,18 @@ case class Term_%(term: Term, ident: Ident) extends Term {
 /*
  * TODO (Joseph Bakouny): infix operators are not represented in the Coq grammar, this class should perhaps be re-thinked.
  */
+case class SumBool(left: Term, right: Term) extends Term {
+  def toCoqCode: String = "{" + left.toCoqCode + "} + {" + right.toCoqCode + "}"
+}
+
+case class LogicalNot(value: Term) extends Term {
+  def toCoqCode: String = "~ (" + value.toCoqCode + ")"
+}
+
+case class Exists(binders: Binders, value: Term) extends Term {
+  def toCoqCode: String = "exists " + binders.toCoqCode + ", " + value.toCoqCode
+}
+
 case class InfixOperator(leftOperand: Term, operator: String, rightOperand: Term) extends Term {
   def toCoqCode: String = leftOperand.toCoqCode + " " + operator + " " + rightOperand.toCoqCode
 }

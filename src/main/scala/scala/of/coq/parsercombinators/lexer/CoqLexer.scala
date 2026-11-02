@@ -202,6 +202,8 @@ object CoqLexer extends StdLexical {
   reserved += "Example"
 
   reserved += "Proof"
+  reserved += "Print"
+  reserved += "Assumptions"
   reserved += "Qed"
   reserved += "Defined"
   reserved += "Admitted"

@@ -4,6 +4,8 @@ import scala.of.coq.parsercombinators.parser.CoqTermParser
 import scala.of.coq.parsercombinators.lexer.CoqLexer
 import scala.of.coq.parsercombinators.parser.CoqParser
 import scala.of.coq.parsercombinators.parser.Sentence
+import scala.of.coq.parsercombinators.parser.Record
+import scala.of.coq.parsercombinators.parser.Inductive
 import scala.of.coq.parsercombinators.compiler.ScalaOfCoq
 import scala.of.coq.parsercombinators.compiler.NoCurrying
 import scala.of.coq.parsercombinators.compiler.Currify
@@ -35,24 +37,38 @@ object Main {
         case "--coq" :: tail       => nextArgument(optionMap ++ Map('coq -> true), fileNamesAcc, tail)
         case "--uncurrify" :: tail => nextArgument(optionMap ++ Map('uncurrify -> true), fileNamesAcc, tail)
         case "--exact-numerics" :: tail => nextArgument(optionMap ++ Map('exactNumerics -> true), fileNamesAcc, tail)
-        case "--native-full-constructors" :: tail => nextArgument(optionMap ++ Map('nativeFullConstructors -> true), fileNamesAcc, tail)
         case "--omit-peano-import" :: tail => nextArgument(optionMap ++ Map('omitPeanoImport -> true), fileNamesAcc, tail)
+        case "--native-full-constructors" :: tail => nextArgument(optionMap ++ Map('nativeFullConstructors -> true), fileNamesAcc, tail)
         case fileName :: tail      => nextArgument(optionMap, fileName :: fileNamesAcc, tail)
         case Nil                   => (optionMap, fileNamesAcc)
       }
     }
 
-    nextArgument(Map() withDefaultValue false, Nil, commandLineArgs)
+    nextArgument(Map().withDefaultValue(false), Nil, commandLineArgs)
   }
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
     if (args.length <= 0) {
       printUsageAndExit(1)
     }
-    val arglist = args.toList
+    val contextPrefix = "--record-context="
+    val declarationPrefix = "--declaration-context="
+    val contextFiles = args.toList.filter(_.startsWith(contextPrefix)).map(_.drop(contextPrefix.length))
+    val declarationFiles = args.toList.filter(_.startsWith(declarationPrefix)).map(_.drop(declarationPrefix.length))
+    val arglist = args.toList.filterNot(a => a.startsWith(contextPrefix) || a.startsWith(declarationPrefix))
 
     try {
       val (map, fileNames) = parseCommandLineArgs(arglist)
+      def contextTrees(files: List[String]): List[Sentence] = files.flatMap { fileName =>
+        val source = io.Source.fromFile(fileName)
+        val content = try source.mkString finally source.close()
+        val parsed = CoqParser(content)
+        requireSuccessfulParse(parsed)
+        parsed.get
+      }
+      val declarations = contextTrees(declarationFiles)
+      val recordContext = (contextTrees(contextFiles) ++ declarations).collect { case record: Record => record }
+      val inductiveContext = declarations.collect { case inductive: Inductive => inductive }
 
       for (fileName <- fileNames) {
         val fileBufferedSource = io.Source.fromFile(fileName);
@@ -83,7 +99,9 @@ object Main {
                   Currify,
                 exactNumerics = map('exactNumerics),
                 nativeFullConstructors = map('nativeFullConstructors),
-                omitPeanoImport = map('omitPeanoImport)
+                omitPeanoImport = map('omitPeanoImport),
+                recordContext = recordContext,
+                inductiveContext = inductiveContext
               )
               scalaOfCoq.createObjectFileCode(
                 fileName.substring(fileName.lastIndexOf("/") + 1, fileName.lastIndexOf("."))

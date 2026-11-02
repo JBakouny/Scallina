@@ -1,6 +1,7 @@
 package scala.of.coq.parsercombinators.parser
 
 import scala.annotation.migration
+import scala.util.parsing.input.CharSequenceReader
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
@@ -15,13 +16,16 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
   override val lexical = CoqLexer
 
+  private[coq] def scannerFor(s: String): lexical.Scanner =
+    new lexical.Scanner(new CharSequenceReader(s))
+
   def apply(s: String): ParseResult[List[Sentence]] = {
-    val reader = new lexical.Scanner(s)
+    val reader = scannerFor(s)
     program(reader)
   }
 
   def parseTerm(s: String): ParseResult[CoqAST] = {
-    val reader = new lexical.Scanner(s)
+    val reader = scannerFor(s)
     phrase(Term.term)(reader)
   }
 
@@ -37,6 +41,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     | argumentsCommand
     | bindNotationCommand
     | setCommand
+    | printAssumptions
     | scopeCommand
     | definition
     | inductive
@@ -88,6 +93,9 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     "Set" ~> rep(ident) <~ "." ^^ { xs => SetCommand(xs mkString " ") }
   }
 
+  private lazy val printAssumptions: P[PrintAssumptions] =
+    "Print" ~ "Assumptions" ~> qualid <~ "." ^^ { PrintAssumptions(_) }
+
   /*
    *  NOTE: This production is not in the grammar, it supports the commands of the form:
    *  Local Open Scope Z_scope.
@@ -108,8 +116,11 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     }
 
   // TODO (Joseph Bakouny): Consider supporting a list of inductive bodies and CoInductives
-  private lazy val inductive: P[Inductive] =
-    "Inductive" ~> inductiveBody <~ "." ^^ { Inductive(_) }
+  private lazy val inductive: P[Sentence] =
+    "Inductive" ~> rep1sep(inductiveBody, "with") <~ "." ^^ {
+      case body :: Nil => Inductive(body)
+      case bodies => MutualInductive(bodies)
+    }
 
   // TODO (Joseph Bakouny): Check why the InductiveBody typeTerm seems optional in Coq but marked as required in the grammar
   private lazy val inductiveBody: P[InductiveBody] =
@@ -198,6 +209,17 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     (binder +) ^^ { case bs => Binders(bs) }
   }
 
+  // A trailing type in an open binder list applies only to its final names.
+  // Grouped and implicit binders preceding those names retain their own types.
+  private lazy val openBinders: P[Binders] =
+    binders ~ opt(":" ~> term) ^? {
+      case bs ~ None => bs
+      case Binders(bs) ~ Some(t) if bs.last.isInstanceOf[ExplicitSimpleBinder] =>
+        val (trailing, prefix) = bs.reverse.span(_.isInstanceOf[ExplicitSimpleBinder])
+        val names = trailing.reverse.collect { case ExplicitSimpleBinder(name) => name }
+        Binders(prefix.reverse :+ ExplicitBinderWithType(names, t))
+    }
+
   private lazy val binder: P[Binder] = (
     name ^^ { ExplicitSimpleBinder(_) }
     | "(" ~> (name +) ~ ":" ~ term <~ ")" ^^ {
@@ -270,6 +292,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
     lazy val term: P[Term] = (
       bindNotationUse
       | forall
+      | exists
       | fun
       | fix
       | simpleLetIn
@@ -281,8 +304,10 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       | term_<:
       | term_:>
       | term_->
+      | sumBool
       | explicitQualidApplication
       | parenthesizedScope
+      | logicalNot
       | unaryMinus
       | termApplication
       | term_%
@@ -314,16 +339,34 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
 
     protected def unaryMinus: P[UnaryMinus]
 
+    private lazy val sumBool: P[SumBool] =
+      ("{" ~> Term.term <~ "}") ~ "+" ~ ("{" ~> Term.term <~ "}") ^^ {
+        case left ~ _ ~ right => SumBool(left, right)
+      }
+
     private lazy val bindNotationUse: P[Term] =
       (identifier ^^ (id => Name(Some(id))) | "_" ^^^ Name(None)) ~ "<-" ~ term ~ ";" ~ ";" ~ term ^^ {
         case variable ~ _ ~ received ~ _ ~ _ ~ body => BindNotationUse(variable, received, body)
       }
 
     private lazy val forall: P[ForAll] =
-      "forall" ~> binders ~ "," ~ term ^^ { case bs ~ comma ~ t => ForAll(bs, t) }
+      "forall" ~> openBinders ~ "," ~ term ^^ { case bs ~ comma ~ t => ForAll(bs, t) }
+
+    private lazy val exists: P[Exists] =
+      "exists" ~> openBinders ~ "," ~ term ^^ { case bs ~ _ ~ t => Exists(bs, t) }
+
+    private lazy val logicalNot: P[Term] = {
+      def negate(value: Term): Term = value match {
+        case InfixOperator(left, op @ ("/\\" | "\\/" | "<->"), right) =>
+          InfixOperator(negate(left), op, right)
+        case Term_->(left, right) => Term_->(negate(left), right)
+        case _ => LogicalNot(value)
+      }
+      "~" ~> term ^^ negate
+    }
 
     private lazy val fun: P[Fun] =
-      "fun" ~> binders ~ "=>" ~ term ^^ {
+      "fun" ~> openBinders ~ "=>" ~ term ^^ {
         case bs ~ lex_=> ~ t => Fun(bs, t)
       }
 
@@ -382,11 +425,29 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
      * Warning: infix operators are not represented in the Coq grammar, this class should be rethinked!
      */
     private lazy val infixOperator: P[InfixOperator] = {
+      def logicalLevel(op: String): Int = op match {
+        case "/\\" => 1
+        case "\\/" => 2
+        case "<->" => 3
+        case _ => 0
+      }
+
+      // Existing arithmetic/comparison productions can consume a logical term
+      // as an operand. Move that weaker connective outside, without crossing
+      // explicit parentheses or changing the existing arithmetic grammar.
+      def join(left: Term, op: String, right: Term): InfixOperator = (left, right) match {
+        case (InfixOperator(a, outer, b), _) if logicalLevel(outer) > logicalLevel(op) =>
+          join(a, outer, join(b, op, right))
+        case (_, InfixOperator(b, outer, c)) if logicalLevel(outer) > logicalLevel(op) =>
+          join(join(left, op, b), outer, c)
+        case _ => InfixOperator(left, op, right)
+      }
+
       def infixOp(op: String) =
         term ~ op ~ term ^^ {
           case leftOp ~ "&&" ~ InfixOperator(middle, "||", rightOp) =>
             InfixOperator(InfixOperator(leftOp, "&&", middle), "||", rightOp)
-          case leftOp ~ parsedOp ~ rightOp => InfixOperator(leftOp, parsedOp, rightOp)
+          case leftOp ~ parsedOp ~ rightOp => join(leftOp, parsedOp, rightOp)
         }
 
       (
@@ -398,6 +459,10 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
         | infixOp(">")
         | infixOp("<")
         | infixOp("=")
+        | infixOp("<>")
+        | infixOp("/\\")
+        | infixOp("\\/")
+        | infixOp("<->")
         | infixOp("<=?")
         | infixOp("<=")
         | infixOp(">=")
@@ -495,7 +560,7 @@ object CoqParser extends StandardTokenParsers with PackratParsers {
       "-" ~> (termApplication | parenthesis | numberLiteral | qualid) ^^ { UnaryMinus(_) }
 
     override protected lazy val termApplication: P[UncurriedTermApplication] =
-      term ~ (argument +) ^^ { case term ~ arguments => UncurriedTermApplication(term, arguments) }
+      this.term ~ (argument +) ^^ { case term ~ arguments => UncurriedTermApplication(term, arguments) }
 
     private lazy val argument: P[Argument] = (
       TermWithoutApplication.term ^^ { case term => Argument(None, term) }

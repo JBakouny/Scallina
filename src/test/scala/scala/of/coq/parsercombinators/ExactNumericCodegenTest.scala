@@ -7,10 +7,196 @@ import scala.of.coq.parsercombinators.compiler.ScalaOfCoq
 import scala.of.coq.parsercombinators.parser.CoqParser
 
 class ExactNumericCodegenTest extends FunSuite {
-  test("CLI rejects failed source parsing rather than returning error text as generated code") {
-    intercept[IllegalArgumentException] {
-      scala.of.coq.Main.requireSuccessfulParse(CoqParser("Definition invalid := ."))
+  test("exact arithmetic chains use left association at the same precedence") {
+    val output = generateCurried("""From Stdlib Require Import NArith.
+      Open Scope N_scope.
+      Definition shifted (finish start : N) := finish - start - 1.""")
+    assert(output.contains("((finish - start).max(BigInt(\"0\")) - BigInt(\"1\")).max(BigInt(\"0\"))"))
+  }
+  test("exact arithmetic restores multiplication precedence in an unparenthesized chain") {
+    val output = generateCurried("""From Stdlib Require Import NArith.
+      Open Scope N_scope.
+      Definition mixed (left right factor : N) := left - right * factor + 24.""")
+    assert(output.contains("(left - (right * factor)).max(BigInt(\"0\")) + BigInt(\"24\")"))
+  }
+  test("exact arithmetic retains explicitly grouped right subtraction") {
+    val output = generateCurried("""From Stdlib Require Import NArith.
+      Open Scope N_scope.
+      Definition grouped (left right : N) := left - (right - 1).""")
+    assert(output.contains("(left - ((right - BigInt(\"1\")).max(BigInt(\"0\")))).max(BigInt(\"0\"))"))
+  }
+
+  test("explicit boolean scope preserves boolean connectives and surrounding numeric scope") {
+    val output = generateCurried("""From Stdlib Require Import Bool NArith.
+      Open Scope N_scope.
+      Definition bounded (value : N) : bool := (N.leb 48 value && N.leb value 57)%bool.
+      Definition numeric_inside_bool (left right : N) : bool := (N.eqb (left - right) 0)%bool.""")
+    assert(output.contains("BigInt(\"48\") <= value"))
+    assert(output.contains("value <= BigInt(\"57\")"))
+    assert(output.contains(" && "))
+    assert(output.contains("(left - right).max(BigInt(\"0\"))"))
+  }
+  test("explicit boolean scope without selected Bool library fails closed") {
+    val exception = intercept[IllegalStateException] {
+      generateCurried("Definition bounded (left right : bool) : bool := (left && right)%bool.")
     }
+    assert(exception.getMessage.contains("term scope: bool"))
+  }
+
+  test("qualified N.succ preserves an exact nonnegative successor") {
+    val output = generateCurried("""From Stdlib Require Import NArith.
+      Definition next_value (value : N) : N := N.succ value.""")
+    assert(output.contains("value + BigInt(\"1\")"))
+    assert(!output.contains("N.succ"))
+    assert(!output.contains(".toInt"))
+  }
+  test("qualified N.succ without the selected library is not rewritten") {
+    val output = generateCurried("Definition next_value (value : N) := N.succ value.")
+    assert(output.contains("N.succ"))
+    assert(!output.contains(" + BigInt"))
+  }
+
+  test("exact numeric patterns use stable BigInt constants at zero and byte values") {
+    val output = generateCurried("""Definition tag (value : nat) : nat :=
+      match value with | 0 => 7 | 48 => 8 | _ => 9 end.""")
+    assert(output.contains("private val ScallinaExactLiteral0 = BigInt(\"0\")"))
+    assert(output.contains("private val ScallinaExactLiteral1 = BigInt(\"48\")"))
+    assert(output.contains("case ScallinaExactLiteral0 =>"))
+    assert(output.contains("case ScallinaExactLiteral1 =>"))
+    assert(!output.contains("case Zero"))
+  }
+
+  test("nested exact numeric patterns retain arbitrary precision and avoid source collisions") {
+    val output = generateCurried("""From Stdlib Require Import List.
+      Import ListNotations.
+      Definition ScallinaExactLiteral0 : nat := 8.
+      Definition nested (values : list nat) : nat := match values with
+      | 340282366920938463463374607431768211456 :: tail => 1 | _ => 0 end.""")
+    assert(output.contains("private val ScallinaExactLiteral0_1 = BigInt(\"340282366920938463463374607431768211456\")"))
+    assert(output.contains("case ScallinaExactLiteral0_1 :: tail =>"))
+    assert(!output.contains(".toInt"))
+  }
+
+  test("qualified List.rev maps to native reverse with the selected standard library import") {
+    val output = generateCurried("""From Stdlib Require Import List.
+      Definition backwards (values : list nat) := List.rev values.""")
+    assert(output.contains("values.reverse"))
+    assert(!output.contains("List.rev"))
+  }
+
+  test("qualified reverse without a selected standard library import is not rewritten") {
+    val output = generateCurried("Definition backwards (values : list nat) := List.rev values.")
+    assert(output.contains("List.rev"))
+    assert(!output.contains(".reverse"))
+  }
+
+  test("qualified Nat.pred uses total exact predecessor with its standard library import") {
+    val output = generateCurried("""From Stdlib Require Import PeanoNat.
+      Definition previous (value : nat) : nat := Nat.pred value.""")
+    assert(output.contains("(value - BigInt(\"1\")).max(BigInt(\"0\"))"))
+    assert(!output.contains("Nat.pred"))
+    assert(!output.contains(".toInt"))
+  }
+
+  test("qualified predecessor without the selected import is not assumed to be a primitive") {
+    val output = generateCurried("Definition previous (value : nat) : nat := Nat.pred value.")
+    assert(output.contains("Nat.pred"))
+    assert(!output.contains(".max("))
+  }
+
+  test("explicit natural and integer scopes preserve subtraction semantics") {
+    val output = generateCurried("""From Stdlib Require Import NArith ZArith.
+      Open Scope nat_scope.
+      Definition natural_subtract (left right : nat) := left - right.
+      Open Scope Z_scope.
+      Definition integer_subtract (left right : Z) := left - right.""")
+    assert(output.contains("(left - right).max(BigInt(\"0\"))"))
+    assert(output.contains("def integer_subtract(left: BigInt)(right: BigInt) = left - right"))
+  }
+
+  test("closing an explicit scope restores the previously opened scope") {
+    val output = generateCurried("""From Stdlib Require Import NArith ZArith.
+      Open Scope N_scope. Open Scope Z_scope. Close Scope Z_scope.
+      Definition restored (left right : N) := left - right.""")
+    assert(output.contains(".max(BigInt(\"0\"))"))
+  }
+
+  test("reopening a scope changes precedence and closing removes its earlier opening") {
+    val output = generateCurried("""From Stdlib Require Import NArith ZArith.
+      Open Scope N_scope. Open Scope Z_scope. Open Scope N_scope. Close Scope N_scope.
+      Definition restored_integer (left right : Z) := left - right.""")
+    assert(output.contains("= left - right"))
+    assert(!output.contains(".max("))
+  }
+
+  test("imported inductive context preserves native constructor arity without emitting declarations") {
+    val context = CoqParser("Inductive pair_value := PairValue (left right : nat).").get.collect {
+      case i: scala.of.coq.parsercombinators.parser.Inductive => i
+    }
+    val trees = CoqParser("Definition make (left right : nat) := PairValue left right.").get
+    val output = new ScalaOfCoq(trees, Currify, exactNumerics = true,
+      nativeFullConstructors = true, inductiveContext = context).generateScalaCode
+    assert(output.contains("new PairValue(left, right)"))
+    assert(!output.contains("sealed abstract class pair_value"))
+  }
+
+  test("imported constructors reject partial application") {
+    val context = CoqParser("Inductive pair_value := PairValue (left right : nat).").get.collect {
+      case i: scala.of.coq.parsercombinators.parser.Inductive => i
+    }
+    val trees = CoqParser("Definition make (left : nat) := PairValue left.").get
+    intercept[IllegalStateException] {
+      new ScalaOfCoq(trees, Currify, exactNumerics = true,
+        nativeFullConstructors = true, inductiveContext = context).generateScalaCode
+    }
+  }
+
+  test("ambiguous imported inductive constructors fail closed") {
+    val context = CoqParser("Inductive first_value := Shared (a : nat). Inductive other_value := Shared (a b : nat).").get.collect {
+      case i: scala.of.coq.parsercombinators.parser.Inductive => i
+    }
+    intercept[IllegalArgumentException] {
+      new ScalaOfCoq(Nil, Currify, exactNumerics = true,
+        nativeFullConstructors = true, inductiveContext = context).generateScalaCode
+    }
+  }
+
+  test("a local function shadows imported constructor metadata") {
+    val context = CoqParser("Inductive pair_value := PairValue (left right : nat).").get.collect {
+      case i: scala.of.coq.parsercombinators.parser.Inductive => i
+    }
+    val trees = CoqParser("Definition PairValue (value : nat) := value. Definition make (value : nat) := PairValue value.").get
+    val output = new ScalaOfCoq(trees, Currify, exactNumerics = true,
+      nativeFullConstructors = true, inductiveContext = context).generateScalaCode
+    assert(output.contains("PairValue(value)"))
+    assert(!output.contains("new PairValue"))
+  }
+
+  test("qualified N comparisons lower under the explicit standard library import") {
+    val output = generateCurried("""From Stdlib Require Import NArith.
+      Definition same (left right : N) : bool := N.eqb left right.
+      Definition before (left right : N) : bool := N.ltb left right.
+      Definition through (left right : N) : bool := N.leb left right.""")
+    assert(output.contains("left == right"))
+    assert(output.contains("left < right"))
+    assert(output.contains("left <= right"))
+    assert(!output.contains("N.eqb"))
+  }
+
+  test("first-class N.to_nat preserves the exact natural representation") {
+    val output = generateCurried("""From Stdlib Require Import List NArith.
+      Definition convert (values : list N) : list nat := map N.to_nat values.""")
+    assert(output.contains("scala.of.coq.exact.ExactN.toNat"))
+    assert(!output.contains("N.to_nat"))
+    assert(!output.contains(".toLong"))
+    assert(!output.contains(".toInt"))
+  }
+
+  test("N names without the standard library import are not rewritten") {
+    val output = generateCurried("""Definition same (left right : N) : bool := N.eqb left right.
+      Definition convert (values : list N) := map N.to_nat values.""")
+    assert(output.contains("N.eqb"))
+    assert(output.contains("N.to_nat"))
   }
 
   test("optional Peano import omission is parsed explicitly") {
@@ -24,8 +210,7 @@ class ExactNumericCodegenTest extends FunSuite {
   test("exact numeric output can omit Peano import without changing generated definitions") {
     val source = "Definition add_nat (left right : nat) : nat := (left + right)%nat."
     val trees = CoqParser(source).get
-    val default = new ScalaOfCoq(trees, Currify, exactNumerics = true)
-      .createObjectFileCode("Example")
+    val default = new ScalaOfCoq(trees, Currify, exactNumerics = true).createObjectFileCode("Example")
     val minimal = new ScalaOfCoq(trees, Currify, exactNumerics = true,
       omitPeanoImport = true).createObjectFileCode("Example")
     assert(default.contains("import Nat._\n"))
@@ -37,6 +222,12 @@ class ExactNumericCodegenTest extends FunSuite {
     intercept[IllegalArgumentException] {
       new ScalaOfCoq(CoqParser("Definition zero : nat := 0.").get,
         Currify, omitPeanoImport = true)
+    }
+  }
+
+  test("CLI rejects failed source parsing rather than returning error text as generated code") {
+    intercept[IllegalArgumentException] {
+      scala.of.coq.Main.requireSuccessfulParse(CoqParser("Definition invalid := ."))
     }
   }
 
